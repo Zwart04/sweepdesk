@@ -19,7 +19,7 @@ class UITests(unittest.TestCase):
               b.decorate(b.App('OpenCode','opencode','1','Manual'),{}),
               b.App('Protected','protected','1','pip',readonly_reason='Externally managed')]
         with patch.object(ui.Window,'refresh'):
-            window=ui.Window(prefs=preferences.defaults())
+            window=ui.Window(prefs=dict(preferences.defaults(),language='en'))
         try:
             window.loaded((apps,[]),None)
             self.assertEqual(window.support_link.get_uri(),'https://tako.id/Zwart04')
@@ -38,7 +38,7 @@ class UITests(unittest.TestCase):
 
     def make_window(self):
         with patch.object(ui.Window,'refresh'):
-            window=ui.Window(prefs=preferences.defaults())
+            window=ui.Window(prefs=dict(preferences.defaults(),language='en'))
         apps=[b.decorate(b.App('curl','curl','1','APT',size=50),{}),
               b.App('Protected','protected','1','APT',essential=True,support=True),
               b.App('Example','example','1','pip',readonly_reason='Externally managed')]
@@ -103,6 +103,75 @@ class UITests(unittest.TestCase):
             window.apply_style()
             window.apply_density()
             self.assertFalse(window.dark)
+        finally:
+            window.destroy()
+
+    def test_search_keeps_description_matches_and_renders_description_safely(self):
+        window=self.make_window()
+        try:
+            apps=[b.App('Firefox ESR','firefox-esr','1','APT',description='Web browser'),
+                  b.App('libraw1394-11','libraw1394-11','1','APT',description='IEEE 1394 (FireWire) <bus> & library',support=True)]
+            window.loaded((apps,[]),None)
+            window.search.set_text('fire')
+            window.refilter()
+            self.assertEqual(len(window.filtered),2)
+            iterator=window.sort_model.get_iter_first()
+            window.render_software_name(window.name_column,window.name_renderer,window.sort_model,iterator)
+            markup=window.name_renderer.get_property('text')
+            self.assertIn('Web browser',markup)
+            iterator=window.sort_model.iter_next(iterator)
+            window.render_software_name(window.name_column,window.name_renderer,window.sort_model,iterator)
+            markup=window.name_renderer.get_property('text')
+            self.assertIn('FireWire',markup)
+            self.assertIn('<bus> & library',markup)
+        finally:
+            window.destroy()
+
+    def test_indonesian_switch_preserves_inventory_and_confirmation(self):
+        window=self.make_window()
+        replacement=None
+        try:
+            window.search.set_text('curl')
+            window.activity=[{'time':'12:00','app':'Example','result':'Completed','log':'fixture'}]
+            window.prefs['language']='id'
+            replacement=window.rebuild_language()
+            self.assertEqual(replacement.page_title.get_text(),'Perangkat Lunak Terpasang')
+            self.assertEqual(replacement.name_column.get_title(),'Nama')
+            self.assertEqual(replacement.search.get_placeholder_text(),'Cari perangkat lunak…')
+            self.assertEqual(replacement.search.get_text(),'curl')
+            self.assertEqual(len(replacement.apps),3)
+            self.assertEqual(len(replacement.activity),1)
+            settings=replacement.build_settings_dialog()
+            self.assertEqual(settings.get_title(),'Pengaturan')
+            self.assertEqual(settings.settings_controls['language'].get_active_id(),'id')
+            self.assertEqual(settings.settings_controls['theme'].get_active_id(),'dark')
+            settings.destroy()
+            plan=b.Plan(replacement.apps[0],removed=['curl'])
+            dialog=replacement.build_plan_dialog(plan)
+            self.assertFalse(dialog.confirm_button.get_sensitive())
+            self.assertIn('AKAN DIHAPUS',replacement.describe_plan(plan))
+            self.assertIn('curl',replacement.describe_plan(plan))
+            dialog.destroy()
+        finally:
+            if replacement: replacement.destroy()
+            else: window.destroy()
+            ui.i18n.configure('en')
+
+    def test_success_and_failure_are_distinct_and_do_not_execute_removal(self):
+        window=self.make_window()
+        try:
+            app=window.apps[0]
+            for error,expected,style in [(None,'Successfully removed','outcome-success'),('fixture failure','Removal incomplete','outcome-error'),('','Removal incomplete','outcome-error')]:
+                dialog=window.build_progress_dialog(app)
+                self.assertFalse(dialog.close_button.get_sensitive())
+                with patch.object(b,'execute') as execute:
+                    window.complete_progress(dialog,app,error)
+                    execute.assert_not_called()
+                self.assertEqual(dialog.outcome_heading.get_text(),expected)
+                self.assertTrue(dialog.outcome_banner.get_style_context().has_class(style))
+                self.assertTrue(dialog.close_button.get_sensitive())
+                self.assertIn(app.name,dialog.outcome_detail.get_text())
+                dialog.destroy()
         finally:
             window.destroy()
 

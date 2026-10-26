@@ -15,7 +15,7 @@
 
 ![SweepDesk in a macOS-inspired neutral dark theme; sample inventory](docs/screenshot.png)
 
-SweepDesk brings graphical apps and command-line tools into a familiar program list. Search by name or package ID, filter by installation source, inspect the uninstall plan, and choose whether to clean known user data. The dark interface uses neutral charcoal panels and a blue accent. A visible **♥ Support** pill opens the project's Tako page.
+SweepDesk brings graphical apps and command-line tools into a familiar program list. Search by name, package ID, or description, filter by installation source, inspect the uninstall plan, and choose whether to clean known user data. The dark interface uses neutral charcoal panels and a blue accent. A visible **♥ Support** pill opens the project's Tako page.
 
 ## Compatibility
 
@@ -36,11 +36,11 @@ The `.deb` is architecture-independent Python code: usable on amd64, arm64, and 
 ### Recommended: install the Debian package
 
 1. Open [Releases](https://github.com/Zwart04/sweepdesk/releases/latest).
-2. Download `sweepdesk_0.3.0_all.deb`.
+2. Download `sweepdesk_0.4.0_all.deb`.
 3. Double-click it in your software installer, or open a terminal in the download folder and run:
 
 ```bash
-sudo apt install ./sweepdesk_0.3.0_all.deb
+sudo apt install ./sweepdesk_0.4.0_all.deb
 ```
 
 APT installs the required Python, GTK, SVG, and authentication dependencies. Open **SweepDesk** from your application menu, or run `sweepdesk`. **Run the app as your normal user**, not with sudo; administrator authentication is requested when a system-package operation needs it.
@@ -61,7 +61,7 @@ sudo apt install python3 python3-gi gir1.2-gtk-3.0 librsvg2-common policykit-1
 
 Some newer distributions provide `pkexec` as its own package; if `policykit-1` has no candidate, install `pkexec` instead. Use your distribution's desktop polkit agent for password dialogs.
 
-Download and extract `sweepdesk-0.3.0.tar.gz` from Releases, or clone the repository:
+Download and extract `sweepdesk-0.4.0.tar.gz` from Releases, or clone the repository:
 
 ```bash
 git clone https://github.com/Zwart04/sweepdesk.git
@@ -90,17 +90,23 @@ The per-user uninstaller removes only the managed SweepDesk installation. It kee
 ## Using SweepDesk
 
 1. Let the local scan finish. Use the sidebar to select **All Software**, **Applications**, **Command Line**, **System Packages**, or an installation source.
-2. Search by app name or package ID. Click a column heading or use the sort selector to sort the list. The **View options** button adjusts system-package visibility, row density, and selection details.
+2. Search by app name, package ID, or description. Each row shows a short description below its name, so matches such as “fire” → “FireWire” are visible. Click a column heading or use the sort selector to sort the list. The **View options** button adjusts system-package visibility, row density, and selection details.
 3. Select an item to see its information card. Double-click it for full details, or **right-click** for details, installed files (APT), install folders where known, copying, and reviewed uninstall.
 4. Click **Review Uninstall…**, choose optional cleanup, then **Preview Removal**. Cleanup options start unchecked.
 5. Check the exact packages, known data locations, notes, and commands. Acknowledge the plan before clicking **Uninstall**. Protected/read-only items remain blocked in the context menu and inspector.
-6. Review the result. **More → Activity** keeps completed/interrupted operation logs for the current session. It does not persist the logs or upload them.
+6. Review the result. A green checkmark and **Successfully removed** identify a successful operation; an incomplete operation shows a distinct error panel and keeps its log. **More → Activity** keeps completed/interrupted operation logs for the current session. It does not persist the logs or upload them.
 
 **More (•••)** also offers inventory export, additional scan locations, scan status, shortcuts, and help. **Settings** is the sliders button in the compact title bar. **♥ Support** opens [Zwart04 on Tako](https://tako.id/Zwart04).
 
+### Languages
+
+Choose **Settings → Appearance → Language → Bahasa Indonesia / English / Follow system**, then **Save**. The interface updates immediately and keeps your current inventory, search, and session Activity. Language changes wait until any current operation finishes. System language follows the desktop locale and falls back to English. Package descriptions, package IDs, file paths, and output from external tools keep their original language.
+
+The [Indonesian website](https://zwart04.github.io/sweepdesk/id.html) and [Indonesian guide](README.id.md) are available alongside the English versions.
+
 ### Settings
 
-- **Appearance:** dark, light, or system theme; compact or comfortable rows; selection details; visibility of system packages and empty sources.
+- **Appearance:** English, Bahasa Indonesia, or system language; dark, light, or system theme; compact or comfortable rows; selection details; visibility of system packages and empty sources.
 - **Scanning:** scan on launch, remember added locations, and add/remove Python environment or manual-install folders.
 - **Sources:** enable or disable individual inventory providers. Turning a source off does not uninstall its software.
 - **About & Support:** app version, project links, and a dedicated support pill.

@@ -55,9 +55,16 @@ treeview header button:hover { background: @hover; }
 .dialog-content, .settings-page, viewport { background: @base; }
 .settings-stack, .settings-scroller, .settings-scroller viewport { background: @base; }
 .settings-page { padding: 24px; }
+.outcome-banner { padding: 14px; border-radius: 9px; border: 1px solid @border; background: @surface; }
+.outcome-symbol { font-size: 30px; font-weight: 700; min-width: 36px; }
+.outcome-success { border-color: @successborder; background: @successbg; }
+.outcome-success .section-title, .outcome-success .outcome-symbol { color: @successfg; }
+.outcome-error { border-color: @errorborder; background: @errorbg; }
+.outcome-error .section-title, .outcome-error .outcome-symbol { color: @errorfg; }
 .settings-scroller undershoot { background-image: none; }
 stacksidebar row { border-radius: 6px; margin: 2px 8px; padding: 8px; }
-stacksidebar row:selected { background: @navselected; }
+stacksidebar row:selected { background: @navselected; color: @fg; }
+stacksidebar row:selected label { color: @fg; }
 switch { min-height: 20px; min-width: 38px; }
 switch:checked { background: #0a84ff; border-color: #0a84ff; }
 switch slider { background: #ffffff; border-radius: 999px; border: 1px solid rgba(0,0,0,.14); min-height: 16px; min-width: 16px; }
@@ -76,12 +83,14 @@ infobar { background: @surface; color: @fg; }
 selection { background: #185db4; color: white; }
 '''
 
-DARK = {'base':'#1e1e20','chrome':'#29292c','fg':'#f2f2f5','secondary':'#b5b5bc',
+DARK = {'successborder':'#35694c','successbg':'#20382b','successfg':'#7bdaa0',
+        'errorborder':'#80444d','errorbg':'#40282e','errorfg':'#ff9ba8','base':'#1e1e20','chrome':'#29292c','fg':'#f2f2f5','secondary':'#b5b5bc',
         'muted':'#8d8d96','border':'#39393e','rowborder':'#2b2b30','button':'#36363a',
         'hover':'#3c3c41','disabled':'#66666f','surface':'#29292d','sidebar':'#252528',
         'navselected':'#404046','supportbg':'#f0c77f','supportborder':'#f6d79f',
         'supportfg':'#493315','supporthover':'#f8d69e'}
-LIGHT = {'base':'#ffffff','chrome':'#f0f0f2','fg':'#202024','secondary':'#62626b',
+LIGHT = {'successborder':'#a1d1b0','successbg':'#edf8f0','successfg':'#176d37',
+         'errorborder':'#e3a4ac','errorbg':'#fff0f2','errorfg':'#b4243a','base':'#ffffff','chrome':'#f0f0f2','fg':'#202024','secondary':'#62626b',
          'muted':'#80808a','border':'#dcdce1','rowborder':'#ededf1','button':'#ffffff',
          'hover':'#e8e8ed','disabled':'#a8a8b0','surface':'#f6f6f8','sidebar':'#efeff2',
          'navselected':'#dcdce4','supportbg':'#f8dfac','supportborder':'#ebca8c',

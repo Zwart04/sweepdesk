@@ -16,7 +16,8 @@ OUT.mkdir(parents=True,exist_ok=True)
 apps=[b.decorate(b.App('Command Code','command-code','1.88.0','npm',scope='User installation'),{}),
       b.decorate(b.App('curl','curl','8.14.1','APT',description='Command-line transfer tool',size=523264),{}),
       b.decorate(b.App('OpenCode','opencode','1.4.0','Manual',description='Native CLI installation',scope='User installation'),{}),
-      b.App('System Library','lib-example','1.0','APT',support=True)]
+      b.App('Firefox ESR','firefox-esr','1.0','APT',description='Web browser'),
+      b.App('libraw1394-11','libraw1394-11','2.1.2','APT',support=True,description='Library for IEEE 1394 bus access (FireWire)')]
 with patch.object(ui.Window,'refresh'):
     window=ui.Window(prefs=preferences.defaults())
 window.loaded((apps,[]),None)
@@ -37,6 +38,15 @@ def main_view():
     capture(window,'main-dark')
     dialog=window.build_settings_dialog()
     return dialog,'settings'
+def success():
+    dialog=window.build_progress_dialog(apps[0]);window.complete_progress(dialog,apps[0],None)
+    return dialog,'success'
+def failure():
+    dialog=window.build_progress_dialog(apps[0]);window.complete_progress(dialog,apps[0],'Sample failure')
+    return dialog,'failure'
+def search():
+    window.search.set_text('fire');window.refilter()
+    return window,'search-description'
 def details(): return window.build_details_dialog(apps[2]),'details'
 def settings_page(name):
     dialog=window.build_settings_dialog()
@@ -51,6 +61,15 @@ def context():
 def options(): return window.build_options_dialog(apps[1]),'options'
 def preview(): return window.build_plan_dialog(plan),'review'
 def activity(): return window.build_activity_dialog(),'activity'
+def indonesian():
+    window.prefs['language']='id';window.prefs['theme']='dark';window.apply_style();ui.i18n.configure('id')
+    dialog=window.build_settings_dialog()
+    return dialog,'settings-id'
+def indonesian_main():
+    global window
+    window=window.rebuild_language()
+    window.search.set_text('');window.refilter()
+    return window,'main-id'
 def empty():
     window.search.set_text('no-such-application');window.refilter()
     return window,'empty'
@@ -58,7 +77,7 @@ def light():
     window.search.set_text('');window.refilter()
     window.prefs['theme']='light';window.apply_style();window.apply_density();window.populate_sidebar()
     return window,'main-light'
-steps=[main_view,lambda:settings_page('Scanning'),lambda:settings_page('Sources'),lambda:settings_page('About & Support'),details,options,preview,activity,context,empty,light]
+steps=[main_view,lambda:settings_page('Scanning'),lambda:settings_page('Sources'),lambda:settings_page('About & Support'),details,options,preview,activity,context,search,empty,light,indonesian,indonesian_main,success,failure]
 index=0
 def advance():
     global index

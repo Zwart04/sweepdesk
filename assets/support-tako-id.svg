@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="308" height="54" viewBox="0 0 308 54" role="img" aria-label="Dukung Zwart04 di Tako">
+ <defs><linearGradient id="gold" x2="0" y2="1"><stop stop-color="#ffe6b5"/><stop offset="1" stop-color="#f0c77f"/></linearGradient></defs>
+ <rect x="1" y="1" width="306" height="52" rx="26" fill="url(#gold)" stroke="#f6d79f" stroke-width="2"/>
+ <path d="M29 21c-6-8-18 2 0 14 18-12 6-22 0-14z" fill="#66431a"/>
+ <text x="52" y="33" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#493315">Dukung Zwart04 di Tako ↗</text>
+</svg>

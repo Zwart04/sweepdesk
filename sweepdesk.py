@@ -19,8 +19,10 @@ import backend
 import preferences
 import styles
 import ui_icons
+import i18n
+from i18n import tr
 
-VERSION = '0.3.0'
+VERSION = '0.4.0'
 APP_ID = 'io.github.Zwart04.SweepDesk'
 SUPPORT_URL = 'https://tako.id/Zwart04'
 REPOSITORY_URL = 'https://github.com/Zwart04/sweepdesk'
@@ -41,7 +43,7 @@ def system_prefers_dark():
 
 
 def label(text='', cls=None, wrap=False, selectable=False):
-    widget = Gtk.Label(label=text, xalign=0)
+    widget = Gtk.Label(label=tr(text), xalign=0)
     widget.set_line_wrap(wrap)
     if wrap:
         widget.set_max_width_chars(62)
@@ -105,7 +107,7 @@ def text_box(text='', height=200):
 
 
 def dialog_shell(parent, title, width=600, height=400, buttons=()):
-    dialog = Gtk.Dialog(title=title, transient_for=parent, modal=True, use_header_bar=True)
+    dialog = Gtk.Dialog(title=tr(title), transient_for=parent, modal=True, use_header_bar=True)
     dialog.set_default_size(width, height)
     dialog.set_destroy_with_parent(True)
     dialog.get_style_context().add_class('sweep-dialog')
@@ -114,7 +116,7 @@ def dialog_shell(parent, title, width=600, height=400, buttons=()):
     dialog.get_content_area().get_style_context().add_class('dialog-content')
     dialog.set_default_response(Gtk.ResponseType.NONE)
     for text, response, cls in buttons:
-        button = dialog.add_button(text, response)
+        button = dialog.add_button(tr(text), response)
         if cls:
             button.get_style_context().add_class('primary-action' if cls=='suggested-action' else cls)
     if any(response==Gtk.ResponseType.OK and cls=='suggested-action' for _,response,cls in buttons):
@@ -126,13 +128,13 @@ def icon_button(name, tooltip, callback):
     button = Gtk.Button()
     button.add(ui_icons.image(name))
     button.get_style_context().add_class('flat')
-    button.set_tooltip_text(tooltip)
+    button.set_tooltip_text(tr(tooltip))
     button.connect('clicked', callback)
     return button
 
 
 class Window(Gtk.Window):
-    def __init__(self, screenshot=None, extra_python=(), extra_manual=(), application=None, prefs=None, prefs_file=None):
+    def __init__(self, screenshot=None, extra_python=(), extra_manual=(), application=None, prefs=None, prefs_file=None, initial_inventory=None):
         super().__init__(title='SweepDesk', application=application)
         self.set_default_size(1120, 720)
         self.set_size_request(850, 540)
@@ -144,6 +146,7 @@ class Window(Gtk.Window):
         self.busy = self.mutating = self.pending_refresh = False
         self.screenshot, self.prefs_file = screenshot, prefs_file
         self.prefs = preferences.validate(prefs) if prefs is not None else preferences.load(prefs_file)
+        i18n.configure(self.prefs['language'])
         remembered_python = self.prefs['python_folders'] if self.prefs['remember_folders'] else []
         remembered_manual = self.prefs['manual_folders'] if self.prefs['remember_folders'] else []
         self.extra_python = tuple(dict.fromkeys([*remembered_python, *extra_python]))
@@ -187,18 +190,18 @@ class Window(Gtk.Window):
         self.page_subtitle = label('Applications and command-line tools', 'subtitle')
         main.pack_start(self.page_subtitle, False, False, 0)
         controls = Gtk.Box(spacing=8)
-        self.search = Gtk.SearchEntry(placeholder_text='Search software…')
+        self.search = Gtk.SearchEntry(placeholder_text=tr('Search software…'))
         self.search.connect('search-changed', lambda _: self.refilter())
         controls.pack_start(self.search, True, True, 0)
         self.sort = Gtk.ComboBoxText()
         for name in ('Name', 'Source', 'Size'):
-            self.sort.append_text('Sort: '+name)
+            self.sort.append_text(tr('Sort: {name}',name=tr(name)))
         self.sort.set_active(0)
         self.sort.connect('changed', self.sort_changed)
         controls.pack_end(self.sort, False, False, 0)
         self.view_button = Gtk.MenuButton()
         self.view_button.add(ui_icons.image('view-list-symbolic'))
-        self.view_button.set_tooltip_text('View options')
+        self.view_button.set_tooltip_text(tr('View options'))
         self.view_button.connect('toggled', self.view_menu)
         controls.pack_end(self.view_button, False, False, 0)
         main.pack_start(controls, False, False, 0)
@@ -224,21 +227,21 @@ class Window(Gtk.Window):
         self.tree.connect('row-activated', lambda *_: self.details())
         self.tree.connect('key-press-event', self.tree_key)
         # One header owns both renderers: there is no empty icon-header column.
-        self.name_column = Gtk.TreeViewColumn('Name')
+        self.name_column = Gtk.TreeViewColumn(tr('Name'))
         self.icon_renderer = Gtk.CellRendererPixbuf()
         self.icon_renderer.set_property('xpad', 10)
         self.name_renderer = Gtk.CellRendererText(ellipsize=Pango.EllipsizeMode.END, xpad=3)
         self.name_column.pack_start(self.icon_renderer, False)
         self.name_column.add_attribute(self.icon_renderer, 'pixbuf', 0)
         self.name_column.pack_start(self.name_renderer, True)
-        self.name_column.add_attribute(self.name_renderer, 'text', 1)
+        self.name_column.set_cell_data_func(self.name_renderer,self.render_software_name)
         self.name_column.set_expand(True)
         self.name_column.set_min_width(200)
         self.name_column.set_sort_column_id(1)
         self.tree.append_column(self.name_column)
         for name, column, width in [('Version', 2, 115), ('Source', 3, 90), ('Size', 4, 85)]:
             renderer = Gtk.CellRendererText(ellipsize=Pango.EllipsizeMode.END, xpad=9)
-            view_column = Gtk.TreeViewColumn(name, renderer, text=column)
+            view_column = Gtk.TreeViewColumn(tr(name), renderer, text=column)
             view_column.set_min_width(width)
             view_column.set_resizable(True)
             if column in (3, 4):
@@ -257,7 +260,7 @@ class Window(Gtk.Window):
         self.empty_description.set_max_width_chars(45)
         empty.pack_start(self.empty_title, False, False, 0)
         empty.pack_start(self.empty_description, False, False, 0)
-        clear = Gtk.Button(label='Clear filters')
+        clear = Gtk.Button(label=tr('Clear filters'))
         clear.connect('clicked', lambda _: self.clear_filters())
         empty.pack_start(clear, False, False, 5)
         self.list_stack.add_named(empty, 'empty')
@@ -279,14 +282,16 @@ class Window(Gtk.Window):
         self.apply_density()
         self.show_all()
         self.inspector.set_reveal_child(False)
-        if self.prefs['scan_on_start']:
+        if initial_inventory is not None:
+            self.loaded(initial_inventory,None)
+        elif self.prefs['scan_on_start']:
             self.refresh()
         else:
             self.refilter()
-            self.status.set_text('Automatic scan is off. Click Refresh to scan your software.')
+            self.status.set_text(tr('Automatic scan is off. Click Refresh to scan your software.'))
 
     def build_header(self):
-        header = Gtk.HeaderBar(title='SweepDesk', show_close_button=True)
+        header = Gtk.HeaderBar(title=tr('SweepDesk'), show_close_button=True)
         header.get_style_context().add_class('compact-toolbar')
         header.set_has_subtitle(False)
         self.set_titlebar(header)
@@ -294,16 +299,16 @@ class Window(Gtk.Window):
         header.pack_start(Gtk.Image.new_from_pixbuf(icon_pixbuf(str(ROOT/'assets/sweepdesk.svg'), 22, self.dark)))
         self.spinner = Gtk.Spinner()
         header.pack_start(self.spinner)
-        self.support_link = Gtk.LinkButton.new_with_label(SUPPORT_URL, '♥︎  Support')
+        self.support_link = Gtk.LinkButton.new_with_label(SUPPORT_URL,tr('♥︎  Support'))
         self.support_link.get_style_context().add_class('support-pill')
-        self.support_link.set_tooltip_text('Support Zwart04 on Tako — opens your browser')
+        self.support_link.set_tooltip_text(tr('Support Zwart04 on Tako — opens your browser'))
         header.pack_end(self.support_link)
         self.settings_button = icon_button('emblem-system-symbolic', 'Settings (Ctrl+,)', lambda _: self.settings())
         header.pack_end(self.settings_button)
         more = Gtk.MenuButton()
         more.get_style_context().add_class('flat')
         more.add(ui_icons.image('open-menu-symbolic'))
-        more.set_tooltip_text('More actions')
+        more.set_tooltip_text(tr('More actions'))
         more.set_popup(self.build_more_menu())
         header.pack_end(more)
         self.refresh_button = icon_button('view-refresh-symbolic', 'Refresh software (Ctrl+R)', lambda _: self.refresh())
@@ -325,11 +330,11 @@ class Window(Gtk.Window):
             text.pack_start(widget, False, False, 0)
         card.pack_start(text, True, True, 0)
         actions = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, valign=Gtk.Align.CENTER)
-        self.remove_button = Gtk.Button(label='Review Uninstall…')
+        self.remove_button = Gtk.Button(label=tr('Review Uninstall…'))
         self.remove_button.get_style_context().add_class('suggested-action')
         self.remove_button.connect('clicked', self.review_options)
         actions.pack_start(self.remove_button, False, False, 0)
-        details = Gtk.Button(label='Show Details')
+        details = Gtk.Button(label=tr('Show Details'))
         details.get_style_context().add_class('flat')
         details.connect('clicked', lambda _: self.details())
         actions.pack_start(details, False, False, 0)
@@ -411,7 +416,7 @@ class Window(Gtk.Window):
             self.category,self.source_id='all',None
             chosen=next(r for r in self.nav.get_children() if hasattr(r,'filter_kind'))
             if hasattr(self,'page_title'):
-                self.page_title.set_text('Installed Software')
+                self.page_title.set_text(tr('Installed Software'))
         self.nav.select_row(chosen)
         self.nav_updating = False
 
@@ -420,7 +425,7 @@ class Window(Gtk.Window):
             return
         self.category = row.filter_value if row.filter_kind == 'category' else 'all'
         self.source_id = row.filter_value if row.filter_kind == 'source' else None
-        self.page_title.set_text(row.filter_title if self.category != 'all' or self.source_id else 'Installed Software')
+        self.page_title.set_text(tr(row.filter_title if self.category != 'all' or self.source_id else 'Installed Software'))
         self.refilter()
 
     def visible(self, model, it, *_):
@@ -438,6 +443,14 @@ class Window(Gtk.Window):
             return False
         return not query or query in (app.name+' '+app.package+' '+app.description).casefold()
 
+    def render_software_name(self, column, renderer, model, iterator, data=None):
+        app = self.apps[model[iterator][5]]
+        name = GLib.markup_escape_text(app.name)
+        description = ' '.join((app.description or app.readonly_reason or app.package).split())
+        description = GLib.markup_escape_text(description[:220])
+        # Both lines inherit selection colours; descriptions remain readable when selected.
+        renderer.set_property('markup',name+'\n<span size="small" alpha="78%">'+description+'</span>')
+
     def compare_rows(self, model, first, second, column):
         a, b = self.apps[model[first][5]], self.apps[model[second][5]]
         left, right = ((a.size,b.size) if column == 4 else ((a.source.casefold(),a.name.casefold()),(b.source.casefold(),b.name.casefold())) if column == 3 else (a.name.casefold(),b.name.casefold()))
@@ -452,17 +465,17 @@ class Window(Gtk.Window):
     def refilter(self):
         self.filtered.refilter()
         count = len(self.filtered)
-        self.counter.set_text(f'{count:,} '+('item' if count==1 else 'items'))
-        self.page_subtitle.set_text(f'{len(self.apps):,} installed packages · {len({a.source for a in self.apps})} sources' if self.apps else 'Applications and command-line tools')
+        self.counter.set_text(tr('{count} item' if count==1 else '{count} items',count=f'{count:,}'))
+        self.page_subtitle.set_text(tr('{count} installed packages · {sources} sources',count=f'{len(self.apps):,}',sources=len({a.source for a in self.apps})) if self.apps else tr('Applications and command-line tools'))
         self.list_stack.set_visible_child_name('list' if count else 'empty')
-        self.empty_title.set_text('No matches' if self.apps else 'Your software library')
-        self.empty_description.set_text('Try a different search or clear your filters.' if self.apps else 'Refresh to find installed apps and command-line tools.')
+        self.empty_title.set_text(tr('No matches' if self.apps else 'Your software library'))
+        self.empty_description.set_text(tr('Try a different search or clear your filters.' if self.apps else 'Refresh to find installed apps and command-line tools.'))
         self.selected(self.tree.get_selection())
 
     def clear_filters(self):
         self.search.set_text('')
         self.category, self.source_id = 'all', None
-        self.page_title.set_text('Installed Software')
+        self.page_title.set_text(tr('Installed Software'))
         self.populate_sidebar()
         self.refilter()
 
@@ -480,10 +493,10 @@ class Window(Gtk.Window):
         if not app:
             return
         self.detail_icon.set_from_pixbuf(icon_pixbuf(app.icon, 40, self.dark))
-        self.detail_title.set_text(app.name)
-        self.detail_desc.set_text(app.readonly_reason or app.description or 'Installed software')
-        self.detail_id.set_text(app.package+' · '+app.source+' · '+(app.version or 'Version unknown'))
-        self.remove_button.set_tooltip_text(app.readonly_reason or ('Protected system package' if app.essential else 'Review the complete removal plan'))
+        self.detail_title.set_text(tr(app.name))
+        self.detail_desc.set_text(tr(app.readonly_reason or app.description or 'Installed software'))
+        self.detail_id.set_text(tr(app.package+' · '+app.source+' · '+(app.version or 'Version unknown')))
+        self.remove_button.set_tooltip_text(tr(app.readonly_reason or ('Protected system package' if app.essential else 'Review the complete removal plan')))
 
     def async_work(self, function, done):
         self.busy = True
@@ -511,17 +524,17 @@ class Window(Gtk.Window):
     def refresh(self):
         if self.busy:
             return False
-        self.status.set_text('Scanning your software…')
-        self.counter.set_text('Scanning…')
+        self.status.set_text(tr('Scanning your software…'))
+        self.counter.set_text(tr('Scanning…'))
         self.banner.hide()
         self.async_work(lambda: backend.scan(self.extra_python,self.extra_manual,self.prefs['enabled_sources']), self.loaded)
         return False
 
     def loaded(self, result, error):
         if error:
-            self.banner_text.set_text('Scan failed: '+error)
+            self.banner_text.set_text(tr('Scan failed: {error}',error=error))
             self.banner.show_all()
-            self.status.set_text('Scan incomplete. Refresh to try again.')
+            self.status.set_text(tr('Scan incomplete. Refresh to try again.'))
             return
         self.store.clear()
         self.apps, self.warnings = result
@@ -530,15 +543,15 @@ class Window(Gtk.Window):
         self.populate_sidebar()
         self.refilter()
         self.last_scan = datetime.datetime.now().strftime('%H:%M')
-        self.status.set_text('Updated '+self.last_scan+' · Package sizes exclude user data')
+        self.status.set_text(tr('Updated {time} · Package sizes exclude user data',time=self.last_scan))
         if self.warnings:
-            self.banner_text.set_text(f'{len(self.warnings)} source(s) could not be scanned. Open Scan Status for details.')
+            self.banner_text.set_text(tr('{count} source(s) could not be scanned. Open Scan Status for details.',count=len(self.warnings)))
             self.banner.show_all()
         if self.screenshot:
             GLib.timeout_add(600,self.save_screenshot)
 
     def menu_item(self, menu, title, callback, enabled=True):
-        item = Gtk.MenuItem(label=title)
+        item = Gtk.MenuItem(label=tr(title))
         item.set_sensitive(enabled)
         item.connect('activate',lambda _:callback())
         menu.append(item)
@@ -555,7 +568,7 @@ class Window(Gtk.Window):
         menu.append(Gtk.SeparatorMenuItem())
         self.menu_item(menu,'Settings…',lambda:self.settings())
         self.menu_item(menu,'Keyboard Shortcuts',self.shortcuts)
-        self.menu_item(menu,'Online Guide',lambda:self.open_uri(REPOSITORY_URL+'#readme'))
+        self.menu_item(menu,'Online Guide',lambda:self.open_uri(REPOSITORY_URL+('/blob/main/README.id.md' if i18n.resolve_language(self.prefs['language'])=='id' else '#readme')))
         self.menu_item(menu,'About SweepDesk',lambda:self.about(None))
         menu.append(Gtk.SeparatorMenuItem())
         self.menu_item(menu,'Quit SweepDesk',self.on_close)
@@ -615,8 +628,8 @@ class Window(Gtk.Window):
         return False
 
     def copy_text(self, text):
-        Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(text,-1)
-        self.status.set_text('Copied to clipboard')
+        Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD).set_text(tr(text),-1)
+        self.status.set_text(tr('Copied to clipboard'))
 
     def open_uri(self, uri):
         try:
@@ -657,7 +670,7 @@ class Window(Gtk.Window):
         if not app or app.source != 'APT' or self.busy:
             return
         self.async_work(lambda:backend.run(['/usr/bin/dpkg-query','-L',app.package]),
-                        lambda value,error:self.show_text('Installed Files · '+app.name,error or value))
+                        lambda value,error:self.show_text(tr('Installed Files · {name}',name=app.name),error or value))
 
     def build_details_dialog(self, app):
         dialog = dialog_shell(self,'Software Details',590,480,[('Close',Gtk.ResponseType.CLOSE,None)])
@@ -691,7 +704,7 @@ class Window(Gtk.Window):
             body.pack_start(label('Known user-data locations','caption'),False,False,0)
             scroll,_ = text_box('\n'.join(locations),90)
             body.pack_start(scroll,True,True,0)
-        copy = Gtk.Button(label='Copy Package ID')
+        copy = Gtk.Button(label=tr('Copy Package ID'))
         copy.connect('clicked',lambda _:self.copy_text(app.package))
         body.pack_end(copy,False,False,0)
         return dialog
@@ -728,13 +741,13 @@ class Window(Gtk.Window):
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=9)
         content.set_border_width(14)
         for title,key in [('Show system packages','show_system'),('Show selection details','show_details')]:
-            check = Gtk.CheckButton(label=title,active=self.prefs[key])
+            check = Gtk.CheckButton(label=tr(title),active=self.prefs[key])
             check.connect('toggled',lambda widget,k=key:self.set_preference(k,widget.get_active()))
             content.pack_start(check,False,False,0)
         content.pack_start(label('Row density','caption'),False,False,0)
         density = Gtk.ComboBoxText()
         for value in ('Compact','Comfortable'):
-            density.append_text(value)
+            density.append_text(tr(value))
         density.set_active(0 if self.prefs['density']=='compact' else 1)
         density.connect('changed',lambda widget:self.set_preference('density','compact' if widget.get_active()==0 else 'comfortable'))
         content.pack_start(density,False,False,0)
@@ -788,7 +801,7 @@ class Window(Gtk.Window):
             text.set_max_width_chars(48)
             box.pack_start(text,False,False,0)
             scroll.add(box)
-            stack.add_titled(scroll,title,title)
+            stack.add_titled(scroll,title,tr(title))
             return box
         def row(box,title,description,widget):
             line = Gtk.Box(spacing=16)
@@ -807,11 +820,18 @@ class Window(Gtk.Window):
             controls[key] = widget
             row(box,title,description,widget)
         appearance = page('Appearance','A familiar, quiet workspace with native desktop controls.')
+        language = Gtk.ComboBoxText()
+        for key,title in [('system','Follow system'),('id','Bahasa Indonesia'),('en','English')]:
+            language.append(key,tr(title))
+        language.set_active_id(self.prefs['language'])
+        language.set_sensitive(not self.busy)
+        controls['language'] = language
+        row(appearance,'Language','Finish the current operation before changing language.' if self.busy else 'Changes apply immediately after saving.',language)
         for key,title,values in [('theme','Appearance',('Dark','Light','System')),('density','Row density',('Compact','Comfortable'))]:
             combo = Gtk.ComboBoxText()
             for value in values:
-                combo.append_text(value)
-            combo.set_active(tuple(v.lower() for v in values).index(self.prefs[key]))
+                combo.append(value.lower(),tr(value))
+            combo.set_active_id(self.prefs[key])
             controls[key] = combo
             row(appearance,title,'',combo)
         toggle(appearance,'show_details','Selection details','Show an information card below the software list.')
@@ -831,7 +851,7 @@ class Window(Gtk.Window):
                     line = Gtk.Box(spacing=6)
                     text = label(value,'caption')
                     text.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
-                    text.set_tooltip_text(value)
+                    text.set_tooltip_text(tr(value))
                     line.pack_start(text,True,True,0)
                     remove = icon_button('list-remove-symbolic','Remove scan location',lambda _,v=value:(folders[key].remove(v),rebuild()))
                     line.pack_end(remove,False,False,0)
@@ -846,7 +866,7 @@ class Window(Gtk.Window):
                     elif value not in folders[key]:
                         folders[key].append(value)
                         rebuild()
-            add_button = Gtk.Button(label='Add Environment…' if python else 'Add Folder…')
+            add_button = Gtk.Button(label=tr('Add Environment…' if python else 'Add Folder…'))
             add_button.connect('clicked',add)
             scanning.pack_start(add_button,False,False,0)
             rebuild()
@@ -859,16 +879,16 @@ class Window(Gtk.Window):
             switch = Gtk.Switch(active=source in self.prefs['enabled_sources'])
             source_controls[source] = switch
             row(source_page,'APT / DEB' if source=='APT' else source,'',switch)
-        about = page('About & Support','SweepDesk '+VERSION+' · Free and open source, made by Zwart04.')
+        about = page('About & Support','SweepDesk '+VERSION+' · '+tr('Free and open source, made by Zwart04.'))
         logo = Gtk.Image.new_from_pixbuf(icon_pixbuf(str(ROOT/'assets/sweepdesk.svg'),80,self.dark))
         about.pack_start(logo,False,False,4)
         for text in ('For Debian, Ubuntu, and compatible derivatives.','Removal always requires a reviewed plan. Known user data goes to Trash; shared dependencies and uncertain files are kept.'):
             about.pack_start(label(text,'subtitle',True),False,False,0)
-        support = Gtk.LinkButton.new_with_label(SUPPORT_URL,'♥︎  Support Zwart04 on Tako')
+        support = Gtk.LinkButton.new_with_label(SUPPORT_URL,tr('♥︎  Support Zwart04 on Tako'))
         support.set_halign(Gtk.Align.CENTER)
         support.get_style_context().add_class('support-pill')
         about.pack_start(support,False,False,0)
-        about.pack_start(Gtk.LinkButton.new_with_label(REPOSITORY_URL,'Source code and documentation ↗'),False,False,0)
+        about.pack_start(Gtk.LinkButton.new_with_label(REPOSITORY_URL,tr('Source code and documentation ↗')),False,False,0)
         dialog.settings_controls, dialog.source_controls, dialog.scan_folders = controls, source_controls, folders
         dialog.settings_stack=stack
         return dialog
@@ -877,29 +897,55 @@ class Window(Gtk.Window):
         dialog = self.build_settings_dialog()
         dialog.show_all()
         response = dialog.run()
+        language_changed = False
         if response == Gtk.ResponseType.OK:
+            old_language = self.prefs['language']
             old_sources = list(self.prefs['enabled_sources'])
             old_folders = (self.extra_python,self.extra_manual)
             for key,widget in dialog.settings_controls.items():
-                self.prefs[key] = widget.get_active_text().lower() if isinstance(widget,Gtk.ComboBoxText) else widget.get_active()
+                self.prefs[key] = widget.get_active_id() if isinstance(widget,Gtk.ComboBoxText) else widget.get_active()
             self.prefs['enabled_sources'] = [s for s,w in dialog.source_controls.items() if w.get_active()]
             self.extra_python = tuple(dialog.scan_folders['python_folders'])
             self.extra_manual = tuple(dialog.scan_folders['manual_folders'])
+            language_changed = old_language != self.prefs['language']
             self.persist()
             self.apply_style()
             self.apply_density()
             self.populate_sidebar()
             self.refilter()
-            if old_sources != self.prefs['enabled_sources'] or old_folders != (self.extra_python,self.extra_manual):
+            if not language_changed and (old_sources != self.prefs['enabled_sources'] or old_folders != (self.extra_python,self.extra_manual)):
                 if self.busy:
                     self.pending_refresh = True
                 else:
                     self.refresh()
         dialog.destroy()
+        if language_changed:
+            replacement = self.rebuild_language()
+            if old_sources != self.prefs['enabled_sources'] or old_folders != (self.extra_python,self.extra_manual):
+                replacement.refresh()
+
+    def rebuild_language(self):
+        application = self.get_application()
+        replacement = Window(extra_python=self.extra_python,extra_manual=self.extra_manual,
+                             application=application,prefs=self.prefs,prefs_file=self.prefs_file,
+                             initial_inventory=(self.apps,self.warnings))
+        replacement.activity = self.activity
+        replacement.category,replacement.source_id = self.category,self.source_id
+        replacement.populate_sidebar()
+        selected = replacement.nav.get_selected_row()
+        if selected:
+            replacement.page_title.set_text(tr(selected.filter_title if replacement.category!='all' or replacement.source_id else 'Installed Software'))
+        replacement.search.set_text(self.search.get_text())
+        replacement.refilter()
+        if application:
+            application.main_window = replacement
+        replacement.present()
+        self.destroy()
+        return replacement
 
     def choose_folder(self, title, parent=None):
-        dialog = Gtk.FileChooserDialog(title=title,transient_for=parent or self,action=Gtk.FileChooserAction.SELECT_FOLDER)
-        dialog.add_buttons('Cancel',Gtk.ResponseType.CANCEL,'Choose Folder',Gtk.ResponseType.OK)
+        dialog = Gtk.FileChooserDialog(title=tr(title),transient_for=parent or self,action=Gtk.FileChooserAction.SELECT_FOLDER)
+        dialog.add_buttons(tr('Cancel'),Gtk.ResponseType.CANCEL,tr('Choose Folder'),Gtk.ResponseType.OK)
         response = dialog.run()
         path = dialog.get_filename() if response == Gtk.ResponseType.OK else None
         dialog.destroy()
@@ -939,13 +985,13 @@ class Window(Gtk.Window):
         title.pack_start(label(app.package+' · '+app.source,'caption'),False,False,0)
         hero.pack_start(title,True,True,0)
         body.pack_start(hero,False,False,0)
-        family = Gtk.CheckButton(label='Remove the entire LibreOffice suite')
+        family = Gtk.CheckButton(label=tr('Remove the entire LibreOffice suite'))
         if app.package.startswith('libreoffice') and app.source=='APT':
             body.pack_start(family,False,False,0)
-        deps = Gtk.CheckButton(label='Include newly unused dependencies')
+        deps = Gtk.CheckButton(label=tr('Include newly unused dependencies'))
         deps.set_sensitive(app.source in ('APT','pip'))
         body.pack_start(deps,False,False,0)
-        cleanup = Gtk.CheckButton(label='Move known user data and settings to Trash')
+        cleanup = Gtk.CheckButton(label=tr('Move known user data and settings to Trash'))
         cleanup.set_sensitive(bool(backend.data_paths(app)))
         body.pack_start(cleanup,False,False,0)
         body.pack_start(label('Nothing changes yet. The next screen lists every package and known data location for your review.','subtitle',True),False,False,0)
@@ -964,7 +1010,7 @@ class Window(Gtk.Window):
         options = tuple(w.get_active() for w in dialog.option_controls)
         dialog.destroy()
         if response == Gtk.ResponseType.OK:
-            self.status.set_text('Preparing a removal preview…')
+            self.status.set_text(tr('Preparing a removal preview…'))
             self.async_work(lambda:backend.make_plan(app,*options),self.show_plan)
 
     def build_plan_dialog(self, plan):
@@ -979,20 +1025,34 @@ class Window(Gtk.Window):
         info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=5)
         info.pack_start(label(plan.app.name,'section-title'),False,False,0)
         total=len(plan.removed)
-        summary=f'{total} '+('item' if total==1 else 'items')+' to remove'
+        summary=tr('{count} items to remove',count=total)
         if plan.extra:
-            summary+=f' · {len(plan.extra)} extra '+('dependency' if len(plan.extra)==1 else 'dependencies')
+            summary+=tr(' · {count} extra dependencies',count=len(plan.extra))
         if plan.data:
-            summary+=f' · {len(plan.data)} data '+('location' if len(plan.data)==1 else 'locations')
+            summary+=tr(' · {count} data locations',count=len(plan.data))
         info.pack_start(label(summary,'subtitle'),False,False,0)
         hero.pack_start(info,True,True,0)
         body.pack_start(hero,False,False,0)
-        body.pack_start(text_box(backend.describe_plan(plan),280)[0],True,True,0)
-        acknowledgement = Gtk.CheckButton(label='I reviewed the packages and data locations above')
+        body.pack_start(text_box(self.describe_plan(plan),280)[0],True,True,0)
+        acknowledgement = Gtk.CheckButton(label=tr('I reviewed the packages and data locations above'))
         acknowledgement.connect('toggled',lambda widget:confirm.set_sensitive(widget.get_active()))
         body.pack_start(acknowledgement,False,False,0)
         dialog.confirm_button, dialog.acknowledgement = confirm, acknowledgement
         return dialog
+
+    def describe_plan(self, plan):
+        lines = [tr('WILL BE REMOVED ({count})',count=len(plan.removed)),*plan.removed]
+        if plan.extra:
+            lines += ['',tr('NEWLY UNUSED DEPENDENCIES ({count})',count=len(plan.extra)),*plan.extra]
+        if plan.files:
+            lines += ['',tr('INSTALLATION FILES → TRASH'),*plan.files]
+        if plan.data:
+            lines += ['',tr('USER DATA → TRASH'),*plan.data]
+        if plan.notes:
+            lines += ['',tr('NOTES'),*[tr(note) for note in plan.notes]]
+        import shlex
+        lines += ['',tr('COMMANDS'),*[shlex.join(c) for c in plan.commands]]
+        return '\n'.join(lines)
 
     def show_plan(self, plan, error):
         if error:
@@ -1001,20 +1061,55 @@ class Window(Gtk.Window):
         if self.run_dialog(self.build_plan_dialog(plan)) == Gtk.ResponseType.OK:
             self.perform(plan)
         else:
-            self.status.set_text('Preview closed · Nothing changed')
+            self.status.set_text(tr('Preview closed · Nothing changed'))
 
-    def perform(self, plan):
-        self.mutating = True
-        dialog = dialog_shell(self,'Removal Progress',720,480,[('Close',Gtk.ResponseType.CLOSE,None)])
-        close = dialog.get_widget_for_response(Gtk.ResponseType.CLOSE)
-        close.set_sensitive(False)
+    def build_progress_dialog(self, app):
+        dialog = dialog_shell(self,'Removal Progress',720,500,[('Close',Gtk.ResponseType.CLOSE,None)])
+        dialog.close_button = dialog.get_widget_for_response(Gtk.ResponseType.CLOSE)
+        dialog.close_button.set_sensitive(False)
         dialog.connect('delete-event',lambda *_:self.mutating)
         body = dialog.get_content_area()
         body.set_border_width(18)
-        heading = label('Uninstalling '+plan.app.name+'…','section-title')
-        body.pack_start(heading,False,False,8)
-        scroll,view = text_box('',280)
+        body.set_spacing(14)
+        banner = Gtk.Box(spacing=12)
+        banner.get_style_context().add_class('outcome-banner')
+        banner.get_style_context().add_class('outcome-pending')
+        dialog.outcome_icon = Gtk.Label(label='…')
+        dialog.outcome_icon.get_style_context().add_class('outcome-symbol')
+        banner.pack_start(dialog.outcome_icon,False,False,0)
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=5)
+        dialog.outcome_heading = label(tr('Uninstalling {name}…',name=app.name),'section-title')
+        dialog.outcome_detail = label('Removal is running. Please wait.','subtitle',True)
+        dialog.outcome_detail.set_max_width_chars(65)
+        text.pack_start(dialog.outcome_heading,False,False,0)
+        text.pack_start(dialog.outcome_detail,False,False,0)
+        banner.pack_start(text,True,True,0)
+        body.pack_start(banner,False,False,0)
+        scroll,dialog.progress_view = text_box('',260)
         body.pack_start(scroll,True,True,0)
+        dialog.outcome_banner = banner
+        return dialog
+
+    def complete_progress(self, dialog, app, error):
+        failed = error is not None
+        context = dialog.outcome_banner.get_style_context()
+        context.remove_class('outcome-pending')
+        context.add_class('outcome-error' if failed else 'outcome-success')
+        dialog.outcome_icon.set_text('!' if failed else '✓')
+        dialog.outcome_heading.set_text(tr('Removal incomplete' if failed else 'Successfully removed'))
+        dialog.outcome_detail.set_text(
+            tr('{name} could not be completely removed.' if failed else '{name} was removed successfully.',name=app.name)
+            +'\n'+tr('Some steps may have finished. Review the log before trying again.' if failed else
+                      'The removal command finished successfully. Review the log below for details.'))
+        dialog.close_button.set_sensitive(True)
+        dialog.close_button.get_style_context().add_class('primary-action')
+        self.status.set_text(tr('Removal incomplete · See Activity for its log') if failed else
+                             tr('Successfully removed {name} · See Activity for its log',name=app.name))
+
+    def perform(self, plan):
+        self.mutating = True
+        dialog = self.build_progress_dialog(plan.app)
+        view = dialog.progress_view
         lines = []
         def append(text):
             lines.append(text)
@@ -1026,12 +1121,11 @@ class Window(Gtk.Window):
             GLib.idle_add(update)
         def finished(_, error):
             self.mutating = False
-            heading.set_text('Removal completed' if not error else 'Removal incomplete')
-            if error:
+            if error is not None:
                 append('\n'+error+'\n')
-            close.set_sensitive(True)
-            self.activity.append({'time':datetime.datetime.now().strftime('%H:%M'),'app':plan.app.name,'result':'Incomplete' if error else 'Completed','log':''.join(lines)})
-            self.status.set_text('Removal finished · See Activity for its log')
+            self.complete_progress(dialog,plan.app,error)
+            self.activity.append({'time':datetime.datetime.now().strftime('%H:%M'),'app':plan.app.name,
+                                  'result':'Incomplete' if error is not None else 'Completed','log':''.join(lines)})
         dialog.show_all()
         self.async_work(lambda:backend.execute(plan,append),finished)
         dialog.run()
@@ -1050,10 +1144,10 @@ class Window(Gtk.Window):
             scroll=Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
             entries=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=7)
             for item in reversed(self.activity[-20:]):
-                button = Gtk.Button(label=item['time']+'   '+item['app']+'   ·   '+item['result'])
+                button = Gtk.Button(label=item['time']+'   '+item['app']+'   ·   '+tr(item['result']))
                 button.get_child().set_ellipsize(Pango.EllipsizeMode.END)
                 button.get_child().set_xalign(0)
-                button.connect('clicked',lambda _,entry=item:self.show_text(entry['app']+' · '+entry['result'],entry['log']))
+                button.connect('clicked',lambda _,entry=item:self.show_text(entry['app']+' · '+tr(entry['result']),entry['log']))
                 entries.pack_start(button,False,False,0)
             scroll.add(entries)
             body.pack_start(scroll,True,True,0)
@@ -1063,19 +1157,23 @@ class Window(Gtk.Window):
         self.run_dialog(self.build_activity_dialog())
 
     def scan_status(self):
-        enabled = ', '.join(self.prefs['enabled_sources']) or 'None'
-        text = 'Enabled sources: '+enabled+'\n\n'+('Warnings:\n'+'\n'.join(self.warnings) if self.warnings else 'No source warnings in the last scan.')
+        enabled = ', '.join(self.prefs['enabled_sources']) or tr('None')
+        text = tr('Enabled sources: {sources}',sources=enabled)+'\n\n'+(tr('Warnings:')+'\n'+'\n'.join(self.warnings) if self.warnings else tr('No source warnings in the last scan.'))
         self.show_text('Scan Status',text)
 
     def shortcuts(self):
         self.message('Keyboard Shortcuts','Ctrl+F   Search\nCtrl+R   Refresh\nCtrl+,   Settings\nCtrl+I   Selected software details\nCtrl+E   Export inventory\nCtrl+Q   Quit\nCtrl+C   Copy package ID while the list is focused\nEnter     Show details\nDelete    Review uninstall (never immediate deletion)\nShift+F10 / Menu key    Context menu')
 
     def about(self, _):
-        self.message('About SweepDesk '+VERSION,'Native software inventory and reviewed uninstall for Debian, Ubuntu, and compatible derivatives.\n\nMade by Zwart04 · MIT licensed original code.\n\nKnown data cleanup is opt-in. Shared dependencies, caches, and uncertain files are preserved. See the online guide for each source’s limits.\n\n'+REPOSITORY_URL+'\nSupport: '+SUPPORT_URL)
+        self.message(tr('About SweepDesk {version}',version=VERSION),'\n\n'.join(tr(line) for line in [
+            'Native software inventory and reviewed uninstall for Debian, Ubuntu, and compatible derivatives.',
+            'Made by Zwart04 · MIT licensed original code.',
+            'Known data cleanup is opt-in. Shared dependencies, caches, and uncertain files are preserved. See the online guide for each source’s limits.',
+            REPOSITORY_URL])+ '\n'+tr('Support: {url}',url=SUPPORT_URL))
 
     def export(self, _):
-        dialog = Gtk.FileChooserDialog(title='Export Software Inventory',transient_for=self,action=Gtk.FileChooserAction.SAVE)
-        dialog.add_buttons('Cancel',Gtk.ResponseType.CANCEL,'Export',Gtk.ResponseType.OK)
+        dialog = Gtk.FileChooserDialog(title=tr('Export Software Inventory'),transient_for=self,action=Gtk.FileChooserAction.SAVE)
+        dialog.add_buttons(tr('Cancel'),Gtk.ResponseType.CANCEL,tr('Export'),Gtk.ResponseType.OK)
         dialog.set_current_name('sweepdesk-inventory.json')
         dialog.set_do_overwrite_confirmation(True)
         if dialog.run() == Gtk.ResponseType.OK:
@@ -1083,6 +1181,8 @@ class Window(Gtk.Window):
                 Path(dialog.get_filename()).write_text(json.dumps({'apps':[asdict(a) for a in self.apps],'warnings':self.warnings},ensure_ascii=False,indent=2)+'\n')
             except OSError as error:
                 self.message('Export failed',str(error))
+            else:
+                self.status.set_text(tr('Inventory exported successfully.'))
         dialog.destroy()
 
     def on_close(self, *_):

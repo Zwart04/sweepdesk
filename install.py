@@ -48,7 +48,7 @@ def main():
     except (ImportError, ValueError):
         raise SystemExit('Install the GUI dependencies first:\n  sudo apt install python3-gi gir1.2-gtk-3.0')
     target.mkdir(parents=True, exist_ok=True)
-    for name in ('sweepdesk.py', 'backend.py', 'python_probe.py', 'preferences.py', 'styles.py', 'ui_icons.py', 'README.md', 'README.id.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'):
+    for name in ('sweepdesk.py', 'backend.py', 'python_probe.py', 'preferences.py', 'styles.py', 'ui_icons.py','i18n.py', 'README.md', 'README.id.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'):
         shutil.copy2(ROOT/name, target/name)
     shutil.copytree(ROOT/'assets', target/'assets', dirs_exist_ok=True)
     shutil.copytree(ROOT/'docs', target/'docs', dirs_exist_ok=True, ignore=shutil.ignore_patterns('local-preview.png'))

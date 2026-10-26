@@ -2,7 +2,7 @@ name: Website
 on:
   push:
     branches: [main]
-    paths: ['site/**', 'assets/sweepdesk.svg', 'docs/screenshot.png', 'docs/settings.png', 'scripts/prepare_site.py', '.github/workflows/pages.yml']
+    paths: ['site/**', 'assets/sweepdesk.svg', 'docs/screenshot.png', 'docs/settings.png', 'docs/screenshot-id.png', 'docs/settings-id.png', 'scripts/prepare_site.py', '.github/workflows/pages.yml']
   workflow_dispatch:
 permissions:
   contents: read

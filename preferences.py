@@ -8,7 +8,7 @@ from backend import SOURCES
 
 
 def defaults():
-    return {'theme': 'dark', 'density': 'compact', 'show_system': False,
+    return {'language': 'system', 'theme': 'dark', 'density': 'compact', 'show_system': False,
             'show_details': True, 'show_empty_sources': False, 'scan_on_start': True,
             'remember_folders': True, 'python_folders': [], 'manual_folders': [],
             'enabled_sources': list(SOURCES)}
@@ -25,6 +25,8 @@ def validate(data):
     result = defaults()
     if not isinstance(data, dict):
         return result
+    if data.get('language') in ('system','id','en'):
+        result['language'] = data['language']
     for key in ('theme', 'density'):
         allowed = ('dark', 'light', 'system') if key == 'theme' else ('compact', 'comfortable')
         if data.get(key) in allowed:

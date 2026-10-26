@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+- Keep searching names, package IDs, and descriptions; show descriptions directly beneath names so matches are understandable.
+- Distinct success and incomplete removal panels, with application names, clear icons, and retained technical logs.
+- English, Bahasa Indonesia, and system-language preferences, applied without restarting or losing the current inventory and Activity.
+- Indonesian website with a visible language switch, localized download/copy feedback, and matching UI previews.
+- Expanded Indonesian documentation, source coverage, and troubleshooting.
+
 ## 0.3.0 — 2026-10-26
 
 - GitHub Pages website with feature previews, current release downloads, install guide, and support links.
