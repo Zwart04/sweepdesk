@@ -46,20 +46,20 @@ def main():
         import gi
         gi.require_version('Gtk', '3.0')
     except (ImportError, ValueError):
-        raise SystemExit('Install the GUI dependencies first:\n  sudo apt install python3-gi gir1.2-gtk-3.0')
+        raise SystemExit('Install Python 3, PyGObject, and GTK 3 using your distribution package manager.')
     target.mkdir(parents=True, exist_ok=True)
-    for name in ('sweepdesk.py', 'backend.py', 'python_probe.py', 'preferences.py', 'styles.py', 'ui_icons.py','i18n.py', 'README.md', 'README.id.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'):
+    for name in ('sweepdesk.py', 'backend.py', 'native_packages.py', 'updater.py', 'python_probe.py', 'preferences.py', 'styles.py', 'ui_icons.py','i18n.py', 'README.md', 'README.id.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'):
         shutil.copy2(ROOT/name, target/name)
     shutil.copytree(ROOT/'assets', target/'assets', dirs_exist_ok=True)
     shutil.copytree(ROOT/'docs', target/'docs', dirs_exist_ok=True, ignore=shutil.ignore_patterns('local-preview.png'))
     (target/MARKER).write_text('Managed per-user SweepDesk installation\n')
     wrapper.parent.mkdir(parents=True, exist_ok=True)
-    wrapper.write_text('#!/bin/sh\n# Managed by SweepDesk\nexec /usr/bin/python3 '+shlex.quote(str(target/'sweepdesk.py'))+' "$@"\n')
+    wrapper.write_text('#!/bin/sh\n# Managed by SweepDesk\nexec '+shlex.quote(sys.executable)+' '+shlex.quote(str(target/'sweepdesk.py'))+' "$@"\n')
     wrapper.chmod(0o755)
     desktop.parent.mkdir(parents=True, exist_ok=True)
     command = '"'+str(wrapper).replace('\\','\\\\').replace('"','\\"').replace('$','\\$').replace('`','\\`')+'"'
     desktop.write_text('[Desktop Entry]\nType=Application\nName=SweepDesk\n'
-                       'Comment=Software inventory and reviewed uninstall for Debian and Ubuntu\n'
+                       'Comment=Software inventory and reviewed uninstall for Linux desktops\n'
                        'Exec='+command+'\nIcon='+str(target/'assets/sweepdesk.svg')+'\n'
                        'Terminal=false\nCategories=System;PackageManager;\nStartupNotify=true\nStartupWMClass=io.github.Zwart04.SweepDesk\nX-SweepDesk-Managed=true\n')
     print('SweepDesk installed. Open it from your application menu.\nCommand: '+str(wrapper))

@@ -19,7 +19,7 @@ class UITests(unittest.TestCase):
               b.decorate(b.App('OpenCode','opencode','1','Manual'),{}),
               b.App('Protected','protected','1','pip',readonly_reason='Externally managed')]
         with patch.object(ui.Window,'refresh'):
-            window=ui.Window(prefs=dict(preferences.defaults(),language='en'))
+            window=ui.Window(prefs=dict(preferences.defaults(),language='en',auto_check_updates=False))
         try:
             window.loaded((apps,[]),None)
             self.assertEqual(window.support_link.get_uri(),'https://tako.id/Zwart04')
@@ -38,7 +38,7 @@ class UITests(unittest.TestCase):
 
     def make_window(self):
         with patch.object(ui.Window,'refresh'):
-            window=ui.Window(prefs=dict(preferences.defaults(),language='en'))
+            window=ui.Window(prefs=dict(preferences.defaults(),language='en',auto_check_updates=False))
         apps=[b.decorate(b.App('curl','curl','1','APT',size=50),{}),
               b.App('Protected','protected','1','APT',essential=True,support=True),
               b.App('Example','example','1','pip',readonly_reason='Externally managed')]
@@ -174,6 +174,34 @@ class UITests(unittest.TestCase):
                 dialog.destroy()
         finally:
             window.destroy()
+
+    def test_github_release_displays_update_button_without_installing(self):
+        from pathlib import Path
+        import tempfile
+        import updater
+        window=self.make_window()
+        class ImmediateThread:
+            def __init__(self,target,**kwargs): self.target=target
+            def start(self): self.target()
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                window.prefs_file=Path(directory)/'preferences.json'
+                release=updater.Release('0.6.0',())
+                with patch.object(ui.threading,'Thread',ImmediateThread),patch.object(updater,'check',return_value=release),patch.object(updater,'download') as download:
+                    window.check_updates(False)
+                    while Gtk.events_pending(): Gtk.main_iteration_do(False)
+                    self.assertTrue(window.update_banner.get_reveal_child())
+                    self.assertEqual(window.update_button.get_label(),'Update Now')
+                    self.assertIn('0.6.0',window.update_label.get_text())
+                    download.assert_not_called()
+                menu=window.build_more_menu()
+                titles=[item.get_label() for item in menu.get_children() if isinstance(item,Gtk.MenuItem)]
+                self.assertIn('Check for Updates…',titles)
+                menu.destroy()
+                with patch.object(updater,'packaged_install',return_value=False),patch.object(window,'message'),patch.object(window,'open_uri') as open_uri:
+                    window.update_clicked()
+                    open_uri.assert_called_once_with(release.url)
+        finally: window.destroy()
 
 
 if __name__=='__main__':

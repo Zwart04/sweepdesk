@@ -8,7 +8,7 @@ from backend import SOURCES
 
 
 def defaults():
-    return {'language': 'system', 'theme': 'dark', 'density': 'compact', 'show_system': False,
+    return {'auto_check_updates': True, 'last_update_check': 0, 'language': 'system', 'theme': 'dark', 'density': 'compact', 'show_system': False,
             'show_details': True, 'show_empty_sources': False, 'scan_on_start': True,
             'remember_folders': True, 'python_folders': [], 'manual_folders': [],
             'enabled_sources': list(SOURCES)}
@@ -31,7 +31,9 @@ def validate(data):
         allowed = ('dark', 'light', 'system') if key == 'theme' else ('compact', 'comfortable')
         if data.get(key) in allowed:
             result[key] = data[key]
-    for key in ('show_system', 'show_details', 'show_empty_sources', 'scan_on_start', 'remember_folders'):
+    if isinstance(data.get('last_update_check'),int) and not isinstance(data.get('last_update_check'),bool) and data['last_update_check']>=0:
+        result['last_update_check']=data['last_update_check']
+    for key in ('auto_check_updates','show_system', 'show_details', 'show_empty_sources', 'scan_on_start', 'remember_folders'):
         if isinstance(data.get(key), bool):
             result[key] = data[key]
     for key in ('python_folders', 'manual_folders'):

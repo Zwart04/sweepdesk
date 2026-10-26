@@ -1,0 +1,62 @@
+name: Native Linux packages
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    name: ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: fedora:latest
+            family: fedora
+          - image: rockylinux:9
+            family: rocky
+          - image: opensuse/tumbleweed:latest
+            family: suse
+          - image: opensuse/leap:latest
+            family: leap
+          - image: archlinux:base
+            family: arch
+          - image: alpine:latest
+            family: alpine
+    steps:
+      - uses: actions/checkout@v4
+      - name: Native inventory, UI tests, package builds, install/remove fixtures
+        env:
+          IMAGE: ${{ matrix.image }}
+          FAMILY: ${{ matrix.family }}
+        run: |
+          docker run --rm -e SWEEPDESK_DISPOSABLE_CI=1 -e FAMILY -v "$PWD:/workspace" -w /workspace "$IMAGE" sh -ec '
+            case "$FAMILY" in
+              fedora|rocky)
+                dnf -y install python3 python3-pip python3-gobject python3-cairo gtk3 librsvg2 polkit rpm-build git xorg-x11-server-Xvfb xorg-x11-xauth desktop-file-utils shadow-utils
+                ;;
+              suse|leap)
+                zypper --non-interactive refresh
+                zypper --non-interactive install python3 python3-pip python3-gobject python3-cairo gtk3 librsvg-2-2 polkit rpm-build git xorg-x11-server-Xvfb xauth desktop-file-utils shadow
+                ;;
+              arch)
+                pacman -Syu --noconfirm python python-pip python-gobject python-cairo gtk3 librsvg polkit git xorg-server-xvfb xorg-xauth desktop-file-utils base-devel
+                ;;
+              alpine)
+                apk add python3 py3-pip py3-gobject3 py3-cairo gtk+3.0 librsvg polkit git xvfb xauth desktop-file-utils shadow
+                ;;
+            esac
+            cat /etc/os-release
+            python3 scripts/ci_native.py
+          '
+      - uses: actions/upload-artifact@v4
+        if: matrix.family == 'fedora' || matrix.family == 'suse' || matrix.family == 'arch'
+        with:
+          name: native-${{ matrix.family }}
+          path: |
+            dist/*.rpm
+            dist/*.pkg.tar.zst
+          if-no-files-found: error

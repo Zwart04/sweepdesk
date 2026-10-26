@@ -15,7 +15,7 @@ from gi.repository import Gtk, GLib
 parser=argparse.ArgumentParser()
 parser.add_argument('--language',choices=('en','id'),default='en')
 args=parser.parse_args()
-prefs=preferences.defaults();prefs['language']=args.language
+prefs=dict(preferences.defaults(),auto_check_updates=False);prefs['language']=args.language
 
 apps=[
     b.App('Command Code','command-code','1.88.0','npm',description='Coding agent · global Node.js package',scope='User installation'),

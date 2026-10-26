@@ -9,6 +9,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import native_packages
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -18,7 +19,7 @@ ENV = dict(os.environ, LC_ALL="C", LANG="C", NO_COLOR="1", HOMEBREW_NO_AUTO_UPDA
            PIP_DISABLE_PIP_VERSION_CHECK="1", npm_config_update_notifier="false")
 HOME = Path.home()
 ROOT = Path(__file__).resolve().parent
-SOURCES = ('APT', 'npm', 'pip', 'Cargo', 'Flatpak', 'Snap', 'pipx', 'uv', 'Bun', 'Homebrew', 'ArtCraft', 'Manual')
+SOURCES = ('APT', 'RPM', 'Pacman', 'APK', 'npm', 'pip', 'Cargo', 'Flatpak', 'Snap', 'pipx', 'uv', 'Bun', 'Homebrew', 'ArtCraft', 'Manual')
 
 
 def run(args, timeout=90, check=True):
@@ -120,11 +121,11 @@ def decorate(app, desktops):
     aliases = {'@anthropic-ai/claude-code': 'claude', '@openai/codex': 'codex',
                'opencode-ai': 'opencode', 'curl': 'curl'}
     key = app.package.split(':')[0]
-    for candidate in [key, aliases.get(key, ''), Path(app.executable).name.lower()]:
+    for candidate in [app.location if app.source=='RPM' else '',key, aliases.get(key, ''), Path(app.executable).name.lower()]:
         if candidate and candidate.lower() in desktops:
             title, icon, _ = desktops[candidate.lower()]
             app.icon = icon
-            if app.source in ('APT', 'ArtCraft'):
+            if app.source in ('APT','RPM','Pacman','APK','ArtCraft'):
                 app.name = title
                 app.support = False
             break
@@ -398,10 +399,17 @@ def owner(path):
     return text.split(': ', 1)[0] if ': ' in text else ''
 
 
+def package_owner(path):
+    system=native_packages.family()
+    if system=='deb' and shutil.which('dpkg-query'): return owner(path)
+    source={'rpm':'RPM','suse':'RPM','arch':'Pacman','alpine':'APK'}.get(system)
+    return native_packages.owner(path,source) if source else ''
+
+
 def manual_inventory(registered, extra_dirs=()):
     """Known native installs and unregistered executables in user bin directories."""
     apps, seen = [], set()
-    managed_names = {x.package for x in registered if x.source != 'APT'}
+    managed_names = {x.package for x in registered if x.source not in ('APT','RPM','Pacman','APK')}
     known = {
         'claude': ('Claude Code', '@anthropic-ai/claude-code'),
         'opencode': ('OpenCode', 'opencode-ai'),
@@ -426,7 +434,7 @@ def manual_inventory(registered, extra_dirs=()):
         title, package = known.get(p.name, (p.name, p.name))
         if package in managed_names or any(s in resolved for s in ('node_modules/', '/pipx/venvs/', '/.cargo/bin/')):
             continue
-        if shutil.which('dpkg-query') and (owner(p) or (p.is_symlink() and owner(p.resolve()))):
+        if package_owner(p) or (p.is_symlink() and package_owner(p.resolve())):
             continue
         paths = [str(p)]
         # Known vendor install trees, never a shared bin or package-manager directory.
@@ -491,7 +499,10 @@ def scan(extra_python=(), extra_manual=(), enabled_sources=None):
     apps, warnings = [], []
     enabled = set(SOURCES if enabled_sources is None else enabled_sources)
     for label, available, loader in [
-        ('APT', shutil.which('dpkg-query') and shutil.which('apt-get'), apt_inventory),
+        ('APT', native_packages.family()=='deb' and shutil.which('dpkg-query') and shutil.which('apt-get'), apt_inventory),
+        ('RPM', native_packages.family() in ('rpm','suse') and shutil.which('rpm'), native_packages.rpm_inventory),
+        ('Pacman', native_packages.family()=='arch' and shutil.which('pacman'), native_packages.pacman_inventory),
+        ('APK', native_packages.family()=='alpine' and shutil.which('apk'), native_packages.apk_inventory),
         ('Flatpak', shutil.which('flatpak'), flatpak_inventory),
         ('npm', npm_locations(), npm_inventory),
         ('pipx', shutil.which('pipx'), pipx_inventory),
@@ -521,7 +532,7 @@ def scan(extra_python=(), extra_manual=(), enabled_sources=None):
 
 
 def profile_key(app):
-    s = app.package.lower()
+    s = (app.location if app.source=='RPM' else app.package).lower()
     if s.startswith('libreoffice'):
         return 'libreoffice'
     return {'@anthropic-ai/claude-code': 'claude', 'claude-code': 'claude',
@@ -603,7 +614,10 @@ def make_plan(app, dependencies=False, cleanup=False, family=False):
         raise RuntimeError('Core system packages cannot be removed through SweepDesk.')
     if app.readonly_reason:
         raise RuntimeError(app.readonly_reason)
-    if app.source == 'APT':
+    if app.source in native_packages.SOURCES:
+        if family: raise RuntimeError('Suite removal is only available for LibreOffice on APT.')
+        plan = native_packages.preview(app,dependencies)
+    elif app.source == 'APT':
         if not re.fullmatch(r'[a-z0-9][a-z0-9+.:\-]*', app.package):
             raise RuntimeError('Invalid APT package name.')
         targets = [app.package]
@@ -718,6 +732,8 @@ def make_plan(app, dependencies=False, cleanup=False, family=False):
 
 def execute(plan, emit):
     """Called only after the GUI shows the complete plan and the user confirms."""
+    if plan.app.source in native_packages.SOURCES:
+        native_packages.revalidate(plan)
     if plan.app.source == 'APT':
         # Recheck after confirmation: don't apply a broader stale plan.
         args = plan.commands[0]

@@ -5,6 +5,11 @@ import datetime
 import json
 import os
 import threading
+import time
+import sys
+import subprocess
+import updater
+import native_packages
 from dataclasses import asdict
 from pathlib import Path
 
@@ -13,7 +18,7 @@ try:
     gi.require_version('Gtk', '3.0')
     from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Gio, Pango
 except (ImportError, ValueError) as exc:
-    raise SystemExit('Install the desktop dependencies: sudo apt install python3-gi gir1.2-gtk-3.0 librsvg2-common\n'+str(exc))
+    raise SystemExit('Install Python 3, PyGObject, GTK 3, librsvg, and polkit using your distribution package manager.\n'+str(exc))
 
 import backend
 import preferences
@@ -22,7 +27,7 @@ import ui_icons
 import i18n
 from i18n import tr
 
-VERSION = '0.4.0'
+VERSION = '0.5.0'
 APP_ID = 'io.github.Zwart04.SweepDesk'
 SUPPORT_URL = 'https://tako.id/Zwart04'
 REPOSITORY_URL = 'https://github.com/Zwart04/sweepdesk'
@@ -205,6 +210,7 @@ class Window(Gtk.Window):
         self.view_button.connect('toggled', self.view_menu)
         controls.pack_end(self.view_button, False, False, 0)
         main.pack_start(controls, False, False, 0)
+        self.build_update_banner(main)
         self.banner = Gtk.InfoBar(message_type=Gtk.MessageType.WARNING, show_close_button=True)
         self.banner_text = label('', 'subtitle', True)
         self.banner.get_content_area().add(self.banner_text)
@@ -289,6 +295,104 @@ class Window(Gtk.Window):
         else:
             self.refilter()
             self.status.set_text(tr('Automatic scan is off. Click Refresh to scan your software.'))
+        self.closed = False
+        self.update_release = None
+        self.update_checking = False
+        self.update_installed = False
+        self.update_timer = GLib.timeout_add_seconds(3,self.automatic_update_check)
+        self.connect('destroy',self.cleanup_update_timer)
+
+    def build_update_banner(self, parent):
+        self.update_banner=Gtk.Revealer(reveal_child=False)
+        card=Gtk.Box(spacing=12)
+        card.get_style_context().add_class('card')
+        self.update_label=label('','subtitle',True)
+        card.pack_start(self.update_label,True,True,0)
+        self.update_button=Gtk.Button(label=tr('Update Now'))
+        self.update_button.get_style_context().add_class('primary-action')
+        self.update_button.connect('clicked',self.update_clicked)
+        card.pack_end(self.update_button,False,False,0)
+        self.update_banner.add(card)
+        parent.pack_start(self.update_banner,False,False,0)
+
+    def cleanup_update_timer(self, *_):
+        self.closed=True
+        if getattr(self,'update_timer',None):
+            GLib.source_remove(self.update_timer)
+            self.update_timer=None
+
+    def automatic_update_check(self):
+        self.update_timer=None
+        if self.prefs['auto_check_updates'] and time.time()-self.prefs['last_update_check']>=86400:
+            self.check_updates(False)
+        return False
+
+    def check_updates(self, manual=False):
+        if self.update_checking:
+            if manual: self.message('Updates','Checking GitHub for updates…')
+            return
+        self.update_checking=True
+        def worker():
+            try: release,error=updater.check(VERSION),None
+            except Exception as exc: release,error=None,str(exc)
+            GLib.idle_add(finished,release,error)
+        def finished(release,error):
+            if self.closed: return False
+            self.update_checking=False
+            if error is not None:
+                if manual: self.message('Update check failed',error)
+                return False
+            self.prefs['last_update_check']=int(time.time())
+            self.persist()
+            self.update_release=release
+            if release:
+                self.update_label.set_text(tr('SweepDesk {version} is available.',version=release.version))
+                self.update_banner.set_reveal_child(True)
+                if manual: self.message('Update available',tr('SweepDesk {version} is available. Use Update Now above the software list.',version=release.version))
+            elif manual:
+                self.update_banner.set_reveal_child(False)
+                self.message('Up to date',tr('You are using SweepDesk {version}. No newer stable release is available.',version=VERSION))
+            return False
+        threading.Thread(target=worker,daemon=True).start()
+
+    def update_clicked(self, *_):
+        if self.busy or self.mutating: return
+        if self.update_installed:
+            os.execv(sys.executable,[sys.executable,str(ROOT/'sweepdesk.py')])
+        release=self.update_release
+        if not release: return
+        if not updater.packaged_install(ROOT) or not updater.package_name(release.version) or native_packages.immutable_system():
+            self.message('Manual update required','This installation uses source code, a portable archive, or an immutable system. Download the matching release and follow its install guide.')
+            self.open_uri(release.url)
+            return
+        dialog=dialog_shell(self,'Update SweepDesk',560,270,[('Cancel',Gtk.ResponseType.CANCEL,None),('Update Now',Gtk.ResponseType.OK,'suggested-action')])
+        body=dialog.get_content_area();body.set_border_width(22);body.set_spacing(14)
+        body.pack_start(label(tr('Update {current} → {latest}',current=VERSION,latest=release.version),'section-title'),False,False,0)
+        body.pack_start(label('The matching package will be downloaded from Zwart04/sweepdesk on GitHub, checked against SHA256SUMS, and installed by your native package manager. Administrator authentication may be required.','subtitle',True),True,True,0)
+        if self.run_dialog(dialog)!=Gtk.ResponseType.OK: return
+        self.mutating=True
+        self.update_button.set_sensitive(False)
+        self.update_label.set_text(tr('Downloading and verifying the update…'))
+        def apply():
+            temporary,path=updater.download(release)
+            try:
+                command=updater.install_command(path)
+                process=subprocess.run(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,stdin=subprocess.DEVNULL)
+                if process.returncode: raise RuntimeError(process.stdout[-6000:] or 'Update failed or authentication was canceled.')
+                installed=subprocess.run([sys.executable,str(ROOT/'sweepdesk.py'),'--version'],capture_output=True,text=True,check=True)
+                if installed.stdout.strip()!='SweepDesk '+release.version: raise RuntimeError('The installed version could not be verified. Restart and check the version.')
+            finally: temporary.cleanup()
+        def complete(_,error):
+            self.mutating=False
+            self.update_button.set_sensitive(True)
+            if error is not None:
+                self.update_label.set_text(tr('Update failed. Nothing was reported as successful.'))
+                self.message('Update failed',error)
+            else:
+                self.update_installed=True
+                self.update_label.set_text(tr('SweepDesk {version} installed. Restart to use it.',version=release.version))
+                self.update_button.set_label(tr('Restart SweepDesk'))
+        self.async_work(apply,complete)
 
     def build_header(self):
         header = Gtk.HeaderBar(title=tr('SweepDesk'), show_close_button=True)
@@ -563,6 +667,7 @@ class Window(Gtk.Window):
         self.menu_item(menu,'Add Install Folder…',lambda:self.add_manual_folder(None))
         menu.append(Gtk.SeparatorMenuItem())
         self.menu_item(menu,'Export Inventory…',lambda:self.export(None))
+        self.menu_item(menu,'Check for Updates…',lambda:self.check_updates(True))
         self.menu_item(menu,'Activity',self.show_activity)
         self.menu_item(menu,'Scan Status',self.scan_status)
         menu.append(Gtk.SeparatorMenuItem())
@@ -579,7 +684,7 @@ class Window(Gtk.Window):
         menu = Gtk.Menu()
         app = self.active_app()
         self.menu_item(menu,'Show Details',self.details,bool(app))
-        self.menu_item(menu,'Show Installed Files…',self.show_files,bool(app and app.source=='APT' and not self.busy))
+        self.menu_item(menu,'Show Installed Files…',self.show_files,bool(app and app.source in ('APT','RPM','Pacman','APK') and not self.busy))
         self.menu_item(menu,'Open Install Folder',self.open_install_folder,bool(app and self.install_folder(app)))
         menu.append(Gtk.SeparatorMenuItem())
         self.menu_item(menu,'Copy Package ID',lambda:self.copy_text(app.package if app else ''),bool(app))
@@ -667,9 +772,9 @@ class Window(Gtk.Window):
 
     def show_files(self):
         app = self.active_app()
-        if not app or app.source != 'APT' or self.busy:
+        if not app or app.source not in ('APT','RPM','Pacman','APK') or self.busy:
             return
-        self.async_work(lambda:backend.run(['/usr/bin/dpkg-query','-L',app.package]),
+        self.async_work(lambda:backend.run(['/usr/bin/dpkg-query','-L',app.package]) if app.source=='APT' else native_packages.files(app),
                         lambda value,error:self.show_text(tr('Installed Files · {name}',name=app.name),error or value))
 
     def build_details_dialog(self, app):
@@ -879,10 +984,16 @@ class Window(Gtk.Window):
             switch = Gtk.Switch(active=source in self.prefs['enabled_sources'])
             source_controls[source] = switch
             row(source_page,'APT / DEB' if source=='APT' else source,'',switch)
+        updates = page('Updates','Get new SweepDesk releases from GitHub. Your inventory is never sent.')
+        toggle(updates,'auto_check_updates','Check automatically','Check at startup, at most once per day. Installing requires your action.')
+        updates.pack_start(label(tr('Current version: {version}',version=VERSION),'caption'),False,False,0)
+        check_updates_button=Gtk.Button(label=tr('Check for Updates…'))
+        check_updates_button.connect('clicked',lambda _:self.check_updates(True))
+        updates.pack_start(check_updates_button,False,False,0)
         about = page('About & Support','SweepDesk '+VERSION+' · '+tr('Free and open source, made by Zwart04.'))
         logo = Gtk.Image.new_from_pixbuf(icon_pixbuf(str(ROOT/'assets/sweepdesk.svg'),80,self.dark))
         about.pack_start(logo,False,False,4)
-        for text in ('For Debian, Ubuntu, and compatible derivatives.','Removal always requires a reviewed plan. Known user data goes to Trash; shared dependencies and uncertain files are kept.'):
+        for text in ('For Debian, Ubuntu, Fedora, openSUSE, Arch Linux, and compatible derivatives.','Removal always requires a reviewed plan. Known user data goes to Trash; shared dependencies and uncertain files are kept.'):
             about.pack_start(label(text,'subtitle',True),False,False,0)
         support = Gtk.LinkButton.new_with_label(SUPPORT_URL,tr('♥︎  Support Zwart04 on Tako'))
         support.set_halign(Gtk.Align.CENTER)
@@ -989,7 +1100,7 @@ class Window(Gtk.Window):
         if app.package.startswith('libreoffice') and app.source=='APT':
             body.pack_start(family,False,False,0)
         deps = Gtk.CheckButton(label=tr('Include newly unused dependencies'))
-        deps.set_sensitive(app.source in ('APT','pip'))
+        deps.set_sensitive(app.source in ('APT','pip','Pacman'))
         body.pack_start(deps,False,False,0)
         cleanup = Gtk.CheckButton(label=tr('Move known user data and settings to Trash'))
         cleanup.set_sensitive(bool(backend.data_paths(app)))
@@ -1166,7 +1277,7 @@ class Window(Gtk.Window):
 
     def about(self, _):
         self.message(tr('About SweepDesk {version}',version=VERSION),'\n\n'.join(tr(line) for line in [
-            'Native software inventory and reviewed uninstall for Debian, Ubuntu, and compatible derivatives.',
+            'Native software inventory and reviewed uninstall for major Linux desktops.',
             'Made by Zwart04 · MIT licensed original code.',
             'Known data cleanup is opt-in. Shared dependencies, caches, and uncertain files are preserved. See the online guide for each source’s limits.',
             REPOSITORY_URL])+ '\n'+tr('Support: {url}',url=SUPPORT_URL))

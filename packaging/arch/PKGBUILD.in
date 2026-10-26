@@ -1,0 +1,16 @@
+pkgname=sweepdesk
+pkgver=@VERSION@
+pkgrel=1
+pkgdesc='Native Linux software inventory and reviewed uninstall'
+arch=('any')
+url='https://zwart04.github.io/sweepdesk/'
+license=('MIT')
+depends=('python' 'python-gobject' 'gtk3' 'librsvg' 'polkit')
+makedepends=('python')
+source=("https://github.com/Zwart04/sweepdesk/releases/download/v${pkgver}/sweepdesk-${pkgver}.tar.gz")
+sha256sums=('@SHA256@')
+options=('!strip' '!debug')
+package() {
+  cd "$srcdir/sweepdesk-$pkgver"
+  python3 scripts/build.py --stage "$pkgdir"
+}

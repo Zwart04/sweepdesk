@@ -19,7 +19,7 @@ apps=[b.decorate(b.App('Command Code','command-code','1.88.0','npm',scope='User 
       b.App('Firefox ESR','firefox-esr','1.0','APT',description='Web browser'),
       b.App('libraw1394-11','libraw1394-11','2.1.2','APT',support=True,description='Library for IEEE 1394 bus access (FireWire)')]
 with patch.object(ui.Window,'refresh'):
-    window=ui.Window(prefs=preferences.defaults())
+    window=ui.Window(prefs=dict(preferences.defaults(),auto_check_updates=False))
 window.loaded((apps,[]),None)
 window.status.set_text('Sample inventory · Interface review · No packages are being changed')
 window.tree.get_selection().select_path(Gtk.TreePath.new_from_indices([0]))
