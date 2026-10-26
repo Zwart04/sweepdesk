@@ -19,6 +19,22 @@ def python_report():
 
 
 class SourceTests(unittest.TestCase):
+    def test_python_probe_accepts_legacy_zip_metadata(self):
+        import python_probe
+        class ArchivePath:
+            def __str__(self): return '/venv/share/vendor.whl/vendor.dist-info'
+        class Distribution:
+            metadata={'Name':'vendor'}
+            version='1'
+            requires=[]
+            _path=ArchivePath()
+            def locate_file(self,path): return ArchivePath()
+            def read_text(self,name): return None
+        with patch.object(python_probe.metadata,'distributions',return_value=[Distribution()]):
+            report=python_probe.probe()
+        self.assertTrue(report['packages'][0]['archived'])
+        self.assertFalse(report['packages'][0]['recorded'])
+
     def test_apt_metadata_uses_real_version_field(self):
         def query(args, **kwargs):
             if 'dpkg-query' in args[0]:

@@ -182,6 +182,8 @@ def pip_inventory(extra=()):
     for interpreter in python_locations(extra):
         report = probe_python(interpreter)
         for record in report['packages']:
+            if record.get('archived'):
+                continue
             identity = (record['key'], record['metadata'])
             if identity in seen:
                 continue

@@ -26,7 +26,13 @@ def probe():
         name = dist.metadata.get('Name')
         if not name:
             continue
-        info = Path(getattr(dist, '_path', dist.locate_file('')))
+        raw_info = getattr(dist, '_path', dist.locate_file(''))
+        try:
+            info = Path(raw_info)
+        except TypeError:
+            # Older Debian pip exposes bundled wheel metadata through zipfile.Path.
+            # Keep its dependency edges, but never offer it as an uninstallable directory.
+            info = None
         requirements, complete = [], Requirement is not None
         for value in dist.requires or []:
             try:
@@ -39,10 +45,11 @@ def probe():
             except Exception:
                 complete = False
         packages.append({'name': name, 'key': normalize(name), 'version': dist.version,
-                         'location': str(dist.locate_file('')), 'metadata': str(info),
+                         'location': str(dist.locate_file('')), 'metadata': str(raw_info),
                          'installer': (dist.read_text('INSTALLER') or '').strip(),
-                         'requested': (info/'REQUESTED').exists(),
-                         'recorded': (info/'RECORD').is_file(),
+                         'requested': bool(info is not None and (info/'REQUESTED').exists()),
+                         'recorded': bool(info is not None and (info/'RECORD').is_file()),
+                         'archived': info is None,
                          'requirements': requirements, 'complete': complete})
     return {'prefix': sys.prefix, 'base_prefix': sys.base_prefix,
             'venv': sys.prefix != sys.base_prefix,
