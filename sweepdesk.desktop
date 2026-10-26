@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=SweepDesk
+Comment=Software inventory and reviewed uninstall for Debian and Ubuntu
+Exec=sweepdesk
+Icon=io.github.Zwart04.SweepDesk
+Terminal=false
+Categories=System;PackageManager;
+StartupNotify=true
+Keywords=uninstall;software;packages;apt;npm;pip;cleanup;

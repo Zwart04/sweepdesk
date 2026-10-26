@@ -1,0 +1,32 @@
+[
+  {
+    "file": "opencode.svg",
+    "url": "https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/console/app/src/asset/brand/opencode-logo-dark-square.svg",
+    "source": "https://opencode.ai/brand",
+    "sha256": "d6a0e3b8a295f413543f41cb73957e670351b5cb088c8d9dbd186b9e9d633cca"
+  },
+  {
+    "file": "command-code.svg",
+    "url": "https://raw.githubusercontent.com/CommandCodeAI/command-code/main/.github/commandcode/logo/command-code-logo-black-bg.svg",
+    "source": "https://github.com/CommandCodeAI/command-code",
+    "sha256": "c76e404b29b48960a68a83f55ee335fa06d61e1c062e19974dc4cec5e9cdbd8e"
+  },
+  {
+    "file": "curl.svg",
+    "url": "https://curl.se/logo/curl-white-symbol.svg",
+    "source": "https://curl.se/logo/",
+    "sha256": "27426a35cddc564f4843b096da6757c69874e1de551ff0fa3f15e92b050994b1"
+  },
+  {
+    "file": "npm.svg",
+    "url": "https://raw.githubusercontent.com/npm/logos/master/npm%20square/n.svg",
+    "source": "https://github.com/npm/logos",
+    "sha256": "2f39719d596d7141fccd4f66ad61b0396e9b358bddaba78fa4747ce559e458cf"
+  },
+  {
+    "file": "command-code.png",
+    "url": "https://avatars.githubusercontent.com/u/151507869?v=4?s=128",
+    "source": "https://github.com/CommandCodeAI",
+    "sha256": "fb0ab958830ecfc56d0793055b30face88e9864afd2cbe17199b6dc205d109a9"
+  }
+]
