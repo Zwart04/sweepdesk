@@ -213,3 +213,21 @@ ID.update({
 })
 
 ID.update({'View':'Tampilan'})
+
+ID.update({
+'Please wait. You can keep using SweepDesk.':'Harap tunggu. Anda tetap bisa menggunakan SweepDesk.',
+'Wait for the current task to finish, then try again.':'Tunggu proses yang sedang berjalan selesai, lalu coba lagi.',
+'Updating SweepDesk…':'Memperbarui SweepDesk…', 'Update installed':'Pembaruan berhasil dipasang',
+'Install the new version here. The download is verified before installation. You may be asked for your administrator password.':'Pasang versi baru langsung di sini. Unduhan diperiksa sebelum dipasang. Anda mungkin diminta memasukkan kata sandi administrator.',
+'This source, portable, or immutable installation needs a manual update. Download the release and follow its install guide.':'Instalasi dari kode sumber, portabel, atau sistem immutable ini perlu diperbarui secara manual. Unduh rilis dan ikuti panduan pemasangannya.',
+'Download release':'Unduh rilis',
+'Downloading, verifying, and installing the update. Please keep this window open.':'Sedang mengunduh, memeriksa, dan memasang pembaruan. Biarkan jendela ini tetap terbuka.',
+'The update is ready. Restart SweepDesk to use the new version.':'Pembaruan sudah siap. Buka ulang SweepDesk untuk menggunakan versi baru.',
+'Try again':'Coba lagi',
+})
+
+ID.update({
+'About':'Tentang', 'Buy me a coffee':'Traktir kopi',
+'Buy Zwart04 a coffee on Tako — opens your browser':'Traktir Zwart04 kopi di Tako — membuka peramban',
+'Buy me a coffee: {url}':'Traktir kopi: {url}',
+})

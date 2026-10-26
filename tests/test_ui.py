@@ -26,6 +26,10 @@ class UITests(unittest.TestCase):
         try:
             window.loaded((apps,[]),None)
             self.assertEqual(window.support_link.get_uri(),'https://tako.id/Zwart04')
+            self.assertEqual(window.support_link.get_label(),'Buy me a coffee')
+            self.assertIsNotNone(window.support_link.get_image())
+            self.assertIsNone(window.remove_button.get_image())
+            self.assertTrue(window.remove_button.get_style_context().has_class('destructive-action'))
             window.search.set_text('opencode')
             window.refilter()
             self.assertEqual(len(window.filtered),1)
@@ -148,6 +152,7 @@ class UITests(unittest.TestCase):
         window=self.make_window()
         completions=[]
         try:
+            window.loaded(([],[]),None)
             # Defer the scan result: filter changes must not show the empty prompt.
             with patch.object(window,'async_work',side_effect=lambda work,done:completions.append(done)):
                 window.refresh()
@@ -174,7 +179,8 @@ class UITests(unittest.TestCase):
             dialog.show_all()
             while Gtk.events_pending(): Gtk.main_iteration_do(False)
             self.assertGreater(dialog.confirm_button.get_allocation().y,dialog.acknowledgement.get_allocation().y)
-            self.assertIsNotNone(dialog.confirm_button.get_image())
+            self.assertIsNone(dialog.confirm_button.get_image())
+            self.assertTrue(dialog.confirm_button.get_style_context().has_class('destructive-action'))
             self.assertFalse(dialog.confirm_button.get_sensitive())
             dialog.acknowledgement.set_active(True)
             self.assertTrue(dialog.confirm_button.get_sensitive())
@@ -258,6 +264,98 @@ class UITests(unittest.TestCase):
         finally:
             window.destroy()
 
+    def test_manual_update_stays_in_one_actionable_dialog(self):
+        import updater
+        window=self.make_window()
+        callbacks=[]
+        class ImmediateThread:
+            def __init__(self,target,**kwargs): self.target=target
+            def start(self): self.target()
+        try:
+            release=updater.Release('0.6.0',())
+            with patch.object(ui.threading,'Thread',ImmediateThread),patch.object(updater,'check',return_value=release), \
+                 patch.object(updater,'packaged_install',return_value=True),patch.object(updater,'package_name',return_value='fixture.deb'), \
+                 patch.object(ui.native_packages,'immutable_system',return_value=False),patch.object(window,'persist'), \
+                 patch.object(window,'async_work',side_effect=lambda work,done:callbacks.append(done)), \
+                 patch.object(window,'open_uri') as open_uri,patch.object(updater,'download') as download:
+                window.check_updates(True)
+                while Gtk.events_pending(): Gtk.main_iteration_do(False)
+                dialog=window.update_dialog
+                self.assertEqual(dialog.state,'available')
+                self.assertEqual(dialog.update_action.get_label(),'Update Now')
+                dialog.update_action.clicked()
+                self.assertIs(window.update_dialog,dialog)
+                self.assertEqual(dialog.state,'installing')
+                self.assertTrue(dialog.spinner.get_property('active'))
+                self.assertFalse(dialog.close_button.get_sensitive())
+                callbacks.pop()(None,'fixture authentication cancelled')
+                self.assertEqual(dialog.state,'error')
+                self.assertFalse(window.mutating)
+                dialog.update_action.clicked()
+                self.assertEqual(dialog.state,'installing')
+                callbacks.pop()(None,None)
+                self.assertEqual(dialog.state,'installed')
+                self.assertEqual(dialog.update_action.get_label(),'Restart SweepDesk')
+                self.assertTrue(dialog.close_button.get_sensitive())
+                open_uri.assert_not_called()
+                download.assert_not_called()
+        finally: window.destroy()
+
+    def test_closing_update_check_does_not_reopen_a_popup(self):
+        import updater
+        window=self.make_window()
+        workers=[]
+        class DeferredThread:
+            def __init__(self,target,**kwargs): self.target=target
+            def start(self): workers.append(self.target)
+        try:
+            with patch.object(ui.threading,'Thread',DeferredThread),patch.object(updater,'check',return_value=None),patch.object(window,'persist'):
+                window.check_updates(True)
+                dialog=window.update_dialog
+                self.assertEqual(dialog.state,'checking')
+                dialog.destroy()
+                workers.pop()()
+                while Gtk.events_pending(): Gtk.main_iteration_do(False)
+                self.assertIsNone(window.update_dialog)
+                self.assertFalse(window.update_checking)
+        finally: window.destroy()
+
+    def test_native_sorting_and_selection_survive_filter_changes(self):
+        window=self.make_window()
+        try:
+            apps=[b.App('Zulu','zulu','1','APT',size=10),b.App('alpha','alpha','1','npm',size=2**34)]
+            window.loaded((apps,[]),None)
+            self.assertEqual([row[1] for row in window.sort_model],['alpha','Zulu'])
+            window.tree.get_selection().select_path(Gtk.TreePath.new_from_indices([0]))
+            window.search.set_text('a');window.refilter()
+            self.assertEqual(window.active_app().package,'alpha')
+            window.search.set_text('');window.refilter()
+            window.sort.set_active(2)
+            self.assertEqual([row[1] for row in window.sort_model],['alpha','Zulu'])
+            size_column=window.tree.get_columns()[-1]
+            size_column.emit('clicked')
+            self.assertEqual([row[1] for row in window.sort_model],['Zulu','alpha'])
+            window.search.set_text('alpha');window.refilter()
+            self.assertEqual(window.active_app().package,'alpha')
+            window.search.set_text('no-match');window.refilter()
+            self.assertIsNone(window.active_app())
+        finally: window.destroy()
+
+    def test_refresh_keeps_existing_list_and_reuses_shared_icons(self):
+        window=self.make_window()
+        try:
+            window.icons.clear()
+            apps=[b.App('Example '+str(i),'example-'+str(i),'1','APT',icon='package-x-generic') for i in range(100)]
+            with patch.object(ui,'icon_pixbuf',wraps=ui.icon_pixbuf) as decode:
+                window.loaded((apps,[]),None)
+                self.assertEqual(decode.call_count,1)
+            with patch.object(window,'async_work'):
+                window.refresh()
+            self.assertTrue(window.scanning)
+            self.assertEqual(window.list_stack.get_visible_child_name(),'list')
+            self.assertEqual(len(window.filtered),100)
+        finally: window.destroy()
+
     def test_github_release_displays_update_button_without_installing(self):
         from pathlib import Path
         import tempfile
@@ -283,6 +381,8 @@ class UITests(unittest.TestCase):
                 menu.destroy()
                 with patch.object(updater,'packaged_install',return_value=False),patch.object(window,'message'),patch.object(window,'open_uri') as open_uri:
                     window.update_clicked()
+                    open_uri.assert_not_called()
+                    window.update_clicked(confirmed=True)
                     open_uri.assert_called_once_with(release.url)
         finally: window.destroy()
 

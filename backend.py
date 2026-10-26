@@ -4,6 +4,7 @@
 """Read-only inventory and reviewed uninstall plans. No commands run through a shell."""
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 import configparser
 import hashlib
 import json
@@ -429,6 +430,19 @@ def manual_inventory(registered, extra_dirs=()):
         path = shutil.which(name)
         if path:
             candidates.append(Path(path))
+    ownership = None
+    if native_packages.family()=='deb' and shutil.which('dpkg-query') and candidates:
+        paths = list(dict.fromkeys(str(q) for p in candidates for q in (p,p.resolve())))
+        # Nonliteral dpkg patterns and line delimiters use the existing conservative path check.
+        if all(not any(c in path for c in '*?[]\n\r') for path in paths):
+            ownership = set()
+            for offset in range(0,len(paths),128):
+                output = run(['/usr/bin/dpkg-query','-S','--',*paths[offset:offset+128]],check=False)
+                for line in output.splitlines():
+                    if ': ' in line:
+                        ownership.add(line.split(': ',1)[1])
+    def is_owned(path):
+        return str(path) in ownership if ownership is not None else bool(package_owner(path))
     for p in candidates:
         resolved = str(p.resolve())
         if resolved in seen:
@@ -437,7 +451,7 @@ def manual_inventory(registered, extra_dirs=()):
         title, package = known.get(p.name, (p.name, p.name))
         if package in managed_names or any(s in resolved for s in ('node_modules/', '/pipx/venvs/', '/.cargo/bin/')):
             continue
-        if package_owner(p) or (p.is_symlink() and package_owner(p.resolve())):
+        if is_owned(p) or (p.is_symlink() and is_owned(p.resolve())):
             continue
         paths = [str(p)]
         # Known vendor install trees, never a shared bin or package-manager directory.
@@ -501,26 +515,35 @@ def appimage_inventory(registered):
 def scan(extra_python=(), extra_manual=(), enabled_sources=None):
     apps, warnings = [], []
     enabled = set(SOURCES if enabled_sources is None else enabled_sources)
-    for label, available, loader in [
-        ('APT', native_packages.family()=='deb' and shutil.which('dpkg-query') and shutil.which('apt-get'), apt_inventory),
-        ('RPM', native_packages.family() in ('rpm','suse') and shutil.which('rpm'), native_packages.rpm_inventory),
-        ('Pacman', native_packages.family()=='arch' and shutil.which('pacman'), native_packages.pacman_inventory),
-        ('APK', native_packages.family()=='alpine' and shutil.which('apk'), native_packages.apk_inventory),
-        ('Flatpak', shutil.which('flatpak'), flatpak_inventory),
-        ('npm', npm_locations(), npm_inventory),
-        ('pipx', shutil.which('pipx'), pipx_inventory),
-        ('pip', python_locations(extra_python), lambda: pip_inventory(extra_python)),
-        ('uv', executable('uv', [HOME/'.local/bin/uv', HOME/'.cargo/bin/uv']), uv_inventory),
-        ('Bun', executable('bun', [HOME/'.bun/bin/bun']), bun_inventory),
-        ('Homebrew', executable('brew', [Path('/home/linuxbrew/.linuxbrew/bin/brew'), HOME/'.linuxbrew/bin/brew']), brew_inventory),
-        ('Cargo', executable('cargo', [HOME/'.cargo/bin/cargo']), cargo_inventory),
-        ('Snap', shutil.which('snap'), snap_inventory),
-    ]:
-        if available and label in enabled:
+    system = native_packages.family()
+    loaders = [
+        ('APT', lambda: system=='deb' and shutil.which('dpkg-query') and shutil.which('apt-get'), apt_inventory),
+        ('RPM', lambda: system in ('rpm','suse') and shutil.which('rpm'), native_packages.rpm_inventory),
+        ('Pacman', lambda: system=='arch' and shutil.which('pacman'), native_packages.pacman_inventory),
+        ('APK', lambda: system=='alpine' and shutil.which('apk'), native_packages.apk_inventory),
+        ('Flatpak', lambda: shutil.which('flatpak'), flatpak_inventory),
+        ('npm', npm_locations, npm_inventory),
+        ('pipx', lambda: shutil.which('pipx'), pipx_inventory),
+        ('pip', lambda: python_locations(extra_python), lambda: pip_inventory(extra_python)),
+        ('uv', lambda: executable('uv', [HOME/'.local/bin/uv', HOME/'.cargo/bin/uv']), uv_inventory),
+        ('Bun', lambda: executable('bun', [HOME/'.bun/bin/bun']), bun_inventory),
+        ('Homebrew', lambda: executable('brew', [Path('/home/linuxbrew/.linuxbrew/bin/brew'), HOME/'.linuxbrew/bin/brew']), brew_inventory),
+        ('Cargo', lambda: executable('cargo', [HOME/'.cargo/bin/cargo']), cargo_inventory),
+        ('Snap', lambda: shutil.which('snap'), snap_inventory),
+    ]
+    def read_source(available, loader):
+        return loader() if available() else []
+    # Only independent read-only inventories overlap; removal remains serial and revalidated.
+    with ThreadPoolExecutor(max_workers=4,thread_name_prefix='sweepdesk-scan') as pool:
+        desktop_future = pool.submit(desktop_index)
+        pending = [(label,pool.submit(read_source,available,loader))
+                   for label,available,loader in loaders if label in enabled]
+        for label,future in pending:
             try:
-                apps.extend(loader())
-            except Exception as e:
-                warnings.append(label+': '+str(e))
+                apps.extend(future.result())
+            except Exception as error:
+                warnings.append(label+': '+str(error))
+        desktops = desktop_future.result()
     try:
         if 'Manual' in enabled:
             apps.extend(manual_inventory(apps, extra_manual))
@@ -528,7 +551,6 @@ def scan(extra_python=(), extra_manual=(), enabled_sources=None):
             apps.extend(appimage_inventory(apps))
     except Exception as e:
         warnings.append('Manual: '+str(e))
-    desktops = desktop_index()
     for app in apps:
         decorate(app, desktops)
     return sorted(apps, key=lambda a: (a.name.casefold(), a.source, a.scope)), warnings

@@ -19,7 +19,7 @@ from pathlib import Path
 try:
     import gi
     gi.require_version('Gtk', '3.0')
-    from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Gio, Pango
+    from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Gio, Pango, GObject
 except (ImportError, ValueError) as exc:
     raise SystemExit('Install Python 3, PyGObject, GTK 3, librsvg, and polkit using your distribution package manager.\n'+str(exc))
 
@@ -30,7 +30,7 @@ import ui_icons
 import i18n
 from i18n import tr
 
-VERSION = '0.5.3'
+VERSION = '0.5.4'
 APP_ID = 'io.github.Zwart04.SweepDesk'
 SUPPORT_URL = 'https://tako.id/Zwart04'
 REPOSITORY_URL = 'https://github.com/Zwart04/sweepdesk'
@@ -151,6 +151,10 @@ class Window(Gtk.Window):
         self.connect('delete-event', self.on_close)
         self.connect('key-press-event', self.key_pressed)
         self.apps, self.warnings, self.activity = [], [], []
+        self.search_texts, self.row_markup, self.cli_flags = [], [], []
+        self.search_query = ''
+        self.filter_idle = None
+        self.store_iter_by_index = {}
         self.busy = self.mutating = self.pending_refresh = self.scanning = False
         self.screenshot, self.prefs_file = screenshot, prefs_file
         self.prefs = preferences.validate(prefs) if prefs is not None else preferences.load(prefs_file)
@@ -171,7 +175,7 @@ class Window(Gtk.Window):
         self.add(outer)
         split = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         outer.pack_start(split, True, True, 0)
-        self.sidebar_revealer = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_RIGHT, reveal_child=True)
+        self.sidebar_revealer = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_RIGHT, transition_duration=160, reveal_child=True)
         self.sidebar = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         self.sidebar.get_style_context().add_class('sidebar')
         self.sidebar.set_size_request(188, -1)
@@ -199,7 +203,7 @@ class Window(Gtk.Window):
         main.pack_start(self.page_subtitle, False, False, 0)
         controls = Gtk.Box(spacing=8)
         self.search = Gtk.SearchEntry(placeholder_text=tr('Search software…'))
-        self.search.connect('search-changed', lambda _: self.refilter())
+        self.search.connect('changed', lambda _: self.queue_refilter())
         controls.pack_start(self.search, True, True, 0)
         self.sort = Gtk.ComboBoxText()
         for name in ('Name', 'Source', 'Size'):
@@ -224,17 +228,15 @@ class Window(Gtk.Window):
         self.banner.connect('response', lambda *_: self.banner.hide())
         self.banner.set_no_show_all(True)
         main.pack_start(self.banner, False, False, 0)
-        self.store = Gtk.ListStore(GdkPixbuf.Pixbuf, str, str, str, str, int, str)
+        self.store = Gtk.ListStore(GdkPixbuf.Pixbuf, str, str, str, str, int, str, str, str, GObject.TYPE_UINT64)
         self.filtered = self.store.filter_new()
         self.filtered.set_visible_func(self.visible)
-        self.sort_model = Gtk.TreeModelSort(model=self.filtered)
-        for column in (1, 3, 4):
-            self.sort_model.set_sort_func(column, self.compare_rows, column)
-        self.sort_model.set_sort_column_id(1, Gtk.SortType.ASCENDING)
+        self.sort_model = self.filtered
+        self.store.set_sort_column_id(7, Gtk.SortType.ASCENDING)
         self.tree = Gtk.TreeView(model=self.sort_model, enable_search=False)
-        self.tree.set_grid_lines(Gtk.TreeViewGridLines.HORIZONTAL)
+        self.tree.set_grid_lines(Gtk.TreeViewGridLines.NONE)
         self.tree.set_tooltip_column(6)
-        self.tree.get_selection().connect('changed', self.selected)
+        self.selection_handler = self.tree.get_selection().connect('changed', self.selected)
         self.tree.connect('button-press-event', self.tree_button)
         self.tree.connect('popup-menu', self.popup_keyboard)
         self.tree.connect('row-activated', lambda *_: self.details())
@@ -250,7 +252,9 @@ class Window(Gtk.Window):
         self.name_column.set_cell_data_func(self.name_renderer,self.render_software_name)
         self.name_column.set_expand(True)
         self.name_column.set_min_width(200)
-        self.name_column.set_sort_column_id(1)
+        self.name_column.set_clickable(True)
+        self.name_column.connect('clicked',lambda column:self.sort_header(column,7))
+        self.name_column.sort_key = 7
         self.tree.append_column(self.name_column)
         for name, column, width in [('Version', 2, 115), ('Source', 3, 90), ('Size', 4, 85)]:
             renderer = Gtk.CellRendererText(ellipsize=Pango.EllipsizeMode.END, xpad=9)
@@ -258,8 +262,12 @@ class Window(Gtk.Window):
             view_column.set_min_width(width)
             view_column.set_resizable(True)
             if column in (3, 4):
-                view_column.set_sort_column_id(column)
+                view_column.set_clickable(True)
+                view_column.sort_key = {3:8,4:9}[column]
+                view_column.connect('clicked',lambda widget:self.sort_header(widget,widget.sort_key))
             self.tree.append_column(view_column)
+        self.store.connect('sort-column-changed',lambda *_:self.sync_sort_indicators())
+        self.sync_sort_indicators()
         scroll = Gtk.ScrolledWindow()
         scroll.add(self.tree)
         self.list_stack = Gtk.Stack(transition_type=Gtk.StackTransitionType.CROSSFADE, transition_duration=120)
@@ -289,7 +297,7 @@ class Window(Gtk.Window):
         frame.get_style_context().add_class('software-frame')
         frame.add(self.list_stack)
         main.pack_start(frame, True, True, 0)
-        self.inspector = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_UP)
+        self.inspector = Gtk.Revealer(transition_type=Gtk.RevealerTransitionType.SLIDE_UP, transition_duration=160)
         self.build_inspector()
         main.pack_start(self.inspector, False, False, 0)
         footer = Gtk.Box(spacing=10)
@@ -313,6 +321,7 @@ class Window(Gtk.Window):
         self.closed = False
         self.update_release = None
         self.update_checking = False
+        self.update_dialog = None
         self.update_installed = False
         self.update_timer = GLib.timeout_add_seconds(3,self.automatic_update_check)
         self.connect('destroy',self.cleanup_update_timer)
@@ -332,6 +341,9 @@ class Window(Gtk.Window):
 
     def cleanup_update_timer(self, *_):
         self.closed=True
+        if self.filter_idle is not None:
+            GLib.source_remove(self.filter_idle)
+            self.filter_idle = None
         if getattr(self,'update_timer',None):
             GLib.source_remove(self.update_timer)
             self.update_timer=None
@@ -345,20 +357,120 @@ class Window(Gtk.Window):
         self.update_timer=GLib.timeout_add_seconds(3600,self.automatic_update_check)
         return False
 
+    def native_update_available(self):
+        return bool(self.update_release and updater.packaged_install(ROOT)
+                    and updater.package_name(self.update_release.version)
+                    and not native_packages.immutable_system())
+
+    def ensure_update_dialog(self):
+        if self.update_dialog is not None:
+            self.update_dialog.present()
+            return self.update_dialog
+        dialog = dialog_shell(self,'Updates',540,300)
+        body = dialog.get_content_area()
+        body.set_border_width(24)
+        body.set_spacing(16)
+        hero = Gtk.Box(spacing=16)
+        hero.pack_start(Gtk.Image.new_from_pixbuf(self.cached_icon(str(ROOT/'assets/sweepdesk.svg'),56)),False,False,0)
+        text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
+        dialog.status_title = label('Checking GitHub for updates…','section-title',True)
+        dialog.version_label = label('SweepDesk '+VERSION,'caption')
+        text.pack_start(dialog.status_title,False,False,0)
+        text.pack_start(dialog.version_label,False,False,0)
+        hero.pack_start(text,True,True,0)
+        body.pack_start(hero,False,False,0)
+        dialog.status_detail = label('Please wait. You can keep using SweepDesk.','subtitle',True,True)
+        body.pack_start(dialog.status_detail,True,True,0)
+        footer = Gtk.Box(spacing=10)
+        dialog.spinner = Gtk.Spinner(width_request=20,height_request=20)
+        footer.pack_start(dialog.spinner,False,False,0)
+        actions = Gtk.Box(spacing=10)
+        dialog.close_button = Gtk.Button(label=tr('Close'))
+        dialog.close_button.connect('clicked',lambda _:dialog.response(Gtk.ResponseType.CLOSE))
+        actions.pack_start(dialog.close_button,False,False,0)
+        dialog.update_action = Gtk.Button(label=tr('Update Now'))
+        dialog.update_action.get_style_context().add_class('primary-action')
+        dialog.update_action.connect('clicked',lambda _:dialog.response(Gtk.ResponseType.OK))
+        actions.pack_start(dialog.update_action,False,False,0)
+        footer.pack_end(actions,False,False,0)
+        body.pack_end(footer,False,False,0)
+        dialog.connect('delete-event',lambda *_:self.mutating)
+        def responded(_,response):
+            if self.mutating: return
+            if response == Gtk.ResponseType.OK:
+                if self.busy:
+                    dialog.status_detail.set_text(tr('Wait for the current task to finish, then try again.'))
+                    return
+                if dialog.state == 'error' and not dialog.retry_install:
+                    self.check_updates(True)
+                else:
+                    self.update_clicked(confirmed=True)
+            else:
+                dialog.destroy()
+        dialog.connect('response',responded)
+        def destroyed(_):
+            if self.update_dialog is dialog: self.update_dialog=None
+        dialog.connect('destroy',destroyed)
+        self.update_dialog = dialog
+        dialog.state,dialog.retry_install = 'checking',False
+        dialog.show_all()
+        self.render_update_dialog('checking')
+        return dialog
+
+    def render_update_dialog(self, state, error=None, retry_install=False):
+        dialog = self.update_dialog
+        if dialog is None: return
+        dialog.state,dialog.retry_install = state,retry_install
+        dialog.set_modal(state=='installing')
+        running = state in ('checking','installing')
+        dialog.spinner.start() if running else dialog.spinner.stop()
+        dialog.spinner.set_visible(running)
+        dialog.close_button.set_sensitive(state!='installing')
+        dialog.update_action.set_visible(state in ('available','installed','error'))
+        dialog.version_label.set_text(tr('Update {current} → {latest}',current=VERSION,latest=self.update_release.version)
+                                      if self.update_release else 'SweepDesk '+VERSION)
+        titles = {'checking':'Checking GitHub for updates…','available':'Update available',
+                  'installing':'Updating SweepDesk…','installed':'Update installed',
+                  'current':'Up to date','error':'Update failed'}
+        dialog.status_title.set_text(tr(titles[state]))
+        if state == 'checking':
+            detail = tr('Please wait. You can keep using SweepDesk.')
+        elif state == 'available':
+            detail = tr('Install the new version here. The download is verified before installation. You may be asked for your administrator password.') if self.native_update_available() else tr('This source, portable, or immutable installation needs a manual update. Download the release and follow its install guide.')
+            dialog.update_action.set_label(tr('Update Now' if self.native_update_available() else 'Download release'))
+        elif state == 'installing':
+            detail = tr('Downloading, verifying, and installing the update. Please keep this window open.')
+        elif state == 'installed':
+            detail = tr('The update is ready. Restart SweepDesk to use the new version.')
+            dialog.update_action.set_label(tr('Restart SweepDesk'))
+        elif state == 'current':
+            detail = tr('You are using SweepDesk {version}. No newer stable release is available.',version=VERSION)
+        else:
+            detail = str(error or tr('Update failed. Nothing was reported as successful.'))
+            dialog.update_action.set_label(tr('Try again'))
+        dialog.status_detail.set_text(detail)
+
     def check_updates(self, manual=False):
-        if self.update_checking:
-            if manual: self.message('Updates','Checking GitHub for updates…')
+        if self.mutating:
+            if manual and self.update_dialog: self.update_dialog.present()
             return
+        if manual:
+            self.ensure_update_dialog()
+            if self.update_installed:
+                self.render_update_dialog('installed')
+                return
+            self.render_update_dialog('checking')
+        if self.update_checking: return
         self.update_checking=True
         def worker():
             try: release,error=updater.check(VERSION),None
             except Exception as exc: release,error=None,str(exc)
             GLib.idle_add(finished,release,error)
         def finished(release,error):
-            if self.closed: return False
             self.update_checking=False
+            if self.closed: return False
             if error is not None:
-                if manual: self.message('Update check failed',error)
+                self.render_update_dialog('error',error)
                 return False
             self.prefs['last_update_check']=int(time.time())
             self.persist()
@@ -366,29 +478,29 @@ class Window(Gtk.Window):
             if release:
                 self.update_label.set_text(tr('SweepDesk {version} is available.',version=release.version))
                 self.update_banner.set_reveal_child(True)
-                if manual: self.message('Update available',tr('SweepDesk {version} is available. Use Update Now above the software list.',version=release.version))
-            elif manual:
+            else:
                 self.update_banner.set_reveal_child(False)
-                self.message('Up to date',tr('You are using SweepDesk {version}. No newer stable release is available.',version=VERSION))
+            self.render_update_dialog('available' if release else 'current')
             return False
         threading.Thread(target=worker,daemon=True).start()
 
-    def update_clicked(self, *_):
+    def update_clicked(self, *_, confirmed=False):
         if self.busy or self.mutating: return
         if self.update_installed:
             os.execv(sys.executable,[sys.executable,str(ROOT/'sweepdesk.py')])
+            return
         release=self.update_release
         if not release: return
-        if not updater.packaged_install(ROOT) or not updater.package_name(release.version) or native_packages.immutable_system():
-            self.message('Manual update required','This installation uses source code, a portable archive, or an immutable system. Download the matching release and follow its install guide.')
-            self.open_uri(release.url)
+        self.ensure_update_dialog()
+        if not confirmed:
+            self.render_update_dialog('available')
             return
-        dialog=dialog_shell(self,'Update SweepDesk',560,270,[('Cancel',Gtk.ResponseType.CANCEL,None),('Update Now',Gtk.ResponseType.OK,'suggested-action')])
-        body=dialog.get_content_area();body.set_border_width(22);body.set_spacing(14)
-        body.pack_start(label(tr('Update {current} → {latest}',current=VERSION,latest=release.version),'section-title'),False,False,0)
-        body.pack_start(label('The matching package will be downloaded from Zwart04/sweepdesk on GitHub, checked against SHA256SUMS, and installed by your native package manager. Administrator authentication may be required.','subtitle',True),True,True,0)
-        if self.run_dialog(dialog)!=Gtk.ResponseType.OK: return
+        if not self.native_update_available():
+            self.open_uri(release.url)
+            self.update_dialog.destroy()
+            return
         self.mutating=True
+        self.render_update_dialog('installing')
         self.update_button.set_sensitive(False)
         self.update_label.set_text(tr('Downloading and verifying the update…'))
         def apply():
@@ -405,11 +517,12 @@ class Window(Gtk.Window):
             self.update_button.set_sensitive(True)
             if error is not None:
                 self.update_label.set_text(tr('Update failed. Nothing was reported as successful.'))
-                self.message('Update failed',error)
+                self.render_update_dialog('error',error,retry_install=True)
             else:
                 self.update_installed=True
                 self.update_label.set_text(tr('SweepDesk {version} installed. Restart to use it.',version=release.version))
                 self.update_button.set_label(tr('Restart SweepDesk'))
+                self.render_update_dialog('installed')
         self.async_work(apply,complete)
 
     def build_header(self):
@@ -421,9 +534,11 @@ class Window(Gtk.Window):
         header.pack_start(Gtk.Image.new_from_pixbuf(icon_pixbuf(str(ROOT/'assets/sweepdesk.svg'), 22, self.dark)))
         self.spinner = Gtk.Spinner()
         header.pack_start(self.spinner)
-        self.support_link = Gtk.LinkButton.new_with_label(SUPPORT_URL,tr('♥︎  Support'))
-        self.support_link.get_style_context().add_class('support-pill')
-        self.support_link.set_tooltip_text(tr('Support Zwart04 on Tako — opens your browser'))
+        self.support_link = Gtk.LinkButton.new_with_label(SUPPORT_URL,tr('Buy me a coffee'))
+        self.support_link.get_style_context().add_class('coffee-pill')
+        self.support_link.set_image(ui_icons.image('coffee'))
+        self.support_link.set_always_show_image(True)
+        self.support_link.set_tooltip_text(tr('Buy Zwart04 a coffee on Tako — opens your browser'))
         header.pack_end(self.support_link)
         self.settings_button = icon_button('emblem-system-symbolic', 'Settings (Ctrl+,)', lambda _: self.settings())
         header.pack_end(self.settings_button)
@@ -453,9 +568,7 @@ class Window(Gtk.Window):
         card.pack_start(text, True, True, 0)
         actions = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, valign=Gtk.Align.CENTER)
         self.remove_button = Gtk.Button(label=tr('Review Uninstall…'))
-        self.remove_button.set_image(ui_icons.image('trash'))
-        self.remove_button.set_always_show_image(True)
-        self.remove_button.get_style_context().add_class('suggested-action')
+        self.remove_button.get_style_context().add_class('destructive-action')
         self.remove_button.connect('clicked', self.review_options)
         actions.pack_start(self.remove_button, False, False, 0)
         details = Gtk.Button(label=tr('Show Details'))
@@ -554,44 +667,78 @@ class Window(Gtk.Window):
 
     def visible(self, model, it, *_):
         app = self.apps[model[it][5]]
-        query = self.search.get_text().strip().casefold()
+        query = self.search_query
         if self.source_id and app.source != self.source_id:
             return False
         if self.category == 'system':
             if not app.support:
                 return False
         elif self.category in ('apps','cli'):
-            if app.support or self.app_is_cli(app) != (self.category == 'cli'):
+            if app.support or self.cli_flags[model.get_value(it,5)] != (self.category == 'cli'):
                 return False
         elif not query and app.support and not self.prefs['show_system']:
             return False
-        return not query or query in (app.name+' '+app.package+' '+app.description).casefold()
+        return not query or query in self.search_texts[model.get_value(it,5)]
 
     def render_software_name(self, column, renderer, model, iterator, data=None):
-        app = self.apps[model[iterator][5]]
-        name = GLib.markup_escape_text(app.name)
-        description = ' '.join((app.description or app.readonly_reason or app.package).split())
-        description = GLib.markup_escape_text(description[:220])
-        # Both lines inherit selection colours; descriptions remain readable when selected.
-        renderer.set_property('markup',name+'\n<span size="small" alpha="78%">'+description+'</span>')
+        renderer.set_property('markup',self.row_markup[model.get_value(iterator,5)])
 
-    def compare_rows(self, model, first, second, column):
-        a, b = self.apps[model[first][5]], self.apps[model[second][5]]
-        left, right = ((a.size,b.size) if column == 4 else ((a.source.casefold(),a.name.casefold()),(b.source.casefold(),b.name.casefold())) if column == 3 else (a.name.casefold(),b.name.casefold()))
-        return (left > right) - (left < right)
+    def cached_icon(self, name, size):
+        key = (name, size, self.dark)
+        if key not in self.icons:
+            self.icons[key] = icon_pixbuf(name, size, self.dark)
+        return self.icons[key]
 
     def sort_changed(self, _):
         if not hasattr(self, 'sort_model'):
             return
-        column = (1,3,4)[max(0,self.sort.get_active())]
-        self.sort_model.set_sort_column_id(column, Gtk.SortType.DESCENDING if column == 4 else Gtk.SortType.ASCENDING)
+        column = (7,8,9)[max(0,self.sort.get_active())]
+        self.store.set_sort_column_id(column, Gtk.SortType.DESCENDING if column == 9 else Gtk.SortType.ASCENDING)
+
+    def sort_header(self, widget, key):
+        current, order = self.store.get_sort_column_id()
+        order = Gtk.SortType.DESCENDING if current == key and order == Gtk.SortType.ASCENDING else Gtk.SortType.ASCENDING
+        self.store.set_sort_column_id(key,order)
+
+    def sync_sort_indicators(self):
+        current, order = self.store.get_sort_column_id()
+        for column in self.tree.get_columns():
+            column.set_sort_indicator(getattr(column,'sort_key',None)==current)
+            column.set_sort_order(order)
+
+    def queue_refilter(self):
+        if self.filter_idle is None:
+            def flush():
+                self.filter_idle = None
+                if not self.closed: self.refilter()
+                return False
+            self.filter_idle = GLib.idle_add(flush)
 
     def refilter(self):
-        self.filtered.refilter()
+        if self.filter_idle is not None:
+            GLib.source_remove(self.filter_idle)
+            self.filter_idle = None
+        self.search_query = self.search.get_text().strip().casefold()
+        selection = self.tree.get_selection()
+        model, iterator = selection.get_selected()
+        selected_index = model.get_value(iterator,5) if iterator is not None else None
+        selection.handler_block(self.selection_handler)
+        try:
+            # Batch model changes rather than relaying thousands of row updates to the view.
+            self.tree.set_model(None)
+            self.filtered.refilter()
+            self.tree.set_model(self.sort_model)
+            if selected_index is not None:
+                iterator = self.store_iter_by_index.get(selected_index)
+                if iterator is not None:
+                    path = self.filtered.convert_child_path_to_path(self.store.get_path(iterator))
+                    if path is not None: selection.select_path(path)
+        finally:
+            selection.handler_unblock(self.selection_handler)
         count = len(self.filtered)
         self.counter.set_text(tr('Loading…') if self.scanning else tr('{count} item' if count==1 else '{count} items',count=f'{count:,}'))
         self.page_subtitle.set_text(tr('{count} installed packages · {sources} sources',count=f'{len(self.apps):,}',sources=len({a.source for a in self.apps})) if self.apps else tr('Applications and command-line tools'))
-        self.list_stack.set_visible_child_name('loading' if self.scanning else 'list' if count else 'empty')
+        self.list_stack.set_visible_child_name('loading' if self.scanning and not self.apps else 'list' if count else 'empty')
         self.empty_title.set_text(tr('No matches' if self.apps else 'Your software library'))
         self.empty_description.set_text(tr('Try a different search or clear your filters.' if self.apps else 'Refresh to find installed apps and command-line tools.'))
         self.selected(self.tree.get_selection())
@@ -616,7 +763,7 @@ class Window(Gtk.Window):
         self.inspector.set_reveal_child(bool(app and self.prefs['show_details']))
         if not app:
             return
-        self.detail_icon.set_from_pixbuf(icon_pixbuf(app.icon, 40, self.dark))
+        self.detail_icon.set_from_pixbuf(self.cached_icon(app.icon, 40))
         self.detail_title.set_text(tr(app.name))
         self.detail_desc.set_text(tr(app.readonly_reason or app.description or 'Installed software'))
         self.detail_id.set_text(tr(app.package+' · '+app.source+' · '+(app.version or 'Version unknown')))
@@ -665,10 +812,26 @@ class Window(Gtk.Window):
             self.banner.show_all()
             self.status.set_text(tr('Scan incomplete. Refresh to try again.'))
             return
+        previous = self.active_app()
+        previous_key = previous.key if previous else None
+        self.tree.set_model(None)
         self.store.clear()
         self.apps, self.warnings = result
+        self.store_iter_by_index = {}
+        self.search_texts = [(a.name+' '+a.package+' '+a.description).casefold() for a in self.apps]
+        self.cli_flags = [self.app_is_cli(a) for a in self.apps]
+        self.row_markup = []
+        for app in self.apps:
+            description = ' '.join((app.description or app.readonly_reason or app.package).split())[:220]
+            self.row_markup.append(GLib.markup_escape_text(app.name)+'\n<span size="small" alpha="78%">'+GLib.markup_escape_text(description)+'</span>')
         for index, app in enumerate(self.apps):
-            self.store.append([icon_pixbuf(app.icon,self.icon_size,self.dark),app.name,app.version,app.source,size_label(app.size),index,app.package+'\n'+(app.readonly_reason or app.description)])
+            self.store_iter_by_index[index] = self.store.append([self.cached_icon(app.icon,self.icon_size),app.name,app.version,app.source,size_label(app.size),index,app.package+'\n'+(app.readonly_reason or app.description),app.name.casefold(),app.source.casefold()+' / '+app.name.casefold(),max(0,app.size)])
+        self.tree.set_model(self.sort_model)
+        if previous_key is not None:
+            index = next((i for i,app in enumerate(self.apps) if app.key==previous_key),None)
+            if index is not None:
+                path = self.filtered.convert_child_path_to_path(self.store.get_path(self.store_iter_by_index[index]))
+                if path is not None: self.tree.get_selection().select_path(path)
         self.populate_sidebar()
         self.refilter()
         self.last_scan = datetime.datetime.now().strftime('%H:%M')
@@ -914,11 +1077,15 @@ class Window(Gtk.Window):
     def set_preference(self, key, value):
         self.prefs[key] = value
         self.persist()
-        if key in ('density','theme'):
+        if key == 'theme':
             self.apply_style()
+        if key in ('density','theme'):
             self.apply_density()
-        self.populate_sidebar()
-        self.refilter()
+        if key == 'show_system':
+            self.populate_sidebar()
+            self.refilter()
+        else:
+            self.selected(self.tree.get_selection())
 
     def toggle_details(self):
         self.set_preference('show_details',not self.prefs['show_details'])
@@ -1031,14 +1198,16 @@ class Window(Gtk.Window):
         check_updates_button=Gtk.Button(label=tr('Check for Updates…'))
         check_updates_button.connect('clicked',lambda _:self.check_updates(True))
         updates.pack_start(check_updates_button,False,False,0)
-        about = page('About & Support','SweepDesk '+VERSION+' · '+tr('Free and open source, made by Zwart04.'))
+        about = page('About','SweepDesk '+VERSION+' · '+tr('Free and open source, made by Zwart04.'))
         logo = Gtk.Image.new_from_pixbuf(icon_pixbuf(str(ROOT/'assets/sweepdesk.svg'),80,self.dark))
         about.pack_start(logo,False,False,4)
         for text in ('For Debian, Ubuntu, Fedora, openSUSE, Arch Linux, and compatible derivatives.','Removal always requires a reviewed plan. Known user data goes to Trash; shared dependencies and uncertain files are kept.'):
             about.pack_start(label(text,'subtitle',True),False,False,0)
-        support = Gtk.LinkButton.new_with_label(SUPPORT_URL,tr('♥︎  Support Zwart04 on Tako'))
+        support = Gtk.LinkButton.new_with_label(SUPPORT_URL,tr('Buy me a coffee'))
         support.set_halign(Gtk.Align.CENTER)
-        support.get_style_context().add_class('support-pill')
+        support.get_style_context().add_class('coffee-pill')
+        support.set_image(ui_icons.image('coffee'))
+        support.set_always_show_image(True)
         about.pack_start(support,False,False,0)
         about.pack_start(Gtk.LinkButton.new_with_label(REPOSITORY_URL,tr('Source code and documentation ↗')),False,False,0)
         dialog.settings_controls, dialog.source_controls, dialog.scan_folders = controls, source_controls, folders
@@ -1190,8 +1359,6 @@ class Window(Gtk.Window):
         dialog = dialog_shell(self,'Review Removal',760,560)
         # Keep consent and the destructive action together, in reading order.
         confirm = Gtk.Button(label=tr('Uninstall'))
-        confirm.set_image(ui_icons.image('trash'))
-        confirm.set_always_show_image(True)
         confirm.get_style_context().add_class('destructive-action')
         confirm.set_sensitive(False)
         confirm.connect('clicked', lambda _: dialog.response(Gtk.ResponseType.OK))
@@ -1374,7 +1541,7 @@ class Window(Gtk.Window):
             'Native software inventory and reviewed uninstall for major Linux desktops.',
             'Made by Zwart04 · GPL-3.0-or-later licensed original code.',
             'Known data cleanup is opt-in. Shared dependencies, caches, and uncertain files are preserved. See the online guide for each source’s limits.',
-            REPOSITORY_URL])+ '\n'+tr('Support: {url}',url=SUPPORT_URL))
+            REPOSITORY_URL])+ '\n'+tr('Buy me a coffee: {url}',url=SUPPORT_URL))
 
     def export(self, _):
         dialog = Gtk.FileChooserDialog(title=tr('Export Software Inventory'),transient_for=self,action=Gtk.FileChooserAction.SAVE)

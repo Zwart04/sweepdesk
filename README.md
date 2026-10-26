@@ -9,13 +9,13 @@
     <a href="#what-can-it-clean">Cleanup coverage</a> ·
     <a href="README.id.md">Bahasa Indonesia</a>
   </p>
-  <a href="https://tako.id/Zwart04"><img src="assets/support-tako.svg" width="330" alt="♥ Support Zwart04 on Tako"></a>
-  <p>Free and open source. If SweepDesk helps you, support its development on <a href="https://tako.id/Zwart04"><strong>Tako</strong></a>.</p>
+  <a href="https://tako.id/Zwart04"><img src="assets/support-tako.svg" width="330" alt="Buy me a coffee"></a>
+  <p>Free and open source. If SweepDesk helps you, buy me a coffee on <a href="https://tako.id/Zwart04"><strong>Tako</strong></a>.</p>
 </div>
 
 ![SweepDesk in a macOS-inspired neutral dark theme; sample inventory](docs/screenshot.png)
 
-SweepDesk brings graphical apps and command-line tools into a familiar program list. Search by name, package ID, or description, filter by installation source, inspect the uninstall plan, and choose whether to clean known user data. The dark interface uses neutral charcoal panels and a blue accent. A visible **♥ Support** pill opens the project's Tako page.
+SweepDesk brings graphical apps and command-line tools into a familiar program list. Search by name, package ID, or description, filter by installation source, inspect the uninstall plan, and choose whether to clean known user data. The dark interface uses neutral charcoal panels and a blue accent. A visible **Buy me a coffee** pill opens the project's Tako page.
 
 ## Compatibility
 
@@ -43,16 +43,16 @@ Open [the download selector](https://zwart04.github.io/sweepdesk/#install) or [R
 
 ```bash
 # Debian / Ubuntu / Linux Mint
-sudo apt install ./sweepdesk_0.5.3_all.deb
+sudo apt install ./sweepdesk_0.5.4_all.deb
 
 # Fedora / Rocky / AlmaLinux / RHEL-compatible
-sudo dnf install ./sweepdesk-0.5.3-1.fedora.noarch.rpm
+sudo dnf install ./sweepdesk-0.5.4-1.fedora.noarch.rpm
 
 # openSUSE Leap / Tumbleweed
-sudo zypper install ./sweepdesk-0.5.3-1.opensuse.noarch.rpm
+sudo zypper install ./sweepdesk-0.5.4-1.opensuse.noarch.rpm
 
 # Arch / EndeavourOS / Manjaro
-sudo pacman -U ./sweepdesk-0.5.3-1-any.pkg.tar.zst
+sudo pacman -U ./sweepdesk-0.5.4-1-any.pkg.tar.zst
 ```
 
 A graphical package installer can open these files when the desktop provides one; a double-click installer is not guaranteed on every distribution. Native managers install the declared runtime dependencies. GitHub RPM/Arch artifacts are unsigned local packages; inspect native signature prompts/policies and verify the published SHA-256 checksums. SweepDesk does not globally disable signature or dependency checks.
@@ -90,7 +90,7 @@ sudo apk add python3 py3-gobject3 gtk+3.0 librsvg polkit
 
 Some Debian-family systems provide `pkexec` separately instead of `policykit-1`. Use the desktop's polkit agent for password dialogs. For a source installation, Python must be the interpreter that can import `gi` and the GTK 3 namespace.
 
-Download and extract `sweepdesk-0.5.3.tar.gz` from Releases, or clone the repository:
+Download and extract `sweepdesk-0.5.4.tar.gz` from Releases, or clone the repository:
 
 ```bash
 git clone https://github.com/Zwart04/sweepdesk.git
@@ -125,7 +125,7 @@ The per-user uninstaller removes only the managed SweepDesk installation. It kee
 5. Check the exact packages, known data locations, notes, and commands. Acknowledge the plan before clicking **Uninstall**. Protected/read-only items remain blocked in the context menu and inspector.
 6. Review the result. A green checkmark and **Successfully removed** identify a successful operation; an incomplete operation shows a distinct error panel and keeps its log. **More → Activity** keeps completed/interrupted operation logs for the current session. It does not persist the logs or upload them.
 
-**More (•••)** also offers inventory export, additional scan locations, scan status, shortcuts, and help. **Settings** is the sliders button in the compact title bar. **♥ Support** opens [Zwart04 on Tako](https://tako.id/Zwart04).
+**More (•••)** also offers inventory export, additional scan locations, scan status, shortcuts, and help. **Settings** is the sliders button in the compact title bar. **Buy me a coffee** opens [Zwart04 on Tako](https://tako.id/Zwart04).
 
 ### Languages
 
@@ -139,17 +139,21 @@ The [Indonesian website](https://zwart04.github.io/sweepdesk/id.html) and [Indon
 - **Scanning:** scan on launch, remember added locations, and add/remove Python environment or manual-install folders.
 - **Updates:** automatic GitHub release checks and a manual **Check for Updates** button.
 - **Sources:** enable or disable individual inventory providers. Turning a source off does not uninstall its software.
-- **About & Support:** app version, project links, and a dedicated support pill.
+- **About:** app version, project links, and a coffee button.
 
 Preferences are stored locally at `$XDG_CONFIG_HOME/sweepdesk/preferences.json` (normally `~/.config/sweepdesk/preferences.json`) with owner-only file permissions. Inventories and operation logs are not saved there. Added folders are remembered only when **Remember added folders** is enabled.
 
 ![SweepDesk appearance settings](docs/settings.png)
 
+### Responsiveness
+
+Search and sorting run locally. Shared icons and search text are reused in memory, while independent inventory sources are read with at most four workers. Refresh keeps your existing list visible until fresh results arrive. No inventory is cached on disk; removal still creates a fresh preview and rechecks package state before changing anything.
+
 ### Updates from GitHub
 
-SweepDesk checks the newest stable GitHub release at startup and while open, at most once per day automatically. When a newer version exists, a banner above the software list shows the version and **Update Now**. You can check any time using **More → Check for Updates** or **Settings → Updates**. Automatic checks can be turned off.
+SweepDesk checks the newest stable GitHub release at startup and while open, at most once per day automatically. When a newer version exists, a banner above the software list shows the version and **Update Now**. You can check any time using **More → Check for Updates** or **Settings → Updates**. Automatic checks can be turned off. A manual check opens one window with **Update Now**, installation progress, retry after a failure, and **Restart SweepDesk** after success. You do not need to return to the main-window banner.
 
-For a system package installation, **Update Now** shows a confirmation, downloads the matching DEB/Fedora RPM/openSUSE RPM/Arch package from `Zwart04/sweepdesk`, verifies its size and SHA-256 against `SHA256SUMS` and GitHub's asset digest when provided, then invokes the native manager with desktop authentication. Signature policies are respected; a rejected package reports an error rather than a false success. **Restart SweepDesk** appears after the installed version is verified.
+For a system package installation, the update window explains the operation before you click **Update Now**. It then downloads the matching DEB/Fedora RPM/openSUSE RPM/Arch package from `Zwart04/sweepdesk`, verifies its size and SHA-256 against `SHA256SUMS` and GitHub's asset digest when provided, then invokes the native manager with desktop authentication. Signature policies are respected; a rejected package reports an error rather than a false success. **Restart SweepDesk** appears after the installed version is verified.
 
 The app never installs an update merely because it was found. Source checkouts, user-installed portable copies, Alpine source installs, and immutable systems open the release page for manual updating. It does not overwrite an edited checkout. Network failures leave the current installation usable; manual checks display errors. Update checks send ordinary HTTPS requests to GitHub, with no inventory or account token.
 
@@ -243,10 +247,10 @@ Build output is written to `dist/`: a portable archive, native packages built wi
 
 CI runs unit/UI checks under Xvfb on the listed Debian/Ubuntu, RPM, Arch, and Alpine base images. New-family jobs build and install the native package (or Alpine user install), then remove only a deliberately installed `tree` fixture inside disposable containers. Package-manager fixtures cover unavailable optional sources. Testing every distribution derivative, architecture, or full desktop session is not implied. Tests never remove the host's installed applications. The README screenshot uses a labeled sample inventory, not a user's private software list.
 
-## Support the project
+## Buy me a coffee
 
-<a href="https://tako.id/Zwart04"><img src="assets/support-tako.svg" width="330" alt="Support Zwart04 on Tako"></a>
+<a href="https://tako.id/Zwart04"><img src="assets/support-tako.svg" width="330" alt="Buy me a coffee"></a>
 
-**[Support Zwart04 → tako.id/Zwart04](https://tako.id/Zwart04)** helps maintain compatibility, testing, and new cleanup profiles. Support is optional; all features remain available. The same support button is always available in SweepDesk's compact title bar.
+**[Buy me a coffee → tako.id/Zwart04](https://tako.id/Zwart04)** helps maintain compatibility, testing, and new cleanup profiles. Buying a coffee is optional; all features remain available. The same coffee button is always available in SweepDesk's compact title bar.
 
 Original code, application artwork, and documentation: [GNU GPL v3.0 or later](LICENSE) (`GPL-3.0-or-later`), copyright (C) 2026 Zwart04. Distributed without warranty. Redistribution of modified versions must comply with the GPL, including providing corresponding source code. Earlier releases through 0.5.1 retain their MIT permissions; see [license history](docs/LICENSE-HISTORY.md). Third-party names and artwork remain under their upstream terms. SweepDesk is independent of Debian, Ubuntu, ArtCraft, and the package managers it supports.

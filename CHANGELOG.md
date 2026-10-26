@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.4
+
+- Keep manual update checks, Update Now, verified installation progress, failure retry, and Restart in one window. No detour to the main-window update button.
+- Remove trash icons from removal buttons; keep removal actions red, update actions blue, and unavailable actions subdued. Replace donation hearts/Support labels with original coffee cup artwork and Buy me a coffee / Traktir kopi across the app, README, and website.
+- Sort through the native list store before filtering; reuse search text, escaped descriptions, and decoded icons. Batch view updates and coalesce input without the delayed search signal.
+- Retain the existing list during refresh and preserve selection when a package is still installed. Density/detail changes no longer rebuild unrelated UI or reload the stylesheet.
+- Read independent sources with at most four workers, skip disabled-source discovery, and batch literal Debian manual-file ownership queries. Removal scope and revalidation are unchanged.
+- Use cleaner table rows and short native transitions. Add regression checks for the update dialog, native sorting, refresh behavior, parallel scan failure isolation, and ownership exclusions.
+
 ## 0.5.3
 
 - Fix the disabled View button by attaching its popover directly to the native menu button.

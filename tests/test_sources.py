@@ -28,6 +28,47 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(apps,[])
         self.assertEqual(warnings,[])
         run.assert_not_called()
+    def test_independent_sources_overlap_and_failures_are_isolated(self):
+        import threading
+        barrier=threading.Barrier(2,timeout=5)
+        def loader(name):
+            barrier.wait()
+            return [b.App(name,name,'1',name)]
+        with patch.object(b.native_packages,'family',return_value='deb'), \
+             patch.object(b.shutil,'which',return_value='/manager'),patch.object(b,'npm_locations',return_value=['/npm']), \
+             patch.object(b,'apt_inventory',side_effect=lambda:loader('APT')), \
+             patch.object(b,'npm_inventory',side_effect=lambda:loader('npm')), \
+             patch.object(b,'cargo_inventory',side_effect=RuntimeError('fixture failure')), \
+             patch.object(b,'executable',return_value='/cargo'),patch.object(b,'desktop_index',return_value={}):
+            apps,warnings=b.scan(enabled_sources=['APT','npm','Cargo'])
+        self.assertEqual({a.source for a in apps},{'APT','npm'})
+        self.assertEqual(warnings,['Cargo: fixture failure'])
+
+    def test_disabled_source_discovery_is_skipped(self):
+        with patch.object(b,'npm_locations',side_effect=AssertionError('disabled npm discovery')), \
+             patch.object(b,'python_locations',side_effect=AssertionError('disabled Python discovery')), \
+             patch.object(b,'desktop_index',return_value={}):
+            self.assertEqual(b.scan(enabled_sources=[]),([],[]))
+
+    def test_manual_batch_ownership_keeps_native_packages_out(self):
+        import os
+        with tempfile.TemporaryDirectory() as directory:
+            home=Path(directory);folder=home/'.local/bin';folder.mkdir(parents=True)
+            owned=folder/'owned';free=folder/'free';target=home/'owned-target';link=folder/'linked'
+            for p in [owned,free,target]: p.write_text('fixture');p.chmod(0o700)
+            link.symlink_to(target)
+            def query(args,**kwargs):
+                self.assertEqual(args[:3],['/usr/bin/dpkg-query','-S','--'])
+                return 'native-package: '+str(owned)+'\nnative-package: '+str(target)+'\n'
+            with patch.object(b,'HOME',home),patch.object(b.native_packages,'family',return_value='deb'), \
+                 patch.object(b.shutil,'which',side_effect=lambda name:'/usr/bin/dpkg-query' if name=='dpkg-query' else None), \
+                 patch.object(b.os,'access',side_effect=lambda p,mode:Path(p).is_relative_to(home)), \
+                 patch.object(b,'run',side_effect=query) as run, \
+                 patch.object(b,'package_owner',side_effect=AssertionError('unexpected individual lookup')):
+                apps=b.manual_inventory([])
+            self.assertEqual([a.package for a in apps],['free'])
+            self.assertEqual(run.call_count,1)
+
     def test_python_probe_accepts_legacy_zip_metadata(self):
         import python_probe
         class ArchivePath:

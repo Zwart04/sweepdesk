@@ -4,10 +4,10 @@
 """Original line icons for consistent controls across desktop themes."""
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GdkPixbuf
+from gi.repository import Gtk, GdkPixbuf, Gio
+from pathlib import Path
 
 PATHS = {
- 'trash':'<path d="M3 5h14M7 5V2.5h6V5M5 5l1 12h8l1-12M8 8v6m4-6v6"/>',
  'sidebar':'<rect x="2" y="2.5" width="16" height="15" rx="2"/><path d="M7 3v14"/>',
  'settings':'<path d="M3 5h14M3 10h14M3 15h14"/><path d="M7 3v4m6 1v4m-5 1v4" stroke-width="3.4"/>',
  'more':'<circle cx="4" cy="10" r=".9" fill="currentColor"/><circle cx="10" cy="10" r=".9" fill="currentColor"/><circle cx="16" cy="10" r=".9" fill="currentColor"/>',
@@ -44,6 +44,11 @@ def pixbuf(name,size=16,dark=True):
 
 
 def image(name,size=16):
+    if name == 'coffee':
+        path = Path(__file__).resolve().parent/'assets/ui/coffee-symbolic.svg'
+        widget = Gtk.Image.new_from_gicon(Gio.FileIcon.new(Gio.File.new_for_path(str(path))),Gtk.IconSize.BUTTON)
+        widget.set_pixel_size(max(18,size))
+        return widget
     dark=Gtk.Settings.get_default().get_property('gtk-application-prefer-dark-theme')
     widget=Gtk.Image.new_from_pixbuf(pixbuf(name,size,dark))
     widget.sweepdesk_symbol=(name,size)

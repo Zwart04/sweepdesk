@@ -4,9 +4,9 @@
 
 Pengelola aplikasi GUI dan CLI untuk **Debian, Ubuntu, Fedora, openSUSE, Arch Linux, Alpine, dan distro turunan yang kompatibel**. Tema gelap memakai palet abu-abu netral dan aksen biru ala macOS.
 
-[![Dukung Zwart04 di Tako](assets/support-tako-id.svg)](https://tako.id/Zwart04)
+[![Traktir kopi untuk Zwart04](assets/support-tako-id.svg)](https://tako.id/Zwart04)
 
-**[Dukung pengembangan SweepDesk melalui Tako](https://tako.id/Zwart04)**. Dukungan bersifat sukarela; semua fitur tetap tersedia.
+**[Traktir kopi untuk pengembang SweepDesk](https://tako.id/Zwart04)**. Traktiran bersifat sukarela; semua fitur tetap tersedia.
 
 ![Tampilan SweepDesk dengan daftar contoh](docs/screenshot-id.png)
 
@@ -16,11 +16,11 @@ Pilih distro melalui **[halaman unduh](https://zwart04.github.io/sweepdesk/id.ht
 
 | Distro | Berkas yang dipilih | Perintah dari folder unduhan |
 |---|---|---|
-| Debian / Ubuntu / Mint | `sweepdesk_0.5.3_all.deb` | `sudo apt install ./sweepdesk_0.5.3_all.deb` |
-| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.5.3-1.fedora.noarch.rpm` | `sudo dnf install ./sweepdesk-0.5.3-1.fedora.noarch.rpm` |
-| openSUSE Leap / Tumbleweed | `sweepdesk-0.5.3-1.opensuse.noarch.rpm` | `sudo zypper install ./sweepdesk-0.5.3-1.opensuse.noarch.rpm` |
-| Arch / EndeavourOS / Manjaro | `sweepdesk-0.5.3-1-any.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.5.3-1-any.pkg.tar.zst` |
-| Alpine / Linux lain dengan GTK 3 | `sweepdesk-0.5.3.tar.gz` | Ikuti bagian kode sumber di bawah |
+| Debian / Ubuntu / Mint | `sweepdesk_0.5.4_all.deb` | `sudo apt install ./sweepdesk_0.5.4_all.deb` |
+| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.5.4-1.fedora.noarch.rpm` | `sudo dnf install ./sweepdesk-0.5.4-1.fedora.noarch.rpm` |
+| openSUSE Leap / Tumbleweed | `sweepdesk-0.5.4-1.opensuse.noarch.rpm` | `sudo zypper install ./sweepdesk-0.5.4-1.opensuse.noarch.rpm` |
+| Arch / EndeavourOS / Manjaro | `sweepdesk-0.5.4-1-any.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.5.4-1-any.pkg.tar.zst` |
+| Alpine / Linux lain dengan GTK 3 | `sweepdesk-0.5.4.tar.gz` | Ikuti bagian kode sumber di bawah |
 
 Jika desktop menyediakan pemasang grafis yang sesuai, berkas paket juga dapat dibuka dengan klik dua kali. Tidak semua distro menyediakannya secara bawaan. Pengelola paket memasang komponen yang dibutuhkan. Paket RPM/Arch dari GitHub merupakan paket lokal tanpa tanda tangan; periksa checksum dan ikuti kebijakan/tanya jawab keamanan pengelola paket. SweepDesk tidak mematikan pemeriksaan keamanan secara global.
 
@@ -83,11 +83,15 @@ Buka **Pengaturan → Tampilan → Bahasa**, pilih **Bahasa Indonesia**, **Engli
 
 Website menyediakan tautan **Bahasa Indonesia / English** pada navigasi. Halaman Indonesia dapat dibuka langsung di **[zwart04.github.io/sweepdesk/id.html](https://zwart04.github.io/sweepdesk/id.html)**.
 
+## Antarmuka lebih ringan
+
+Pencarian dan pengurutan berlangsung langsung di perangkat. Ikon yang sama cukup dibaca sekali, dan beberapa sumber instalasi diperiksa bersamaan dengan batas empat proses pekerja. Saat memindai ulang, daftar sebelumnya tetap terlihat sampai hasil terbaru siap. Daftar aplikasi tidak disimpan ke disk; sebelum penghapusan, SweepDesk tetap membuat pratinjau baru dan memeriksa ulang kondisi paket.
+
 ## Tombol pembaruan dari GitHub
 
-SweepDesk memeriksa versi stabil terbaru saat dibuka dan selama tetap berjalan, paling sering sekali sehari. Jika tersedia, muncul tombol **Perbarui sekarang** dan nomor versinya di atas daftar perangkat lunak. Untuk memeriksa kapan saja, buka **Tindakan lainnya → Periksa Pembaruan** atau **Pengaturan → Pembaruan**. Pemeriksaan otomatis bisa dinonaktifkan.
+SweepDesk memeriksa versi stabil terbaru saat dibuka dan selama tetap berjalan, paling sering sekali sehari. Jika tersedia, muncul tombol **Perbarui sekarang** dan nomor versinya di atas daftar perangkat lunak. Untuk memeriksa kapan saja, buka **Tindakan lainnya → Periksa Pembaruan** atau **Pengaturan → Pembaruan**. Pemeriksaan otomatis bisa dinonaktifkan. Saat memeriksa secara manual, satu jendela menampilkan tombol **Perbarui sekarang**, proses pemasangan, tombol coba lagi jika gagal, dan **Buka ulang SweepDesk** setelah berhasil. Anda tidak perlu kembali ke tombol di halaman utama.
 
-Pada instalasi paket DEB/RPM/Arch, tombol tersebut menampilkan konfirmasi, mengunduh paket yang sesuai dari `Zwart04/sweepdesk`, lalu memeriksa ukuran dan SHA-256 terhadap `SHA256SUMS` serta digest GitHub jika tersedia. Pengelola paket distro memasangnya melalui autentikasi desktop. Setelah versi terpasang berhasil diperiksa, tersedia tombol **Buka ulang SweepDesk**. Jika pemasang atau kebijakan tanda tangan paket menolak, aplikasi melaporkan kegagalan.
+Pada instalasi paket DEB/RPM/Arch, jendela pembaruan menjelaskan prosesnya sebelum Anda menekan **Perbarui sekarang**. Aplikasi kemudian mengunduh paket yang sesuai dari `Zwart04/sweepdesk`, lalu memeriksa ukuran dan SHA-256 terhadap `SHA256SUMS` serta digest GitHub jika tersedia. Pengelola paket distro memasangnya melalui autentikasi desktop. Setelah versi terpasang berhasil diperiksa, tersedia tombol **Buka ulang SweepDesk**. Jika pemasang atau kebijakan tanda tangan paket menolak, aplikasi melaporkan kegagalan.
 
 **Menemukan pembaruan tidak langsung memasangnya.** Anda tetap menekan tombol pembaruan. Instalasi dari kode sumber/arsip portabel, Alpine dari sumber, dan sistem yang dikelola khusus membuka halaman rilis untuk pembaruan manual. Kode sumber yang sedang Anda edit tidak ditimpa. Daftar aplikasi dan log tidak dikirim; pemeriksaan hanya menghubungi API rilis publik GitHub tanpa token akun.
 
@@ -114,7 +118,7 @@ Tambahkan virtualenv atau folder instalasi melalui **Pengaturan → Pemindaian**
 
 Pintasan: **Ctrl+F** mencari, **Ctrl+R** memindai ulang, **Ctrl+,** membuka Pengaturan, **Ctrl+I / Enter** membuka detail, **Ctrl+E** mengekspor, dan **Shift+F10** membuka menu klik kanan. **Delete** hanya memulai alur pratinjau, bukan langsung menghapus. Kontrol jendela tetap mengikuti desktop Linux.
 
-Logo aplikasi tersedia sebagai SVG dan PNG 16–512 piksel serta dipasang melalui paket `.deb` agar dipakai di menu aplikasi dan integrasi jendela/dock. Tombol **♥ Dukung** berbentuk pill membuka [Tako Zwart04](https://tako.id/Zwart04).
+Logo aplikasi tersedia sebagai SVG dan PNG 16–512 piksel serta dipasang melalui paket `.deb` agar dipakai di menu aplikasi dan integrasi jendela/dock. Tombol **Traktir kopi** berbentuk pill membuka [Tako Zwart04](https://tako.id/Zwart04).
 
 ## Seberapa bersih penghapusannya?
 
@@ -161,10 +165,10 @@ python3 scripts/build.py
 
 Hasil paket berada di `dist/`, termasuk `.deb`, arsip sumber, dan `SHA256SUMS`. Jalankan `sha256sum -c SHA256SUMS` pada folder unduhan untuk memeriksa berkas. CI menguji backend, UI, bahasa, pencarian, hasil penghapusan, pemeriksaan/checksum pembaruan, serta paket asli di container distro. Pengujian memasang dan menghapus paket contoh `tree` hanya dalam container yang dapat dibuang. Penghapusan pip memakai lingkungan virtual terisolasi. Pengujian tidak menghapus aplikasi di komputer pengguna.
 
-## Bantuan dan dukungan
+## Bantuan dan traktir kopi
 
 - [Dokumentasi lengkap berbahasa Inggris](README.md)
 - [Laporkan masalah](https://github.com/Zwart04/sweepdesk/issues)
-- **[♥ Dukung Zwart04 melalui Tako](https://tako.id/Zwart04)** — tombol yang sama ada pada judul aplikasi.
+- **[Traktir kopi untuk Zwart04 melalui Tako](https://tako.id/Zwart04)** — tombol yang sama ada pada judul aplikasi.
 
 Jangan unggah inventaris pribadi, token, atau kata sandi ke laporan publik. Mulai versi 0.5.2, kode, ilustrasi aplikasi, dan dokumentasi asli berlisensi [GNU GPL versi 3 atau lebih baru](LICENSE) (`GPL-3.0-or-later`), hak cipta (C) 2026 Zwart04, tanpa jaminan. Jika membagikan atau menjual versi modifikasi, patuhi GPL dan sediakan kode sumber yang sesuai. Versi sampai 0.5.1 tetap memiliki izin MIT sebelumnya; lihat [riwayat lisensi](docs/LICENSE-HISTORY.md). Merek dan logo pihak ketiga tetap mengikuti ketentuan pembuatnya.

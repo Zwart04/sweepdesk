@@ -22,7 +22,7 @@ apps=[b.decorate(b.App('Command Code','command-code','1.88.0','npm',scope='User 
       b.App('Firefox ESR','firefox-esr','1.0','APT',description='Web browser'),
       b.App('libraw1394-11','libraw1394-11','2.1.2','APT',support=True,description='Library for IEEE 1394 bus access (FireWire)')]
 with patch.object(ui.Window,'refresh'):
-    window=ui.Window(prefs=dict(preferences.defaults(),auto_check_updates=False))
+    window=ui.Window(prefs=dict(preferences.defaults(),language='en',auto_check_updates=False))
 window.loaded((apps,[]),None)
 window.status.set_text('Sample inventory · Interface review · No packages are being changed')
 window.tree.get_selection().select_path(Gtk.TreePath.new_from_indices([0]))
@@ -91,7 +91,7 @@ def light():
     window.search.set_text('');window.refilter()
     window.prefs['theme']='light';window.apply_style();window.apply_density();window.populate_sidebar()
     return window,'main-light'
-steps=[main_view,lambda:settings_page('Scanning'),lambda:settings_page('Sources'),lambda:settings_page('About & Support'),lambda:settings_page('Updates'),details,options,preview,activity,context,search,empty,light,indonesian,indonesian_main,loading_id,review_id,running_id,preparing_id,updates_id,success,failure]
+steps=[main_view,lambda:settings_page('Scanning'),lambda:settings_page('Sources'),lambda:settings_page('About'),lambda:settings_page('Updates'),details,options,preview,activity,context,search,empty,light,indonesian,indonesian_main,loading_id,review_id,running_id,preparing_id,updates_id,success,failure]
 index=0
 def advance():
     global index

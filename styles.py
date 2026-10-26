@@ -15,6 +15,7 @@ headerbar.compact-toolbar { min-height: 30px; padding: 1px 8px; }
 headerbar.compact-toolbar button { min-height: 20px; min-width: 20px; padding: 2px 6px; margin-top: 0; margin-bottom: 0; }
 .toolbar-title { font-size: 13px; font-weight: 600; }
 button { min-height: 24px; padding: 5px 12px; border-radius: 7px; border: 1px solid @border; background: @button; color: @fg; box-shadow: none; text-shadow: none; }
+button { transition: background-color 120ms ease-out, border-color 120ms ease-out; }
 button:hover { background: @hover; }
 button:disabled { color: @disabled; background: @surface; border-color: @border; }
 button.flat { background: transparent; border-color: transparent; }
@@ -23,10 +24,10 @@ button.suggested-action { background: #0a84ff; color: white; border-color: #0a84
 button.suggested-action:hover { background: #409cff; }
 button.primary-action { background: #0a84ff; color: white; border-color: #0a84ff; font-weight: 600; }
 button.primary-action:hover { background: #409cff; }
-button.destructive-action { background: #da3449; color: white; border-color: #da3449; }
-button.support-pill { min-height: 22px; padding: 2px 12px; border-radius: 999px; background: @supportbg; border: 1px solid @supportborder; box-shadow: inset 0 1px rgba(255,255,255,.22), 0 1px 2px rgba(0,0,0,.12); }
-button.support-pill label { color: @supportfg; text-decoration: none; font-size: 11px; font-weight: 600; }
-button.support-pill:hover { background: @supporthover; }
+button.destructive-action { background: #e34850; color: white; border-color: #e34850; }
+button.coffee-pill { color: @coffeefg; min-height: 22px; padding: 2px 12px; border-radius: 999px; background: @coffeebg; border: 1px solid @coffeeborder; box-shadow: inset 0 1px rgba(255,255,255,.22), 0 1px 2px rgba(0,0,0,.12); }
+button.coffee-pill label { color: @coffeefg; text-decoration: none; font-size: 11px; font-weight: 600; }
+button.coffee-pill:hover { background: @coffeehover; }
 button.primary-action:disabled, button.suggested-action:disabled, button.destructive-action:disabled { background: @surface; color: @disabled; border-color: @border; }
 .sidebar { background: @sidebar; border-right: 1px solid @border; }
 .sidebar list { background: transparent; }
@@ -44,6 +45,7 @@ entry { min-height: 24px; padding: 5px 8px; border: 1px solid @border; border-ra
 entry:focus { border-color: #0a84ff; }
 .software-frame { border: 1px solid @border; border-radius: 9px; background: @base; }
 treeview { background: @base; color: @fg; border-color: @rowborder; }
+treeview { -GtkTreeView-horizontal-separator: 4; }
 treeview:selected { background: #185db4; color: #ffffff; }
 treeview header button { min-height: 18px; padding: 5px 10px; border: 0; border-bottom: 1px solid @border; border-radius: 0; background: @surface; color: @secondary; font-size: 11px; font-weight: 600; }
 treeview header button:hover { background: @hover; }
@@ -98,14 +100,14 @@ DARK = {'successborder':'#35694c','successbg':'#20382b','successfg':'#7bdaa0',
         'errorborder':'#80444d','errorbg':'#40282e','errorfg':'#ff9ba8','base':'#1e1e20','chrome':'#29292c','fg':'#f2f2f5','secondary':'#b5b5bc',
         'muted':'#8d8d96','border':'#39393e','rowborder':'#2b2b30','button':'#36363a',
         'hover':'#3c3c41','disabled':'#66666f','surface':'#29292d','sidebar':'#252528',
-        'navselected':'#404046','supportbg':'#f0c77f','supportborder':'#f6d79f',
-        'supportfg':'#493315','supporthover':'#f8d69e'}
+        'navselected':'#404046','coffeebg':'#ead0a5','coffeeborder':'#f1dec0',
+        'coffeefg':'#493315','coffeehover':'#f2ddb9'}
 LIGHT = {'successborder':'#a1d1b0','successbg':'#edf8f0','successfg':'#176d37',
          'errorborder':'#e3a4ac','errorbg':'#fff0f2','errorfg':'#b4243a','base':'#ffffff','chrome':'#f0f0f2','fg':'#202024','secondary':'#62626b',
          'muted':'#80808a','border':'#dcdce1','rowborder':'#ededf1','button':'#ffffff',
          'hover':'#e8e8ed','disabled':'#a8a8b0','surface':'#f6f6f8','sidebar':'#efeff2',
-         'navselected':'#dcdce4','supportbg':'#f8dfac','supportborder':'#ebca8c',
-         'supportfg':'#66431a','supporthover':'#ffe9c2'}
+         'navselected':'#dcdce4','coffeebg':'#f8dfac','coffeeborder':'#ebca8c',
+         'coffeefg':'#66431a','coffeehover':'#ffe9c2'}
 
 
 def stylesheet(dark=True):
