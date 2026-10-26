@@ -643,7 +643,7 @@ def make_plan(app, dependencies=False, cleanup=False, family=False):
         if 'gnome' in plan.removed:
             plan.notes.append('The gnome metapackage will also be removed. It groups desktop applications; gnome-shell and the core desktop are not in this plan.')
         if dependencies:
-            plan.notes.append('Additional dependencies are limited to those made unused by this operation. Pre-existing unused packages are excluded.')
+            plan.notes.append('Also remove support packages that become unnecessary when this app is removed. Other packages already unused before this removal are kept.')
     elif app.source == 'Flatpak':
         if app.scope not in ('user', 'system') or not re.fullmatch(r'[A-Za-z0-9_.-]+', app.package):
             raise RuntimeError('Invalid Flatpak identity.')

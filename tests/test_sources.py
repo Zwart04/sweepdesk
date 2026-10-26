@@ -136,6 +136,27 @@ class SourceTests(unittest.TestCase):
             path=b.ROOT/'assets/brands'/entry['file']
             self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),entry['sha256'])
 
+    def test_python_probe_deduplicates_lib64_aliases_but_keeps_real_overlaps(self):
+        import python_probe
+        import tempfile
+        from pathlib import Path
+        class Distribution:
+            metadata={'Name':'fixture'}
+            version='1.0'
+            requires=[]
+            def __init__(self,path): self._path=path
+            def locate_file(self,value): return self._path.parent
+            def read_text(self,value): return 'pip' if value=='INSTALLER' else ''
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);real=root/'lib/fixture-1.0.dist-info';real.mkdir(parents=True)
+            (root/'lib64').symlink_to(root/'lib',target_is_directory=True)
+            entries=[Distribution(real),Distribution(root/'lib64/fixture-1.0.dist-info')]
+            with patch.object(python_probe.metadata,'distributions',return_value=entries):
+                self.assertEqual(len(python_probe.probe()['packages']),1)
+            other=root/'other/fixture-1.0.dist-info';other.mkdir(parents=True)
+            with patch.object(python_probe.metadata,'distributions',return_value=[Distribution(real),Distribution(other)]):
+                self.assertEqual(len(python_probe.probe()['packages']),2)
+
 
 if __name__=='__main__':
     unittest.main()

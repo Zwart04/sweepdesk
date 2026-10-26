@@ -2,7 +2,7 @@
 
 **[Website Bahasa Indonesia](https://zwart04.github.io/sweepdesk/id.html)** · [Unduh versi terbaru](https://github.com/Zwart04/sweepdesk/releases/latest) · [English](README.md)
 
-Pengelola aplikasi GUI dan CLI untuk **Debian, Ubuntu, dan distro turunannya**. Tema gelap memakai palet abu-abu netral dan aksen biru ala macOS.
+Pengelola aplikasi GUI dan CLI untuk **Debian, Ubuntu, Fedora, openSUSE, Arch Linux, Alpine, dan distro turunan yang kompatibel**. Tema gelap memakai palet abu-abu netral dan aksen biru ala macOS.
 
 [![Dukung Zwart04 di Tako](assets/support-tako-id.svg)](https://tako.id/Zwart04)
 
@@ -12,32 +12,68 @@ Pengelola aplikasi GUI dan CLI untuk **Debian, Ubuntu, dan distro turunannya**. 
 
 ## Memasang dengan mudah
 
-1. Buka halaman **[Releases](https://github.com/Zwart04/sweepdesk/releases/latest)**.
-2. Unduh `sweepdesk_0.4.0_all.deb`.
-3. Klik dua kali untuk memasang, atau buka terminal di folder unduhan dan jalankan:
+Pilih distro melalui **[halaman unduh](https://zwart04.github.io/sweepdesk/id.html#install)** atau [Releases](https://github.com/Zwart04/sweepdesk/releases/latest). `.deb` dipakai Ubuntu/Mint, bukan Fedora atau Arch.
 
-```bash
-sudo apt install ./sweepdesk_0.4.0_all.deb
-```
+| Distro | Berkas yang dipilih | Perintah dari folder unduhan |
+|---|---|---|
+| Debian / Ubuntu / Mint | `sweepdesk_0.5.0_all.deb` | `sudo apt install ./sweepdesk_0.5.0_all.deb` |
+| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.5.0-1.fedora.noarch.rpm` | `sudo dnf install ./sweepdesk-0.5.0-1.fedora.noarch.rpm` |
+| openSUSE Leap / Tumbleweed | `sweepdesk-0.5.0-1.opensuse.noarch.rpm` | `sudo zypper install ./sweepdesk-0.5.0-1.opensuse.noarch.rpm` |
+| Arch / EndeavourOS / Manjaro | `sweepdesk-0.5.0-1-any.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.5.0-1-any.pkg.tar.zst` |
+| Alpine / Linux lain dengan GTK 3 | `sweepdesk-0.5.0.tar.gz` | Ikuti bagian kode sumber di bawah |
 
-Buka **SweepDesk** dari menu aplikasi. Jalankan sebagai pengguna biasa, tanpa sudo. Kata sandi admin hanya diminta saat operasi paket sistem memerlukannya.
+Jika desktop menyediakan pemasang grafis yang sesuai, berkas paket juga dapat dibuka dengan klik dua kali. Tidak semua distro menyediakannya secara bawaan. Pengelola paket memasang komponen yang dibutuhkan. Paket RPM/Arch dari GitHub merupakan paket lokal tanpa tanda tangan; periksa checksum dan ikuti kebijakan/tanya jawab keamanan pengelola paket. SweepDesk tidak mematikan pemeriksaan keamanan secara global.
+
+Buka **SweepDesk** dari menu aplikasi sebagai pengguna biasa. Kata sandi admin hanya diminta saat diperlukan. Untuk memperbarui secara manual, pasang paket versi baru dengan cara yang sama.
+
+**Membangun paket Arch:** unduh `PKGBUILD` dari rilis yang sama ke folder kosong, pasang `base-devel` dan `git`, lalu jalankan `makepkg -si` sebagai pengguna biasa. Resep tersebut memeriksa SHA-256 arsip sumber. Ini bukan paket AUR dan tidak membutuhkan repositori pihak ketiga.
+
+Untuk menghapus SweepDesk, gunakan pengelola distro: `sudo apt purge sweepdesk`, `sudo dnf remove sweepdesk`, `sudo zypper remove sweepdesk`, atau `sudo pacman -R sweepdesk`.
 
 ## Menjalankan dari kode sumber
 
+Pasang komponen desktop sesuai distro:
+
 ```bash
+# Debian / Ubuntu
 sudo apt install python3 python3-gi gir1.2-gtk-3.0 librsvg2-common policykit-1
+# Fedora / keluarga RHEL
+sudo dnf install python3 python3-gobject gtk3 librsvg2 polkit
+# openSUSE
+sudo zypper install python3 python3-gobject gtk3 typelib-1_0-Gtk-3_0 librsvg-2-2 polkit
+# Arch
+sudo pacman -S python python-gobject gtk3 librsvg polkit
+# Alpine desktop
+sudo apk add python3 py3-gobject3 gtk+3.0 librsvg polkit
+```
+
+Ekstrak arsip portabel atau ambil kode sumber:
+
+```bash
 git clone https://github.com/Zwart04/sweepdesk.git
 cd sweepdesk
 ./run.sh
 ```
 
-Jika distro tidak menyediakan `policykit-1`, gunakan paket `pkexec`. Untuk menambah shortcut menu khusus pengguna, jalankan `./install.sh`. Untuk menghapus instalasi khusus pengguna itu, gunakan `./install.sh --uninstall`. Penghapusan paket `.deb` memakai `sudo apt purge sweepdesk`.
+Jika distro Debian tidak menyediakan `policykit-1`, gunakan `pkexec`. Jalankan dengan Python yang dapat membaca modul `gi` dan GTK 3. Untuk pintasan khusus pengguna, jalankan `./install.sh` tanpa sudo; hapus instalasi khusus pengguna dengan `./install.sh --uninstall`. Instalasi ini memakai interpreter Python saat pemasangan, sehingga tidak mengharuskan semua distro mempunyai `/usr/bin/python3`.
 
 ## Cakupan
 
-Sumber yang didukung: **APT/DEB, npm global, pip, Cargo, Flatpak, Snap, pipx, uv tools, Bun global, Homebrew, AppImage ArtCraft, dan executable manual**. Manager yang belum terpasang tidak dipaksakan dipasang. Python sistem yang dilindungi PEP 668 tidak diubah paksa.
+Sumber yang didukung: **APT/DEB, RPM, Pacman, APK, npm global, pip, Cargo, Flatpak, Snap, pipx, uv tools, Bun global, Homebrew, AppImage ArtCraft, dan executable manual**. Manager yang belum terpasang tidak dipaksakan dipasang. Python sistem yang dilindungi PEP 668 tidak diubah paksa.
 
-Debian 11–13 dan Ubuntu 22.04/24.04/26.04 menjadi target CI. Mint, LMDE, Pop!_OS, Zorin, elementary OS, Kali, dan turunan lain diharapkan kompatibel jika menyediakan Python 3.9+, GTK 3.24+, APT/dpkg, serta sesi desktop dengan agen autentikasi polkit. Bukan jaminan semua versi distro pernah diuji. Lihat status terbaru di [Actions](https://github.com/Zwart04/sweepdesk/actions).
+| Keluarga | Cakupan pengujian / kompatibilitas |
+|---|---|
+| Debian / Ubuntu | CI: Debian 11/12/13, Ubuntu 22.04/24.04/26.04 |
+| Mint, LMDE, Pop!_OS, Zorin, elementary OS, Kali, Raspberry Pi OS | Diharapkan kompatibel dengan keluarga Debian/Ubuntu; belum diuji satu per satu |
+| Fedora / RHEL | CI: Fedora terbaru dan Rocky 9. AlmaLinux, CentOS Stream, dan turunan lain memerlukan komponen yang sama |
+| openSUSE | CI: Leap terbaru dan Tumbleweed terbaru |
+| Arch | CI: Arch base. EndeavourOS, Manjaro, Garuda, CachyOS diharapkan kompatibel; belum diuji satu per satu |
+| Alpine desktop | CI: Alpine terbaru, termasuk pemasangan khusus pengguna dan penghapusan APK |
+| Linux lain | Antarmuka portabel dapat digunakan jika Python 3.9+, PyGObject, GTK 3.24+, librsvg, dan polkit tersedia. Penghapusan paket sistem belum tersedia untuk setiap pengelola |
+
+Paket all/noarch/any tidak berisi biner SweepDesk khusus CPU. Komponen pendukung tetap harus tersedia untuk arsitektur Anda. CI memakai x86_64 dan bukan pengujian setiap versi desktop/arsitektur. Versi image terbaru/rolling dapat berubah; lihat [hasil Actions](https://github.com/Zwart04/sweepdesk/actions).
+
+**Distro dengan sistem yang dikelola khusus** seperti Fedora Atomic/Silverblue, Bazzite, MicroOS, SteamOS, dan NixOS tetap memakai pembaruan sistem bawaannya. SweepDesk tidak memaksa menghapus atau mengganti paket dasar sistem tersebut. Paket sistem hanya ditampilkan jika basis datanya didukung. Windows dan macOS belum didukung.
 
 ## Bahasa aplikasi
 
@@ -46,6 +82,16 @@ Buka **Pengaturan → Tampilan → Bahasa**, pilih **Bahasa Indonesia**, **Engli
 **Ikuti sistem** membaca bahasa sesi desktop; jika bahasa tersebut belum didukung, aplikasi memakai English. Nama/ID paket, lokasi file, deskripsi dari pengelola paket, dan keluaran perintah eksternal tetap dalam bahasa aslinya. SweepDesk tidak mengirim data untuk diterjemahkan secara daring.
 
 Website menyediakan tautan **Bahasa Indonesia / English** pada navigasi. Halaman Indonesia dapat dibuka langsung di **[zwart04.github.io/sweepdesk/id.html](https://zwart04.github.io/sweepdesk/id.html)**.
+
+## Tombol pembaruan dari GitHub
+
+SweepDesk memeriksa versi stabil terbaru saat dibuka dan selama tetap berjalan, paling sering sekali sehari. Jika tersedia, muncul tombol **Perbarui sekarang** dan nomor versinya di atas daftar perangkat lunak. Untuk memeriksa kapan saja, buka **Tindakan lainnya → Periksa Pembaruan** atau **Pengaturan → Pembaruan**. Pemeriksaan otomatis bisa dinonaktifkan.
+
+Pada instalasi paket DEB/RPM/Arch, tombol tersebut menampilkan konfirmasi, mengunduh paket yang sesuai dari `Zwart04/sweepdesk`, lalu memeriksa ukuran dan SHA-256 terhadap `SHA256SUMS` serta digest GitHub jika tersedia. Pengelola paket distro memasangnya melalui autentikasi desktop. Setelah versi terpasang berhasil diperiksa, tersedia tombol **Buka ulang SweepDesk**. Jika pemasang atau kebijakan tanda tangan paket menolak, aplikasi melaporkan kegagalan.
+
+**Menemukan pembaruan tidak langsung memasangnya.** Anda tetap menekan tombol pembaruan. Instalasi dari kode sumber/arsip portabel, Alpine dari sumber, dan sistem yang dikelola khusus membuka halaman rilis untuk pembaruan manual. Kode sumber yang sedang Anda edit tidak ditimpa. Daftar aplikasi dan log tidak dikirim; pemeriksaan hanya menghubungi API rilis publik GitHub tanpa token akun.
+
+![Pengaturan pembaruan SweepDesk](docs/updates-id.png)
 
 ## Memakai aplikasi
 
@@ -76,7 +122,10 @@ SweepDesk memakai uninstaller asli tiap manager dan hanya membersihkan data yang
 
 | Sumber | Yang dapat dihapus dan batasannya |
 |---|---|
-| **APT / DEB** | Menghapus paket dan konfigurasi milik paket melalui purge. Pratinjau memeriksa dampak dependensi. Opsi dependensi hanya mencakup yang baru tidak digunakan akibat penghapusan ini. |
+| **APT / DEB** | Menghapus paket dan konfigurasi milik paket melalui purge. Pratinjau memeriksa dampak dependensi. Opsi paket pendukung hanya mencakup yang tidak lagi dibutuhkan setelah aplikasi ini dihapus; paket lain yang sudah tidak terpakai sebelumnya tetap disimpan. |
+| **RPM (Fedora/openSUSE)** | Hanya menghapus paket pilihan dengan pemeriksaan dependensi RPM tetap aktif. Jika masih dibutuhkan paket lain, penghapusan ditolak. Paket pendukung dan cadangan pengaturan `.rpmsave` disimpan. Riwayat transaksi DNF/Zypper tidak diperbarui oleh penghapusan RPM langsung. |
+| **Pacman (Arch)** | Memakai pratinjau bawaan yang diperiksa kembali. Opsi paket pendukung memakai `-Rs`, tanpa penghapusan berantai atau pemaksaan dependensi. Pengaturan yang berubah dapat tersimpan sebagai `.pacsave`. Paket AUR yang terpasang lewat Pacman ikut terlihat. |
+| **APK (Alpine)** | Memakai simulasi penghapusan yang diperiksa kembali. Paket pendukung yang baru tidak diperlukan dapat ikut dihapus sesuai daftar. Tidak memaksa menghapus aplikasi lain atau pengaturan yang diubah. |
 | **npm global** | Memakai prefix global yang terdeteksi secara tepat. Pohon paket dikelola npm; skrip siklus hidup dinonaktifkan. Prefix sistem di luar beranda hanya ditampilkan. |
 | **pip** | Memakai interpreter dan catatan RECORD lingkungan yang dipilih. Dependensi bersama, paket yang diminta secara eksplisit, alat pengelola, dan metadata yang belum pasti dipertahankan. Python sistem yang dilindungi PEP 668 tidak diubah paksa. |
 | **Cargo** | Memakai cargo uninstall. Cache registri, unduhan sumber, dan cache kompilasi bersama dipertahankan. |
@@ -110,7 +159,7 @@ python3 -m unittest discover -s tests -v
 python3 scripts/build.py
 ```
 
-Hasil paket berada di `dist/`, termasuk `.deb`, arsip sumber, dan `SHA256SUMS`. Jalankan `sha256sum -c SHA256SUMS` pada folder unduhan untuk memeriksa berkas. CI menguji backend, UI, pergantian bahasa, pencarian deskripsi, penanda berhasil/gagal, dan penghapusan pip dalam lingkungan terisolasi. Pengujian tidak menghapus aplikasi di komputer pengguna.
+Hasil paket berada di `dist/`, termasuk `.deb`, arsip sumber, dan `SHA256SUMS`. Jalankan `sha256sum -c SHA256SUMS` pada folder unduhan untuk memeriksa berkas. CI menguji backend, UI, bahasa, pencarian, hasil penghapusan, pemeriksaan/checksum pembaruan, serta paket asli di container distro. Pengujian memasang dan menghapus paket contoh `tree` hanya dalam container yang dapat dibuang. Penghapusan pip memakai lingkungan virtual terisolasi. Pengujian tidak menghapus aplikasi di komputer pengguna.
 
 ## Bantuan dan dukungan
 

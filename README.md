@@ -1,7 +1,7 @@
 <div align="center">
   <img src="assets/sweepdesk.svg" width="100" alt="SweepDesk icon">
   <h1>SweepDesk</h1>
-  <p><strong>Your software, in one place.</strong><br>A native software inventory and uninstall app for Debian, Ubuntu, and compatible derivatives.</p>
+  <p><strong>Your software, in one place.</strong><br>A native software inventory and uninstall app for major Linux desktop families.</p>
   <p>
     <a href="https://zwart04.github.io/sweepdesk/">Website</a> ·
     <a href="https://github.com/Zwart04/sweepdesk/releases/latest">Download</a> ·
@@ -19,49 +19,78 @@ SweepDesk brings graphical apps and command-line tools into a familiar program l
 
 ## Compatibility
 
-SweepDesk is **not limited to Debian**. It targets Debian-family graphical Linux desktops with **Python 3.9+, GTK 3.24+, APT/dpkg, and a desktop authentication agent**.
+SweepDesk requires **Python 3.9+, PyGObject, GTK 3.24+, librsvg, and polkit** in a graphical Linux session. Package formats are distribution-specific; a `.deb` is for Debian-family systems, not Fedora or Arch.
 
-| System | Status |
-|---|---|
-| Debian 11, 12, 13 | Targeted; CI covers these base images |
-| Ubuntu 22.04, 24.04, 26.04 | Targeted; CI covers these base images |
-| Linux Mint, LMDE, Pop!_OS, elementary OS, Zorin OS, Kali and other Debian/Ubuntu derivatives | Expected to work when the requirements above are available; not each independently tested |
-| Older versions with Python below 3.9, Ubuntu Core, headless servers | Not supported as a normal desktop install |
-| Windows, macOS, non-Debian package managers such as RPM/Pacman | Not supported by this release |
+| Family | Download | System package support | Coverage |
+|---|---|---|---|
+| Debian, Ubuntu | `.deb` | APT / DEB | CI: Debian 11/12/13 and Ubuntu 22.04/24.04/26.04 |
+| Linux Mint, LMDE, Pop!_OS, Zorin, elementary OS, Kali, Raspberry Pi OS | `.deb` | APT / DEB | Compatible derivatives; not individually tested |
+| Fedora, RHEL-compatible, Rocky, AlmaLinux, CentOS Stream | Fedora `.rpm` | RPM | CI: Fedora latest and Rocky 9; other derivatives require the listed dependencies |
+| openSUSE Leap / Tumbleweed | openSUSE `.rpm` | RPM | CI: Leap latest and Tumbleweed latest |
+| Arch Linux, EndeavourOS, Manjaro, Garuda, CachyOS | `.pkg.tar.zst` or `PKGBUILD` | Pacman / ALPM | CI: Arch base; derivatives are not individually tested |
+| Alpine Linux desktop | Portable source + dependencies | APK | CI: Alpine latest, including per-user installation |
+| Other Linux desktops | Portable source | Available non-system sources | Requires the runtime above; native system-package removal is not implemented for every manager |
+| Immutable/transactional desktops: Fedora Atomic, Bazzite, MicroOS, SteamOS, NixOS | Distribution-managed/source setup | Protected system inventory where a supported database exists | Base-system removal and in-app system installation are blocked; use the distribution updater |
+| Windows / macOS | — | — | Unsupported |
 
-The `.deb` is architecture-independent Python code: usable on amd64, arm64, and other architectures supported by the required distribution packages. CI status is visible in [Actions](https://github.com/Zwart04/sweepdesk/actions); an untested system is not a guarantee of compatibility.
+Packages are Python **all/noarch/any**, with no CPU-specific SweepDesk binary. The required runtime packages must exist for your architecture. CI containers run on x86_64; other CPU architectures and full desktop sessions are not all independently tested. See [Actions](https://github.com/Zwart04/sweepdesk/actions) for actual base images and results. Rolling/latest image versions can change between runs.
 
 ## Installation
 
-### Recommended: install the Debian package
+### Install the package for your distribution
 
-1. Open [Releases](https://github.com/Zwart04/sweepdesk/releases/latest).
-2. Download `sweepdesk_0.4.0_all.deb`.
-3. Double-click it in your software installer, or open a terminal in the download folder and run:
+Open [the download selector](https://zwart04.github.io/sweepdesk/#install) or [Releases](https://github.com/Zwart04/sweepdesk/releases/latest), download the correct file, then run from its folder:
 
 ```bash
-sudo apt install ./sweepdesk_0.4.0_all.deb
+# Debian / Ubuntu / Linux Mint
+sudo apt install ./sweepdesk_0.5.0_all.deb
+
+# Fedora / Rocky / AlmaLinux / RHEL-compatible
+sudo dnf install ./sweepdesk-0.5.0-1.fedora.noarch.rpm
+
+# openSUSE Leap / Tumbleweed
+sudo zypper install ./sweepdesk-0.5.0-1.opensuse.noarch.rpm
+
+# Arch / EndeavourOS / Manjaro
+sudo pacman -U ./sweepdesk-0.5.0-1-any.pkg.tar.zst
 ```
 
-APT installs the required Python, GTK, SVG, and authentication dependencies. Open **SweepDesk** from your application menu, or run `sweepdesk`. **Run the app as your normal user**, not with sudo; administrator authentication is requested when a system-package operation needs it.
+A graphical package installer can open these files when the desktop provides one; a double-click installer is not guaranteed on every distribution. Native managers install the declared runtime dependencies. GitHub RPM/Arch artifacts are unsigned local packages; inspect native signature prompts/policies and verify the published SHA-256 checksums. SweepDesk does not globally disable signature or dependency checks.
 
-To update, install the newer `.deb` the same way. To uninstall SweepDesk itself:
+Open **SweepDesk** from the application menu, or run `sweepdesk`. Run it as your normal user. Administrator authentication is requested only for system operations. Install a newer package the same way to update.
+
+To uninstall SweepDesk itself, use your native manager: `sudo apt purge sweepdesk`, `sudo dnf remove sweepdesk`, `sudo zypper remove sweepdesk`, or `sudo pacman -R sweepdesk`.
+
+### Build on Arch with PKGBUILD
+
+Download the release's `PKGBUILD`, place it in an empty folder, install Arch's `base-devel` and `git` build tools, then run **as a normal user**:
 
 ```bash
-sudo apt purge sweepdesk
+makepkg -si
 ```
+
+The release recipe pins the portable source archive's SHA-256. It is a download/build recipe, not an AUR submission; no AUR package or third-party repository is required. Do not use a `PKGBUILD` from a different release with a renamed source archive.
 
 ### Run from source or the portable archive
 
-Install desktop dependencies once:
+Install the desktop dependencies with your distribution's manager:
 
 ```bash
+# Debian / Ubuntu
 sudo apt install python3 python3-gi gir1.2-gtk-3.0 librsvg2-common policykit-1
+# Fedora / RHEL-compatible
+sudo dnf install python3 python3-gobject gtk3 librsvg2 polkit
+# openSUSE
+sudo zypper install python3 python3-gobject gtk3 typelib-1_0-Gtk-3_0 librsvg-2-2 polkit
+# Arch
+sudo pacman -S python python-gobject gtk3 librsvg polkit
+# Alpine desktop
+sudo apk add python3 py3-gobject3 gtk+3.0 librsvg polkit
 ```
 
-Some newer distributions provide `pkexec` as its own package; if `policykit-1` has no candidate, install `pkexec` instead. Use your distribution's desktop polkit agent for password dialogs.
+Some Debian-family systems provide `pkexec` separately instead of `policykit-1`. Use the desktop's polkit agent for password dialogs. For a source installation, Python must be the interpreter that can import `gi` and the GTK 3 namespace.
 
-Download and extract `sweepdesk-0.4.0.tar.gz` from Releases, or clone the repository:
+Download and extract `sweepdesk-0.5.0.tar.gz` from Releases, or clone the repository:
 
 ```bash
 git clone https://github.com/Zwart04/sweepdesk.git
@@ -69,7 +98,7 @@ cd sweepdesk
 ./run.sh
 ```
 
-No PyPI dependencies, background service, telemetry, or web server are required. The application does not download icons while scanning.
+No PyPI dependencies, background service, telemetry, or web server are required. Automatic update checks contact the public GitHub Releases API; inventories and operation logs are never sent. The application does not download icons while scanning.
 
 ### Optional: add a per-user launcher
 
@@ -108,12 +137,23 @@ The [Indonesian website](https://zwart04.github.io/sweepdesk/id.html) and [Indon
 
 - **Appearance:** English, Bahasa Indonesia, or system language; dark, light, or system theme; compact or comfortable rows; selection details; visibility of system packages and empty sources.
 - **Scanning:** scan on launch, remember added locations, and add/remove Python environment or manual-install folders.
+- **Updates:** automatic GitHub release checks and a manual **Check for Updates** button.
 - **Sources:** enable or disable individual inventory providers. Turning a source off does not uninstall its software.
 - **About & Support:** app version, project links, and a dedicated support pill.
 
 Preferences are stored locally at `$XDG_CONFIG_HOME/sweepdesk/preferences.json` (normally `~/.config/sweepdesk/preferences.json`) with owner-only file permissions. Inventories and operation logs are not saved there. Added folders are remembered only when **Remember added folders** is enabled.
 
 ![SweepDesk appearance settings](docs/settings.png)
+
+### Updates from GitHub
+
+SweepDesk checks the newest stable GitHub release at startup and while open, at most once per day automatically. When a newer version exists, a banner above the software list shows the version and **Update Now**. You can check any time using **More → Check for Updates** or **Settings → Updates**. Automatic checks can be turned off.
+
+For a system package installation, **Update Now** shows a confirmation, downloads the matching DEB/Fedora RPM/openSUSE RPM/Arch package from `Zwart04/sweepdesk`, verifies its size and SHA-256 against `SHA256SUMS` and GitHub's asset digest when provided, then invokes the native manager with desktop authentication. Signature policies are respected; a rejected package reports an error rather than a false success. **Restart SweepDesk** appears after the installed version is verified.
+
+The app never installs an update merely because it was found. Source checkouts, user-installed portable copies, Alpine source installs, and immutable systems open the release page for manual updating. It does not overwrite an edited checkout. Network failures leave the current installation usable; manual checks display errors. Update checks send ordinary HTTPS requests to GitHub, with no inventory or account token.
+
+![SweepDesk update settings](docs/updates.png)
 
 ### Right-click and keyboard actions
 
@@ -146,6 +186,9 @@ An inventory export can contain usernames, installation paths, and package names
 | Source | Inventory and removal | Dependency/data behavior |
 |---|---|---|
 | **APT / DEB** | Installed dpkg packages, including CLI tools and local `.deb` installs | Purges package-managed configuration; previews dependency changes; optionally includes only dependencies newly made unused by this removal |
+| **RPM (Fedora/openSUSE)** | Installed RPMs and exact package-version identities | Removes only the selected RPM, without dependency bypass or cascading removal. RPM rejects packages still required elsewhere. Automatic dependency cleanup is unavailable; `.rpmsave` backups and shared dependencies remain. DNF/Zypper transaction history is not updated by direct RPM erase. |
+| **Pacman (Arch)** | Installed local ALPM database, including AUR-built packages installed through Pacman | Native `--print-format` preview is rechecked. Optional `-Rs` only includes newly unneeded dependencies; no `-Rsc`, `--nodeps`, or `--nosave`. Modified config may remain as `.pacsave`. |
+| **APK (Alpine)** | Installed APK database | Native simulated removal is rechecked. APK can include newly unused dependencies as listed in the plan; no forced reverse-dependency removal or purge of modified config. |
 | **npm global** | Active npm and standard nvm/fnm locations | Uses the exact global prefix; npm removes its package tree; lifecycle scripts disabled; system-owned prefixes are inventory-only |
 | **pip** | Current/system Python, active virtualenv/Conda prefix, pyenv installations, and explicitly added environments | Uses the selected interpreter and RECORD metadata; optional conservative orphan dependency calculation; preserves explicitly requested/shared packages and packaging tools |
 | **Cargo** | `cargo install` applications | Uses `cargo uninstall`; shared registries, source downloads, and build caches stay |
@@ -165,7 +208,7 @@ Known user-data profiles currently include **LibreOffice, OpenCode, Claude Code,
 
 User-data cleanup is **opt-in**. Known folders can include sign-ins, history, profiles, custom instructions, and settings. They go to your desktop **Trash**, not a recursive permanent-delete command. Empty Trash yourself when you are satisfied; until then, that data still uses disk space. If Trash is unavailable, SweepDesk reports an error instead of silently deleting permanently.
 
-Shared dependency caches are retained. APT core packages and common desktop components are blocked from removal. LibreOffice's shared profile can only be cleaned when removing the entire suite. pip **does not bypass PEP 668** or automatically modify a system-managed Python. Legacy pip installs without RECORD metadata are not automatically removable. pip dependency metadata may be incomplete; uncertain or shared dependencies are kept.
+Shared dependency caches are retained. Core packages and common desktop components are blocked from native package removal. Immutable/transactional base systems are not changed. LibreOffice's shared profile can only be cleaned when removing the entire suite. pip **does not bypass PEP 668** or automatically modify a system-managed Python. Legacy pip installs without RECORD metadata are not automatically removable. pip dependency metadata may be incomplete; uncertain or shared dependencies are kept.
 
 APT plans and pip environments are checked again before execution. Close other package managers during removal. A package-manager failure can leave a partially completed transaction; review the log and repair it with the owning manager. These protections reduce risk; they do not replace package-manager guarantees or a backup.
 
@@ -190,11 +233,15 @@ SweepDesk prefers icons from the installed app's launcher/theme. Official **Open
 ```bash
 python3 -m unittest discover -s tests -v
 python3 scripts/build.py
+# On systems with native build tools:
+python3 scripts/build.py --format rpm --rpm-flavor fedora
+python3 scripts/build.py --format rpm --rpm-flavor opensuse
+python3 scripts/build.py --format arch
 ```
 
-Build output is written to `dist/`: a portable archive, an `Architecture: all` `.deb`, and `SHA256SUMS`. SHA-256 checksums can be checked with `sha256sum -c SHA256SUMS` from that folder. The package uses distro Python/GTK rather than bundling a foreign runtime.
+Build output is written to `dist/`: a portable archive, native packages built with the selected tools, and `SHA256SUMS`. RPM builds require `rpmbuild`; Arch builds require `makepkg` and a non-root build user. After collecting all native artifacts, `python3 scripts/release_manifest.py` writes the release PKGBUILD and final checksums. SHA-256 checksums can be checked with `sha256sum -c SHA256SUMS` from that folder. The package uses distro Python/GTK rather than bundling a foreign runtime.
 
-CI runs unit/UI checks under Xvfb on the listed Debian and Ubuntu images. Package-manager fixtures cover unavailable optional sources. Real-world testing of every manager, distro derivative, and privileged removal is not implied. Tests never remove the host's installed applications. The README screenshot uses a labeled sample inventory, not a user's private software list.
+CI runs unit/UI checks under Xvfb on the listed Debian/Ubuntu, RPM, Arch, and Alpine base images. New-family jobs build and install the native package (or Alpine user install), then remove only a deliberately installed `tree` fixture inside disposable containers. Package-manager fixtures cover unavailable optional sources. Testing every distribution derivative, architecture, or full desktop session is not implied. Tests never remove the host's installed applications. The README screenshot uses a labeled sample inventory, not a user's private software list.
 
 ## Support the project
 

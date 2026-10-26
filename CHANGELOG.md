@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0
+
+- Native RPM, Pacman/ALPM, and APK inventory/removal with protected system components, immutable-system guards, and reviewed/revalidated plans.
+- Fedora/openSUSE RPM and Arch packages, plus a checksum-pinned release PKGBUILD and existing DEB/portable distribution.
+- Automatic daily-at-startup GitHub release checks, manual Check for Updates, a visible Update Now button, checksum-verified native installation, and restart after success.
+- Cross-distro CI builds, installs, and removes only explicit fixtures in disposable Fedora, Rocky, openSUSE, Arch, and Alpine containers.
+- Website distribution selector and native download/install commands in English and Indonesian.
+- Clearer Indonesian explanations for support-package and data cleanup.
+- Handle duplicate lib/lib64 metadata aliases without treating one Python package as overlapping installations.
+
 ## 0.4.0
 
 - Keep searching names, package IDs, and descriptions; show descriptions directly beneath names so matches are understandable.

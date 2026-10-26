@@ -36,6 +36,23 @@ document.querySelector('#copy-command').addEventListener('click', async event =>
   }
 });
 
+let latestVersion = '0.5.0';
+const downloadURLs = {};
+const systemPicker = document.querySelector('#download-system');
+const packageFile = system => ({deb:`sweepdesk_${latestVersion}_all.deb`,rpm:`sweepdesk-${latestVersion}-1.fedora.noarch.rpm`,suse:`sweepdesk-${latestVersion}-1.opensuse.noarch.rpm`,arch:`sweepdesk-${latestVersion}-1-any.pkg.tar.zst`,portable:`sweepdesk-${latestVersion}.tar.gz`})[system];
+function selectDownload() {
+  const system=systemPicker.value;
+  const file=packageFile(system);
+  const command={deb:`sudo apt install ./${file}`,rpm:`sudo dnf install ./${file}`,suse:`sudo zypper install ./${file}`,arch:`sudo pacman -U ./${file}`,portable:`./install.sh`}[system];
+  document.querySelector('#install-command').textContent=command;
+  const link=document.querySelector('[data-selected-download]');
+  link.href=downloadURLs[system] || 'https://github.com/Zwart04/sweepdesk/releases/latest';
+  link.textContent=(indonesian?'Unduh ':'Download ')+(system==='portable'?(indonesian?'arsip portabel':'portable archive'):system==='deb'?'.deb':system==='arch'?'Arch (.pkg.tar.zst)':'.rpm');
+  document.querySelector('#source-note').hidden=system!=='portable';
+  document.querySelector('#copy-status').textContent='';
+}
+systemPicker.addEventListener('change',selectDownload);
+selectDownload();
 async function loadRelease() {
   try {
     const response = await fetch('https://api.github.com/repos/Zwart04/sweepdesk/releases/latest', {cache: 'no-store'});
@@ -44,14 +61,16 @@ async function loadRelease() {
     const version = String(release.tag_name || '').replace(/^v/, '');
     if (!/^\d+\.\d+\.\d+(?:[-+][a-zA-Z0-9.-]+)?$/.test(version)) return;
     document.querySelectorAll('[data-version]').forEach(node => { node.textContent = words.version + version; });
-    document.querySelector('#install-command').textContent = `sudo apt install ./sweepdesk_${version}_all.deb`;
-    const files = {deb: asset => asset.name.endsWith('_all.deb'), portable: asset => asset.name.endsWith('.tar.gz'), checksums: asset => asset.name === 'SHA256SUMS'};
+    latestVersion=version;
+    const files = {rpm:asset=>asset.name.endsWith('.fedora.noarch.rpm'),suse:asset=>asset.name.endsWith('.opensuse.noarch.rpm'),arch:asset=>asset.name.endsWith('-any.pkg.tar.zst'),recipe:asset=>asset.name==='PKGBUILD',deb: asset => asset.name.endsWith('_all.deb'), portable: asset => asset.name.endsWith('.tar.gz'), checksums: asset => asset.name === 'SHA256SUMS'};
     for (const [type, matches] of Object.entries(files)) {
       const asset = Array.isArray(release.assets) && release.assets.find(matches);
       if (asset && String(asset.browser_download_url).startsWith('https://github.com/Zwart04/sweepdesk/releases/download/')) {
+        downloadURLs[type]=asset.browser_download_url;
         document.querySelectorAll(`[data-download="${type}"]`).forEach(link => { link.href = asset.browser_download_url; });
       }
     }
+    selectDownload();
   } catch { /* Release-page links remain usable if the API is unavailable. */ }
 }
 loadRelease();

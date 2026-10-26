@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#111215">
-  <meta name="description" content="A native software manager for Debian and Ubuntu. Find desktop apps and CLI tools, review uninstall plans, and choose what to clean.">
+  <meta name="description" content="A native software manager for Debian, Ubuntu, Fedora, openSUSE, Arch Linux, and compatible desktops. Find desktop apps and CLI tools, review uninstall plans, and choose what to clean.">
   <meta property="og:title" content="SweepDesk — Your software, in one place.">
-  <meta property="og:description" content="Desktop apps and command-line tools, together. Free, open source, and built for Debian and Ubuntu.">
+  <meta property="og:description" content="Desktop apps and command-line tools, together. Free, open source, and built for major Linux desktop families.">
   <meta property="og:type" content="website">
   <title>SweepDesk — Your software, in one place.</title>
   <link rel="alternate" hreflang="id" href="https://zwart04.github.io/sweepdesk/id.html"><link rel="alternate" hreflang="en" href="https://zwart04.github.io/sweepdesk/"><link rel="icon" type="image/svg+xml" href="assets/logo.svg"><link rel="stylesheet" href="style.css">
@@ -20,12 +20,12 @@
 </nav></header>
 <main id="main">
   <section class="hero wrap">
-    <div class="eyebrow"><span class="live-dot"></span> Free & open source · Debian + Ubuntu</div>
+    <div class="eyebrow"><span class="live-dot"></span> Free & open source · Linux desktop</div>
     <img class="hero-icon" src="assets/logo.svg" width="88" height="88" alt="SweepDesk application icon">
     <h1>Know what’s installed.<br><span>Decide what stays.</span></h1>
     <p class="hero-copy">Desktop apps. Command-line tools. One clear view.<br>Find your software and review exactly what a removal plan includes.</p>
-    <div class="hero-actions"><a class="button primary" data-download="deb" href="https://github.com/Zwart04/sweepdesk/releases/latest"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg>Download for Linux</a><a class="button secondary" href="#features">Take a look <span aria-hidden="true">↓</span></a></div>
-    <p class="download-note"><span data-version>Latest release</span> · <code>.deb</code> + portable archive · No account required</p>
+    <div class="hero-actions"><a class="button primary" href="#install"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg>Download for Linux</a><a class="button secondary" href="#features">Take a look <span aria-hidden="true">↓</span></a></div>
+    <p class="download-note"><span data-version>Latest release</span> · DEB · RPM · Arch · portable · No account required</p>
     <div class="product-shot"><img src="assets/app.png" alt="SweepDesk's compact dark interface with a source sidebar, installed software list, and selection details. Sample inventory." width="1120" height="753" fetchpriority="high"><p>Native desktop interface · Sample inventory</p></div>
   </section>
 
@@ -44,7 +44,7 @@
   <section class="sources-section" id="sources"><div class="wrap section">
     <div class="section-heading centered"><p class="eyebrow">Different installers. One list.</p><h2>Bring your software together.</h2><p>SweepDesk checks the managers available on your machine.</p></div>
     <div class="source-groups">
-      <article><div class="source-symbol" aria-hidden="true">▦</div><h3>System & desktop</h3><p>APT / DEB</p><p>Flatpak · Snap</p><span>Installed packages and application bundles.</span></article>
+      <article><div class="source-symbol" aria-hidden="true">▦</div><h3>System & desktop</h3><p>APT / DEB · RPM · Pacman · APK</p><p>Flatpak · Snap</p><span>Installed packages and application bundles.</span></article>
       <article><div class="source-symbol" aria-hidden="true">&gt;_</div><h3>Developer tools</h3><p>npm · pip · Cargo</p><p>pipx · uv · Bun · Homebrew</p><span>Global tools and selected Python environments.</span></article>
       <article><div class="source-symbol" aria-hidden="true">⌁</div><h3>Beyond package managers</h3><p>AppImage · ArtCraft</p><p>Manual & script installs</p><span>Known executable locations, plus folders you add.</span></article>
     </div>
@@ -56,13 +56,19 @@
     <ol class="review-list"><li><span>1</span><div><h3>Choose the software</h3><p>Pick an application or CLI and inspect its source.</p></div></li><li><span>2</span><div><h3>Check the plan</h3><p>Optional cleanup stays off until you choose it. Protected components remain blocked.</p></div></li><li><span>3</span><div><h3>Review the result</h3><p>Known user data goes to Trash. Shared caches and uncertain files are kept. A clear success or incomplete status and session Activity show the result.</p></div></li></ol>
   </section>
 
+  <section class="section wrap update-section">
+    <div class="feature-layout"><div><p class="eyebrow">Updates from GitHub</p><h2>New release? There’s a button.</h2><p>SweepDesk checks for a new stable release at startup, at most once per day. When one is available, <strong>Update Now</strong> appears above your software list.</p><p>You can also choose <strong>More → Check for Updates</strong>. Packages are checked with SHA-256 before installation. Automatic checks can be changed in <strong>Settings → Updates</strong>.</p><p class="source-note">In-app installation supports DEB, RPM, and Arch package installs. Source/portable installs and immutable systems open the manual update guide.</p></div><div class="settings-shot"><img src="assets/updates.png" alt="SweepDesk update settings with automatic checking and a Check for Updates button" width="720" height="563" loading="lazy"></div></div>
+  </section>
   <section class="section wrap" id="install">
-    <div class="install-panel"><div><p class="eyebrow">Ready for a cleaner view?</p><h2>Make room<br>for what matters.</h2><p>Use the Debian package for a normal menu installation, or run the portable source archive.</p><div class="install-links"><a class="button primary" data-download="deb" href="https://github.com/Zwart04/sweepdesk/releases/latest">Download .deb <span aria-hidden="true">↓</span></a><a data-download="portable" href="https://github.com/Zwart04/sweepdesk/releases/latest">Portable archive ↗</a></div></div>
-    <div class="install-instructions"><span class="terminal-label">INSTALL FROM THE DOWNLOAD FOLDER</span><div class="command"><code id="install-command">sudo apt install ./sweepdesk_0.4.0_all.deb</code><button id="copy-command" aria-label="Copy installation command">Copy</button></div><p>Then open <strong>SweepDesk</strong> from your application menu. Run it as your normal user; Debian asks for authentication when a system operation needs it.</p><p class="requirements">Python 3.9+ · GTK 3.24+ · APT/dpkg<br>Targets Debian 11–13 and Ubuntu 22.04 / 24.04 / 26.04. Compatible derivatives need the same dependencies.</p><div class="small-links"><a data-download="checksums" href="https://github.com/Zwart04/sweepdesk/releases/latest">Checksums</a><a href="https://github.com/Zwart04/sweepdesk/blob/main/README.id.md">Panduan Indonesia</a><a href="https://github.com/Zwart04/sweepdesk#installation">Full install guide</a></div><span id="copy-status" role="status" aria-live="polite"></span></div></div>
+    <div class="install-panel"><div><p class="eyebrow">Different distros. Native packages.</p><h2>Choose the right package.</h2><p>Ubuntu and Mint use DEB. Fedora and openSUSE use RPM. Arch uses Pacman packages. Choose your distribution family below.</p>
+      <label class="distro-label" for="download-system">Your Linux distribution</label><select id="download-system"><option value="deb">Debian / Ubuntu / Linux Mint</option><option value="rpm">Fedora / RHEL / Rocky / AlmaLinux</option><option value="suse">openSUSE Leap / Tumbleweed</option><option value="arch">Arch / EndeavourOS / Manjaro</option><option value="portable">Alpine / other — portable archive</option></select>
+      <div class="install-links"><a class="button primary" data-selected-download href="https://github.com/Zwart04/sweepdesk/releases/latest">Download .deb</a></div>
+      <div class="download-options"><a data-download="deb" href="https://github.com/Zwart04/sweepdesk/releases/latest">DEB</a><a data-download="rpm" href="https://github.com/Zwart04/sweepdesk/releases/latest">Fedora RPM</a><a data-download="suse" href="https://github.com/Zwart04/sweepdesk/releases/latest">openSUSE RPM</a><a data-download="arch" href="https://github.com/Zwart04/sweepdesk/releases/latest">Arch</a><a data-download="portable" href="https://github.com/Zwart04/sweepdesk/releases/latest">Portable</a></div>
+    </div><div class="install-instructions"><span class="terminal-label">RUN FROM YOUR DOWNLOAD FOLDER</span><div class="command"><code id="install-command">sudo apt install ./sweepdesk_0.5.0_all.deb</code><button id="copy-command" aria-label="Copy installation command">Copy</button></div><p id="source-note" hidden>For the portable archive: extract it first, open a terminal inside the SweepDesk folder, install the documented dependencies, then run this command as your normal user.</p><p>Open <strong>SweepDesk</strong> from your application menu as your normal user. Your distribution asks for authentication when needed.</p><p class="requirements">Python 3.9+ · GTK 3.24+ · PyGObject · librsvg · polkit<br>All/noarch/any packages contain no CPU-specific application binary. Dependency availability still depends on your distribution and architecture.</p><div class="small-links"><a data-download="checksums" href="https://github.com/Zwart04/sweepdesk/releases/latest">Checksums</a><a data-download="recipe" href="https://github.com/Zwart04/sweepdesk/releases/latest">Arch recipe (PKGBUILD)</a><a href="https://github.com/Zwart04/sweepdesk#installation">Full install guide</a></div><span id="copy-status" role="status" aria-live="polite"></span></div></div>
   </section>
 
   <section class="faq section wrap"><div class="section-heading"><p class="eyebrow">Good to know</p><h2>A few honest answers.</h2></div><div>
-    <details><summary>Does it work on Ubuntu and Linux Mint?</summary><p>Yes, it targets Debian-family desktops, including Ubuntu and compatible derivatives such as Mint, Pop!_OS, LMDE, and Zorin. The required versions and tested base images are listed in the README. Every derivative is not independently tested.</p></details>
+    <details><summary>Which Linux distributions are supported?</summary><p>Native package inventory/removal supports Debian/Ubuntu, Fedora/RHEL, openSUSE, Arch, and Alpine families. Compatible derivatives such as Mint, Pop!_OS, Zorin, EndeavourOS, and Manjaro use their parent package family. The README lists tested base images. Immutable desktops such as Silverblue, Bazzite, MicroOS, and SteamOS keep their system updater; SweepDesk does not force changes to their base system.</p></details>
     <details><summary>Will it delete every last leftover?</summary><p>Not for every installer. Package managers own some files; arbitrary scripts may not record what they changed. SweepDesk only cleans locations it knows. Data cleanup is opt-in, shared dependencies are preserved, and known user data goes to Trash.</p></details>
     <details><summary>Does it override system Python protection?</summary><p>No. SweepDesk respects PEP 668 and does not force pip to modify an externally managed system Python. Add a virtual environment to inspect and manage its packages separately.</p></details>
     <details><summary>Is it free? Does it send my inventory anywhere?</summary><p>SweepDesk is free and open source. Scanning runs locally. It does not upload your software inventory or operation logs. Exporting a JSON inventory is your choice.</p></details>

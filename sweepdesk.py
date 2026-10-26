@@ -324,7 +324,10 @@ class Window(Gtk.Window):
     def automatic_update_check(self):
         self.update_timer=None
         if self.prefs['auto_check_updates'] and time.time()-self.prefs['last_update_check']>=86400:
+            self.prefs['last_update_check']=int(time.time())
+            self.persist()
             self.check_updates(False)
+        self.update_timer=GLib.timeout_add_seconds(3600,self.automatic_update_check)
         return False
 
     def check_updates(self, manual=False):
@@ -470,7 +473,7 @@ class Window(Gtk.Window):
             return False
         if app.package.split(':')[0] in ('git','curl','wget','jq','ripgrep','fd-find','htop','btop','tmux','zsh','bash','fish','nodejs','cargo','rustc','vim','neovim'):
             return True
-        return app.source in ('npm', 'pip', 'Cargo', 'pipx', 'uv', 'Bun', 'Homebrew', 'Manual') or 'utilities-terminal' in app.icon or '/assets/brands/' in app.icon
+        return (app.source in ('RPM','Pacman','APK') and app.icon=='package-x-generic') or app.source in ('npm', 'pip', 'Cargo', 'pipx', 'uv', 'Bun', 'Homebrew', 'Manual') or 'utilities-terminal' in app.icon or '/assets/brands/' in app.icon
 
     def populate_sidebar(self):
         self.nav_updating = True
@@ -1099,7 +1102,7 @@ class Window(Gtk.Window):
         family = Gtk.CheckButton(label=tr('Remove the entire LibreOffice suite'))
         if app.package.startswith('libreoffice') and app.source=='APT':
             body.pack_start(family,False,False,0)
-        deps = Gtk.CheckButton(label=tr('Include newly unused dependencies'))
+        deps = Gtk.CheckButton(label=tr('Clean up unneeded support packages'))
         deps.set_sensitive(app.source in ('APT','pip','Pacman'))
         body.pack_start(deps,False,False,0)
         cleanup = Gtk.CheckButton(label=tr('Move known user data and settings to Trash'))

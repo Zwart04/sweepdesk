@@ -83,6 +83,10 @@ def finish(apps, source):
 RPM_FORMAT='%{NAME}\t%{EPOCHNUM}:%{VERSION}-%{RELEASE}\t%{ARCH}\t%{SIZE}\t%{SUMMARY}\t%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}\n'
 
 
+def looks_like_support(name):
+    return is_critical(name) or name.startswith(('lib','python3-','python-','perl-','ruby-','typelib-','fonts-','font-','gstreamer-')) or name.endswith(('-libs','-common','-data','-devel','-doc','-lang','-debuginfo'))
+
+
 def rpm_inventory():
     from backend import App,run
     apps=[]
@@ -92,7 +96,7 @@ def rpm_inventory():
         name,version,arch,size,description,identity=parts
         if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9+_.~-]*',identity): continue
         apps.append(App(name,identity,version,'RPM',description,'package-x-generic',
-                        size=int(size) if size.isdigit() else 0,support=True,manager=shutil.which('rpm') or '/usr/bin/rpm',scope=arch,location=name))
+                        size=int(size) if size.isdigit() else 0,support=looks_like_support(name),manager=shutil.which('rpm') or '/usr/bin/rpm',scope=arch,location=name))
     return finish(apps,'RPM')
 
 
@@ -114,13 +118,15 @@ def pacman_inventory(database=Path('/var/lib/pacman/local')):
         get=lambda key,default='':fields.get(key,[default])[0]
         name=get('NAME');size=get('ISIZE','0')
         apps.append(App(name,name,get('VERSION'),'Pacman',get('DESC'),'package-x-generic',
-                        size=int(size) if size.isdigit() else 0,support=True,manager=shutil.which('pacman') or '/usr/bin/pacman',scope=get('ARCH'),location=str(path)))
+                        size=int(size) if size.isdigit() else 0,support=get('REASON','0')=='1' or is_critical(name),manager=shutil.which('pacman') or '/usr/bin/pacman',scope=get('ARCH'),location=str(path)))
     return finish(apps,'Pacman')
 
 
 def apk_inventory(database=Path('/lib/apk/db/installed')):
     from backend import App
     apps=[]
+    try: explicit={re.split(r'[<>=~@]',line)[0] for line in Path('/etc/apk/world').read_text().splitlines() if line and not line.startswith('#')}
+    except OSError: explicit=set()
     for block in database.read_text().split('\n\n'):
         fields={}
         for line in block.splitlines():
@@ -128,7 +134,7 @@ def apk_inventory(database=Path('/lib/apk/db/installed')):
         if 'P' not in fields or 'V' not in fields: continue
         name=fields['P'];size=fields.get('I','0')
         apps.append(App(name,name,fields['V'],'APK',fields.get('T',''),'package-x-generic',
-                        size=int(size) if size.isdigit() else 0,support=True,manager=shutil.which('apk') or '/sbin/apk',scope=fields.get('A','')))
+                        size=int(size) if size.isdigit() else 0,support=name not in explicit or is_critical(name),manager=shutil.which('apk') or '/sbin/apk',scope=fields.get('A','')))
     return finish(apps,'APK')
 
 
@@ -163,7 +169,7 @@ def preview(app, dependencies=False):
         if not removed or app.package not in removed or any(not re.fullmatch(r'[a-zA-Z0-9@_+.-]+',p) for p in removed): raise RuntimeError('Native removal preview could not be verified.')
         protected=protected_owners('Pacman')
         if any(is_critical(p) or p in protected for p in removed): raise RuntimeError('Core system packages cannot be removed through SweepDesk.')
-        plan.removed=removed;plan.extra=[p for p in removed if p!=app.package]
+        plan.removed=[app.package];plan.extra=[p for p in removed if p!=app.package]
         plan.commands=[[pkexec,shutil.which('pacman') or '/usr/bin/pacman',flags,'--noconfirm','--',app.package]]
         plan.notes.append('Pacman dependency checks stay enabled. No cascading removal, forced dependency bypass, global orphan cleanup, or --nosave is used. Modified configuration may remain as .pacsave.')
     elif app.source=='APK':
@@ -176,7 +182,7 @@ def preview(app, dependencies=False):
         if app.package not in removed: raise RuntimeError('Native removal preview could not be verified.')
         protected=protected_owners('APK')
         if any(is_critical(p) or p in protected for p in removed): raise RuntimeError('Core system packages cannot be removed through SweepDesk.')
-        plan.removed=removed;plan.extra=[p for p in removed if p!=app.package]
+        plan.removed=[app.package];plan.extra=[p for p in removed if p!=app.package]
         plan.commands=[[pkexec,shutil.which('apk') or '/sbin/apk','--no-network','--no-interactive','del','--',app.package]]
         plan.notes.append('APK removes the package from world and may remove its newly unused dependencies, as listed in this preview. No recursive reverse-dependency removal or purge of modified configuration is requested.')
     else: raise RuntimeError('Removal is not supported for this source yet.')
@@ -186,8 +192,8 @@ def preview(app, dependencies=False):
 
 def revalidate(plan):
     if fingerprint(plan.app.source)!=plan.fingerprint: raise RuntimeError('Package state changed after the preview. Create a new plan before removal.')
-    fresh=preview(plan.app, bool(plan.extra))
-    if fresh.commands!=plan.commands or set(fresh.removed)!=set(plan.removed): raise RuntimeError('Package state changed after the preview. Create a new plan before removal.')
+    fresh=preview(plan.app, plan.app.source=='Pacman' and '-Rs' in plan.commands[0])
+    if fresh.commands!=plan.commands or set(fresh.removed+fresh.extra)!=set(plan.removed+plan.extra): raise RuntimeError('Package state changed after the preview. Create a new plan before removal.')
 
 
 def files(app):

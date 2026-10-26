@@ -85,7 +85,7 @@ ID = {
 'Choose a folder containing bin/python.': 'Pilih folder yang berisi bin/python.',
 'Add Environment…': 'Tambah Lingkungan…', 'Add Folder…': 'Tambah Folder…',
 'PYTHON ENVIRONMENTS': 'LINGKUNGAN PYTHON', 'MANUAL INSTALL FOLDERS': 'FOLDER INSTALASI MANUAL',
-'Available managers are scanned locally. Turning a source off only hides it from future scans.': 'Pengelola yang tersedia dipindai secara lokal. Sumber yang dinonaktifkan tidak ikut pemindaian berikutnya.',
+'Available managers are scanned locally. Turning a source off only hides it from future scans.': 'Pilih sumber instalasi yang ingin diperiksa. Menonaktifkan sumber tidak menghapus aplikasinya.',
 'Free and open source, made by Zwart04.': 'Gratis dan bersumber terbuka, dibuat oleh Zwart04.',
 'For Debian, Ubuntu, and compatible derivatives.': 'Untuk Debian, Ubuntu, dan turunannya yang kompatibel.',
 'Removal always requires a reviewed plan. Known user data goes to Trash; shared dependencies and uncertain files are kept.': 'Periksa daftar yang akan dihapus sebelum melanjutkan. Data aplikasi yang dikenali masuk ke Sampah. Paket yang masih dipakai aplikasi lain dan file yang belum jelas pemiliknya tetap disimpan.',
@@ -174,14 +174,14 @@ ID.update({
 'Manual update required':'Pembaruan manual diperlukan',
 'This installation uses source code, a portable archive, or an immutable system. Download the matching release and follow its install guide.':'Instalasi ini memakai kode sumber, arsip portabel, atau sistem immutable. Unduh rilis yang sesuai dan ikuti panduan pemasangannya.',
 'Update SweepDesk':'Perbarui SweepDesk', 'Update {current} → {latest}':'Perbarui {current} → {latest}',
-'The matching package will be downloaded from Zwart04/sweepdesk on GitHub, checked against SHA256SUMS, and installed by your native package manager. Administrator authentication may be required.':'Paket yang sesuai akan diunduh dari Zwart04/sweepdesk di GitHub, diperiksa dengan SHA256SUMS, lalu dipasang oleh pengelola paket distro. Autentikasi admin mungkin diperlukan.',
+'The matching package will be downloaded from Zwart04/sweepdesk on GitHub, checked against SHA256SUMS, and installed by your native package manager. Administrator authentication may be required.':'Paket pembaruan akan diunduh dari Zwart04/sweepdesk di GitHub dan diperiksa sebelum dipasang. Kata sandi admin mungkin diperlukan.',
 'Downloading and verifying the update…':'Mengunduh dan memverifikasi pembaruan…', 'Update failed':'Pembaruan gagal',
 'Update failed. Nothing was reported as successful.':'Pembaruan gagal. Tidak ada laporan keberhasilan.',
 'SweepDesk {version} installed. Restart to use it.':'SweepDesk {version} terpasang. Buka ulang untuk memakainya.',
 'Restart SweepDesk':'Buka ulang SweepDesk',
 'For Debian, Ubuntu, Fedora, openSUSE, Arch Linux, and compatible derivatives.':'Untuk Debian, Ubuntu, Fedora, openSUSE, Arch Linux, dan turunan yang kompatibel.',
 'Native software inventory and reviewed uninstall for major Linux desktops.':'Daftar perangkat lunak dan penghapusan dengan peninjauan untuk keluarga desktop Linux utama.',
-'System packages on immutable desktops are inventory-only. Use the distribution system updater.':'Paket sistem pada desktop immutable hanya ditampilkan. Gunakan pembaruan sistem bawaan distro.',
+'System packages on immutable desktops are inventory-only. Use the distribution system updater.':'Paket sistem distro ini hanya dapat diubah melalui pembaruan sistem bawaannya. SweepDesk hanya menampilkannya.',
 'Native removal preview could not be verified.':'Pratinjau penghapusan paket distro tidak dapat diverifikasi.',
 'Invalid native package identity.':'Identitas paket distro tidak valid.',
 'RPM removes only the selected package and checks reverse dependencies at execution. Required packages are refused. Shared dependencies and .rpmsave configuration backups are retained; DNF/Zypper history is not updated.':'RPM hanya menghapus paket pilihan. Jika paket ini masih dibutuhkan paket lain, penghapusan ditolak. Paket pendukung dan cadangan pengaturan (.rpmsave) tetap disimpan. Riwayat DNF/Zypper tidak diperbarui.',
@@ -190,4 +190,9 @@ ID.update({
 'This release has no compatible native package. Open the release page.':'Rilis ini belum memiliki paket distro yang sesuai. Buka halaman rilis.',
 'Update checksum verification failed. Nothing was installed.':'Verifikasi checksum pembaruan gagal. Tidak ada paket yang dipasang.',
 'No supported native updater is available. Download the release manually.':'Pengelola pembaruan distro yang didukung tidak tersedia. Unduh rilis secara manual.',
+})
+
+ID.update({
+'Clean up unneeded support packages':'Bersihkan paket pendukung yang tidak diperlukan',
+'Also remove support packages that become unnecessary when this app is removed. Other packages already unused before this removal are kept.':'Hapus juga paket pendukung yang tidak lagi dibutuhkan setelah aplikasi ini dihapus. Paket lain yang sudah tidak terpakai sebelumnya tetap disimpan.',
 })

@@ -36,7 +36,7 @@ class NativeTests(unittest.TestCase):
         app=b.App('Demo','demo','1','Pacman')
         with patch.object(n,'protected_owners',return_value=set()),patch.object(n,'immutable_system',return_value=False),patch.object(n,'fingerprint',return_value='fixture'),patch.object(b,'run',return_value='demo\nlib-example\n'):
             plan=b.make_plan(app,dependencies=True)
-            self.assertEqual(plan.removed,['demo','lib-example'])
+            self.assertEqual(plan.removed,['demo'])
             self.assertEqual(plan.extra,['lib-example'])
             self.assertIn('-Rs',plan.commands[0])
             self.assertNotIn('-Rsc',plan.commands[0])
@@ -69,3 +69,11 @@ class NativeTests(unittest.TestCase):
             process.assert_not_called()
         with patch.object(n,'immutable_system',return_value=True):
             with self.assertRaisesRegex(RuntimeError,'immutable'): n.preview(plan.app)
+
+    def test_pacman_dependency_option_is_retained_when_no_dependencies_are_removed(self):
+        app=b.App('Demo','demo','1','Pacman')
+        with patch.object(n,'protected_owners',return_value=set()),patch.object(n,'immutable_system',return_value=False),patch.object(n,'fingerprint',return_value='fixture'),patch.object(b,'run',return_value='demo\n'):
+            plan=n.preview(app,True)
+            self.assertEqual(plan.extra,[])
+            self.assertIn('-Rs',plan.commands[0])
+            n.revalidate(plan)
