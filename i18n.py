@@ -211,3 +211,5 @@ ID.update({
 'Ready to remove. Click Uninstall to continue.':'Siap dihapus. Klik tombol Hapus untuk melanjutkan.',
 'Also clean up support packages used by this app, if no other apps need them.':'Bersihkan juga paket bantuan yang dipakai aplikasi ini, jika sudah tidak dibutuhkan aplikasi lain.',
 })
+
+ID.update({'View':'Tampilan'})

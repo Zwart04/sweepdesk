@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.3
+
+- Fix the disabled View button by attaching its popover directly to the native menu button.
+- Add a visible View label and dropdown arrow; synchronize controls with Settings whenever the menu opens.
+- Verify real button activation, working system/detail filters, density changes, and reopening after settings changes.
+
 ## 0.5.2
 
 - Show an animated loading state while scanning, preparing removal previews, and uninstalling; never show the empty-inventory prompt during a scan.

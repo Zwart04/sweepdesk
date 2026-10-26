@@ -30,7 +30,7 @@ import ui_icons
 import i18n
 from i18n import tr
 
-VERSION = '0.5.2'
+VERSION = '0.5.3'
 APP_ID = 'io.github.Zwart04.SweepDesk'
 SUPPORT_URL = 'https://tako.id/Zwart04'
 REPOSITORY_URL = 'https://github.com/Zwart04/sweepdesk'
@@ -208,9 +208,13 @@ class Window(Gtk.Window):
         self.sort.connect('changed', self.sort_changed)
         controls.pack_end(self.sort, False, False, 0)
         self.view_button = Gtk.MenuButton()
-        self.view_button.add(ui_icons.image('view-list-symbolic'))
+        view_content = Gtk.Box(spacing=6)
+        view_content.pack_start(ui_icons.image('view-list-symbolic'),False,False,0)
+        view_content.pack_start(label('View'),False,False,0)
+        view_content.pack_start(label('▾'),False,False,0)
+        self.view_button.add(view_content)
         self.view_button.set_tooltip_text(tr('View options'))
-        self.view_button.connect('toggled', self.view_menu)
+        self.view_button.set_popover(self.build_view_popover())
         controls.pack_end(self.view_button, False, False, 0)
         main.pack_start(controls, False, False, 0)
         self.build_update_banner(main)
@@ -860,27 +864,43 @@ class Window(Gtk.Window):
         dialog.get_content_area().pack_start(text_box(text,300)[0],True,True,0)
         self.run_dialog(dialog)
 
-    def view_menu(self, button):
-        if not button.get_active():
-            return
-        popover = Gtk.Popover.new(button)
+    def build_view_popover(self):
+        popover = Gtk.Popover()
+        popover.syncing = False
         content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=9)
         content.set_border_width(14)
+        popover.view_controls = {}
         for title,key in [('Show system packages','show_system'),('Show selection details','show_details')]:
             check = Gtk.CheckButton(label=tr(title),active=self.prefs[key])
-            check.connect('toggled',lambda widget,k=key:self.set_preference(k,widget.get_active()))
+            def changed(widget, key=key):
+                if not popover.syncing:
+                    self.set_preference(key,widget.get_active())
+            check.connect('toggled',changed)
+            popover.view_controls[key] = check
             content.pack_start(check,False,False,0)
         content.pack_start(label('Row density','caption'),False,False,0)
         density = Gtk.ComboBoxText()
         for value in ('Compact','Comfortable'):
             density.append_text(tr(value))
         density.set_active(0 if self.prefs['density']=='compact' else 1)
-        density.connect('changed',lambda widget:self.set_preference('density','compact' if widget.get_active()==0 else 'comfortable'))
+        def density_changed(widget):
+            if not popover.syncing:
+                self.set_preference('density','compact' if widget.get_active()==0 else 'comfortable')
+        density.connect('changed',density_changed)
         content.pack_start(density,False,False,0)
+        popover.density_control = density
+        def sync_controls(_):
+            popover.syncing = True
+            try:
+                for key,check in popover.view_controls.items():
+                    check.set_active(self.prefs[key])
+                density.set_active(0 if self.prefs['density']=='compact' else 1)
+            finally:
+                popover.syncing = False
+        popover.connect('show',sync_controls)
         popover.add(content)
-        popover.connect('closed',lambda _:button.set_active(False))
-        popover.show_all()
-        popover.popup()
+        content.show_all()
+        return popover
 
     def persist(self):
         data = dict(self.prefs)

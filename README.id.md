@@ -16,11 +16,11 @@ Pilih distro melalui **[halaman unduh](https://zwart04.github.io/sweepdesk/id.ht
 
 | Distro | Berkas yang dipilih | Perintah dari folder unduhan |
 |---|---|---|
-| Debian / Ubuntu / Mint | `sweepdesk_0.5.2_all.deb` | `sudo apt install ./sweepdesk_0.5.2_all.deb` |
-| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.5.2-1.fedora.noarch.rpm` | `sudo dnf install ./sweepdesk-0.5.2-1.fedora.noarch.rpm` |
-| openSUSE Leap / Tumbleweed | `sweepdesk-0.5.2-1.opensuse.noarch.rpm` | `sudo zypper install ./sweepdesk-0.5.2-1.opensuse.noarch.rpm` |
-| Arch / EndeavourOS / Manjaro | `sweepdesk-0.5.2-1-any.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.5.2-1-any.pkg.tar.zst` |
-| Alpine / Linux lain dengan GTK 3 | `sweepdesk-0.5.2.tar.gz` | Ikuti bagian kode sumber di bawah |
+| Debian / Ubuntu / Mint | `sweepdesk_0.5.3_all.deb` | `sudo apt install ./sweepdesk_0.5.3_all.deb` |
+| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.5.3-1.fedora.noarch.rpm` | `sudo dnf install ./sweepdesk-0.5.3-1.fedora.noarch.rpm` |
+| openSUSE Leap / Tumbleweed | `sweepdesk-0.5.3-1.opensuse.noarch.rpm` | `sudo zypper install ./sweepdesk-0.5.3-1.opensuse.noarch.rpm` |
+| Arch / EndeavourOS / Manjaro | `sweepdesk-0.5.3-1-any.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.5.3-1-any.pkg.tar.zst` |
+| Alpine / Linux lain dengan GTK 3 | `sweepdesk-0.5.3.tar.gz` | Ikuti bagian kode sumber di bawah |
 
 Jika desktop menyediakan pemasang grafis yang sesuai, berkas paket juga dapat dibuka dengan klik dua kali. Tidak semua distro menyediakannya secara bawaan. Pengelola paket memasang komponen yang dibutuhkan. Paket RPM/Arch dari GitHub merupakan paket lokal tanpa tanda tangan; periksa checksum dan ikuti kebijakan/tanya jawab keamanan pengelola paket. SweepDesk tidak mematikan pemeriksaan keamanan secara global.
 

@@ -75,6 +75,41 @@ class UITests(unittest.TestCase):
         finally:
             window.destroy()
 
+    def test_view_button_opens_and_changes_real_display_options(self):
+        window=self.make_window()
+        try:
+            self.assertTrue(window.view_button.get_sensitive())
+            popover=window.view_button.get_popover()
+            self.assertIsNotNone(popover)
+            window.view_button.clicked()
+            while Gtk.events_pending(): Gtk.main_iteration_do(False)
+            self.assertTrue(popover.get_visible())
+            self.assertTrue(window.view_button.get_active())
+            with patch.object(window,'persist') as persist:
+                system=popover.view_controls['show_system']
+                system.set_active(True)
+                self.assertTrue(window.prefs['show_system'])
+                self.assertEqual(len(window.filtered),3)
+                system.set_active(False)
+                self.assertEqual(len(window.filtered),2)
+                details=popover.view_controls['show_details']
+                details.set_active(not details.get_active())
+                self.assertEqual(window.prefs['show_details'],details.get_active())
+                popover.density_control.set_active(1)
+                self.assertEqual(window.icon_size,32)
+                persist.assert_called()
+            popover.hide()
+            window.prefs['density']='compact'
+            window.prefs['show_system']=True
+            with patch.object(window,'persist') as persist:
+                window.view_button.set_active(False)
+                window.view_button.clicked()
+                while Gtk.events_pending(): Gtk.main_iteration_do(False)
+                self.assertTrue(popover.view_controls['show_system'].get_active())
+                self.assertEqual(popover.density_control.get_active(),0)
+                persist.assert_not_called()
+        finally: window.destroy()
+
     def test_settings_dialog_and_review_guard(self):
         window=self.make_window()
         try:
