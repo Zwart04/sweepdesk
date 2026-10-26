@@ -19,6 +19,26 @@ def python_report():
 
 
 class SourceTests(unittest.TestCase):
+    def test_apt_metadata_uses_real_version_field(self):
+        def query(args, **kwargs):
+            if 'dpkg-query' in args[0]:
+                self.assertIn('${Version}',args[-1])
+                return 'curl\t8.0\t20\tno\toptional\tii \tTransfer tool\n'
+            return ''
+        with patch.object(b,'run',side_effect=query):
+            apps=b.apt_inventory()
+        self.assertEqual(apps[0].version,'8.0')
+
+    def test_bun_detects_custom_global_directory(self):
+        with tempfile.TemporaryDirectory() as d:
+            folder=Path(d)/'Custom global'
+            folder.mkdir()
+            (folder/'package.json').write_text(json.dumps({'dependencies':{'demo':'1'}}))
+            with patch.object(b,'executable',return_value='/bun'), \
+                 patch.object(b,'run',return_value=str(folder)+' node_modules (1 installed)\n'):
+                apps=b.bun_inventory()
+            self.assertEqual(apps[0].scope,str(folder))
+
     def test_ubuntu_distro_detection(self):
         with tempfile.TemporaryDirectory() as d:
             f=Path(d)/'os-release'

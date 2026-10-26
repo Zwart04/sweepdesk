@@ -236,8 +236,15 @@ def uv_inventory():
 
 def bun_inventory():
     manager = executable('bun', [HOME/'.bun/bin/bun'])
-    base = Path(os.environ.get('BUN_INSTALL', str(HOME/'.bun')))
-    folder = Path(os.environ.get('BUN_INSTALL_GLOBAL_DIR', str(base/'install/global')))
+    base = Path(os.environ.get('BUN_INSTALL', str(HOME/'.bun'))).expanduser()
+    folder = Path(os.environ.get('BUN_INSTALL_GLOBAL_DIR', str(base/'install/global'))).expanduser()
+    # The manager's output honors custom globalDir settings in bunfig.toml.
+    for line in run([manager, 'pm', 'ls', '--global'], check=False).splitlines():
+        if ' node_modules' in line:
+            candidate = Path(line.rsplit(' node_modules', 1)[0]).expanduser()
+            if candidate.is_absolute():
+                folder = candidate
+                break
     manifest = folder/'package.json'
     if not manifest.is_file():
         return []
