@@ -231,3 +231,5 @@ ID.update({
 'Buy Zwart04 a coffee on Tako — opens your browser':'Traktir Zwart04 kopi di Tako — membuka peramban',
 'Buy me a coffee: {url}':'Traktir kopi: {url}',
 })
+
+ID.update({'Details':'Rincian','The update could not finish. Try again, or open Details to see the error.':'Pembaruan belum berhasil. Coba lagi, atau buka Rincian untuk melihat penyebabnya.'})

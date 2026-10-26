@@ -381,6 +381,12 @@ class Window(Gtk.Window):
         body.pack_start(hero,False,False,0)
         dialog.status_detail = label('Please wait. You can keep using SweepDesk.','subtitle',True,True)
         body.pack_start(dialog.status_detail,True,True,0)
+        dialog.error_details = Gtk.Expander(label=tr('Details'))
+        error_scroll,dialog.error_view = text_box('',120)
+        dialog.error_details.add(error_scroll)
+        error_scroll.show_all()
+        dialog.error_details.set_no_show_all(True)
+        body.pack_start(dialog.error_details,False,False,0)
         footer = Gtk.Box(spacing=10)
         dialog.spinner = Gtk.Spinner(width_request=20,height_request=20)
         footer.pack_start(dialog.spinner,False,False,0)
@@ -427,6 +433,8 @@ class Window(Gtk.Window):
         dialog.spinner.set_visible(running)
         dialog.close_button.set_sensitive(state!='installing')
         dialog.update_action.set_visible(state in ('available','installed','error'))
+        dialog.error_details.set_expanded(False)
+        dialog.error_details.set_visible(state=='error')
         dialog.version_label.set_text(tr('Update {current} → {latest}',current=VERSION,latest=self.update_release.version)
                                       if self.update_release else 'SweepDesk '+VERSION)
         titles = {'checking':'Checking GitHub for updates…','available':'Update available',
@@ -446,7 +454,8 @@ class Window(Gtk.Window):
         elif state == 'current':
             detail = tr('You are using SweepDesk {version}. No newer stable release is available.',version=VERSION)
         else:
-            detail = str(error or tr('Update failed. Nothing was reported as successful.'))
+            detail = tr('The update could not finish. Try again, or open Details to see the error.')
+            dialog.error_view.get_buffer().set_text(str(error or tr('Update failed. Nothing was reported as successful.')))
             dialog.update_action.set_label(tr('Try again'))
         dialog.status_detail.set_text(detail)
 
