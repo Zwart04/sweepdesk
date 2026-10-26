@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111215">
+  <meta name="description" content="A native software manager for Debian and Ubuntu. Find desktop apps and CLI tools, review uninstall plans, and choose what to clean.">
+  <meta property="og:title" content="SweepDesk — Your software, in one place.">
+  <meta property="og:description" content="Desktop apps and command-line tools, together. Free, open source, and built for Debian and Ubuntu.">
+  <meta property="og:type" content="website">
+  <title>SweepDesk — Your software, in one place.</title>
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg"><link rel="stylesheet" href="style.css">
+  <script src="site.js" defer></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="nav-shell"><nav class="nav wrap" aria-label="Main navigation">
+  <a class="brand" href="./"><img src="assets/logo.svg" width="32" height="32" alt=""><span>SweepDesk</span></a>
+  <button class="mobile-toggle" aria-label="Open navigation" aria-expanded="false" aria-controls="nav-links">☰</button>
+  <div class="nav-links" id="nav-links"><a href="#features">Features</a><a href="#sources">Sources</a><a href="#install">Install</a><a href="https://github.com/Zwart04/sweepdesk">GitHub ↗</a><a class="support-pill" href="https://tako.id/Zwart04" target="_blank" rel="noopener noreferrer"><span aria-hidden="true">♥</span> Support</a></div>
+</nav></header>
+<main id="main">
+  <section class="hero wrap">
+    <div class="eyebrow"><span class="live-dot"></span> Free & open source · Debian + Ubuntu</div>
+    <img class="hero-icon" src="assets/logo.svg" width="88" height="88" alt="SweepDesk application icon">
+    <h1>Know what’s installed.<br><span>Decide what stays.</span></h1>
+    <p class="hero-copy">Desktop apps. Command-line tools. One clear view.<br>Find your software and review exactly what a removal plan includes.</p>
+    <div class="hero-actions"><a class="button primary" data-download="deb" href="https://github.com/Zwart04/sweepdesk/releases/latest"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2v10m-4-4 4 4 4-4M3 13v4h14v-4"/></svg>Download for Linux</a><a class="button secondary" href="#features">Take a look <span aria-hidden="true">↓</span></a></div>
+    <p class="download-note"><span data-version>Latest release</span> · <code>.deb</code> + portable archive · No account required</p>
+    <div class="product-shot"><img src="assets/app.png" alt="SweepDesk's compact dark interface with a source sidebar, installed software list, and selection details. Sample inventory." width="1120" height="753" fetchpriority="high"><p>Native desktop interface · Sample inventory</p></div>
+  </section>
+
+  <section class="section wrap" id="features">
+    <div class="section-heading"><p class="eyebrow">A little more clarity</p><h2>A familiar home<br>for all kinds of software.</h2><p>Built around the things you actually do: find, inspect, and decide.</p></div>
+    <div class="feature-layout">
+      <div class="feature-list">
+        <article><span class="feature-number">01</span><div><h3>Find it without the terminal</h3><p>Search names or package IDs. Browse applications, CLI tools, system packages, and their installation sources.</p></div></article>
+        <article><span class="feature-number">02</span><div><h3>More than an uninstall button</h3><p>Right-click to inspect details, copy an ID, open a known install folder, or view the files owned by an APT package.</p></div></article>
+        <article><span class="feature-number">03</span><div><h3>Make the workspace yours</h3><p>Choose dark, light, or system appearance. Adjust row density, visible sources, and additional scan folders.</p></div></article>
+      </div>
+      <div class="settings-shot"><img src="assets/settings.png" alt="SweepDesk Settings with appearance, density, details, and system package options" width="720" height="563" loading="lazy"><span class="image-label">Small details. A calmer workspace.</span></div>
+    </div>
+  </section>
+
+  <section class="sources-section" id="sources"><div class="wrap section">
+    <div class="section-heading centered"><p class="eyebrow">Different installers. One list.</p><h2>Bring your software together.</h2><p>SweepDesk checks the managers available on your machine.</p></div>
+    <div class="source-groups">
+      <article><div class="source-symbol" aria-hidden="true">▦</div><h3>System & desktop</h3><p>APT / DEB</p><p>Flatpak · Snap</p><span>Installed packages and application bundles.</span></article>
+      <article><div class="source-symbol" aria-hidden="true">&gt;_</div><h3>Developer tools</h3><p>npm · pip · Cargo</p><p>pipx · uv · Bun · Homebrew</p><span>Global tools and selected Python environments.</span></article>
+      <article><div class="source-symbol" aria-hidden="true">⌁</div><h3>Beyond package managers</h3><p>AppImage · ArtCraft</p><p>Manual & script installs</p><span>Known executable locations, plus folders you add.</span></article>
+    </div>
+    <p class="source-note">A script downloaded with <code>curl</code> may not leave an ownership record. SweepDesk identifies known paths; it does not guess every file an installer created. <a href="https://github.com/Zwart04/sweepdesk#what-can-it-clean">See cleanup coverage ↗</a></p>
+  </div></section>
+
+  <section class="section wrap review-section">
+    <div><p class="eyebrow">Keep the final say</p><h2>Review first.<br>Remove with context.</h2><p>Every uninstall starts with a plan. See the affected packages and known data locations before you confirm.</p></div>
+    <ol class="review-list"><li><span>1</span><div><h3>Choose the software</h3><p>Pick an application or CLI and inspect its source.</p></div></li><li><span>2</span><div><h3>Check the plan</h3><p>Optional cleanup stays off until you choose it. Protected components remain blocked.</p></div></li><li><span>3</span><div><h3>Review the result</h3><p>Known user data goes to Trash. Shared caches and uncertain files are kept. Session Activity shows the operation log.</p></div></li></ol>
+  </section>
+
+  <section class="section wrap" id="install">
+    <div class="install-panel"><div><p class="eyebrow">Ready for a cleaner view?</p><h2>Make room<br>for what matters.</h2><p>Use the Debian package for a normal menu installation, or run the portable source archive.</p><div class="install-links"><a class="button primary" data-download="deb" href="https://github.com/Zwart04/sweepdesk/releases/latest">Download .deb <span aria-hidden="true">↓</span></a><a data-download="portable" href="https://github.com/Zwart04/sweepdesk/releases/latest">Portable archive ↗</a></div></div>
+    <div class="install-instructions"><span class="terminal-label">INSTALL FROM THE DOWNLOAD FOLDER</span><div class="command"><code id="install-command">sudo apt install ./sweepdesk_0.3.0_all.deb</code><button id="copy-command" aria-label="Copy installation command">Copy</button></div><p>Then open <strong>SweepDesk</strong> from your application menu. Run it as your normal user; Debian asks for authentication when a system operation needs it.</p><p class="requirements">Python 3.9+ · GTK 3.24+ · APT/dpkg<br>Targets Debian 11–13 and Ubuntu 22.04 / 24.04 / 26.04. Compatible derivatives need the same dependencies.</p><div class="small-links"><a data-download="checksums" href="https://github.com/Zwart04/sweepdesk/releases/latest">Checksums</a><a href="https://github.com/Zwart04/sweepdesk/blob/main/README.id.md">Panduan Indonesia</a><a href="https://github.com/Zwart04/sweepdesk#installation">Full install guide</a></div><span id="copy-status" role="status" aria-live="polite"></span></div></div>
+  </section>
+
+  <section class="faq section wrap"><div class="section-heading"><p class="eyebrow">Good to know</p><h2>A few honest answers.</h2></div><div>
+    <details><summary>Does it work on Ubuntu and Linux Mint?</summary><p>Yes, it targets Debian-family desktops, including Ubuntu and compatible derivatives such as Mint, Pop!_OS, LMDE, and Zorin. The required versions and tested base images are listed in the README. Every derivative is not independently tested.</p></details>
+    <details><summary>Will it delete every last leftover?</summary><p>Not for every installer. Package managers own some files; arbitrary scripts may not record what they changed. SweepDesk only cleans locations it knows. Data cleanup is opt-in, shared dependencies are preserved, and known user data goes to Trash.</p></details>
+    <details><summary>Does it override system Python protection?</summary><p>No. SweepDesk respects PEP 668 and does not force pip to modify an externally managed system Python. Add a virtual environment to inspect and manage its packages separately.</p></details>
+    <details><summary>Is it free? Does it send my inventory anywhere?</summary><p>SweepDesk is free and open source. Scanning runs locally. It does not upload your software inventory or operation logs. Exporting a JSON inventory is your choice.</p></details>
+  </div></section>
+
+  <section class="support-section wrap"><div class="support-mark" aria-hidden="true">♥</div><div><p class="eyebrow">Made independently by Zwart04</p><h2>Useful software.<br>Supported by people.</h2><p>If SweepDesk helps, you can support its development on Tako.<br>It’s optional. Every feature stays available to everyone.</p></div><a class="button support-cta" href="https://tako.id/Zwart04" target="_blank" rel="noopener noreferrer">♥ Support on Tako <span aria-hidden="true">↗</span></a></section>
+</main>
+<footer class="wrap"><a class="brand" href="./"><img src="assets/logo.svg" width="25" height="25" alt=""><span>SweepDesk</span></a><p>Made by Zwart04. Original code under MIT.</p><div><a href="https://github.com/Zwart04/sweepdesk">Source</a><a href="https://github.com/Zwart04/sweepdesk/issues">Report an issue</a><a href="https://tako.id/Zwart04">Support</a></div></footer>
+</body>
+</html>

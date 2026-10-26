@@ -7,4 +7,5 @@ Icon=io.github.Zwart04.SweepDesk
 Terminal=false
 Categories=System;PackageManager;
 StartupNotify=true
+StartupWMClass=io.github.Zwart04.SweepDesk
 Keywords=uninstall;software;packages;apt;npm;pip;cleanup;

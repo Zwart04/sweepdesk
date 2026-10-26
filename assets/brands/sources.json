@@ -28,5 +28,17 @@
     "url": "https://avatars.githubusercontent.com/u/151507869?v=4?s=128",
     "source": "https://github.com/CommandCodeAI",
     "sha256": "fb0ab958830ecfc56d0793055b30face88e9864afd2cbe17199b6dc205d109a9"
+  },
+  {
+    "file": "opencode-light.svg",
+    "url": "https://raw.githubusercontent.com/anomalyco/opencode/dev/packages/console/app/src/asset/brand/opencode-logo-light-square.svg",
+    "source": "https://opencode.ai/brand",
+    "sha256": "b1c48d82ebd304eab820658387642bcf4c9b8350d6860894d0fe21ddca25ef3f"
+  },
+  {
+    "file": "curl-light.svg",
+    "url": "https://curl.se/logo/curl-symbol.svg",
+    "source": "https://curl.se/logo/",
+    "sha256": "e1686432a1d35991f4a48b8a4ccaaa9d5a009c9ad116b2accd4e0e5b0389d417"
   }
 ]

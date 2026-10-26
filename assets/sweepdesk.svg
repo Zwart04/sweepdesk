@@ -1,8 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
- <defs><linearGradient id="a" x2="1" y2="1"><stop stop-color="#70b7ff"/><stop offset="1" stop-color="#0a84ff"/></linearGradient></defs>
- <rect width="256" height="256" rx="60" fill="#242426"/>
- <path d="M53 80a15 15 0 0 1 15-15h120a15 15 0 0 1 15 15v87a15 15 0 0 1-15 15H68a15 15 0 0 1-15-15z" fill="url(#a)"/>
- <path d="M53 102h150M112 65v37" fill="none" stroke="#155f9e" stroke-width="8"/>
- <path d="m88 141 25 22 54-49" fill="none" stroke="#242426" stroke-linecap="round" stroke-linejoin="round" stroke-width="13"/>
- <path d="m202 37 5 15 15 5-15 5-5 15-5-15-15-5 15-5z" fill="#ff6482"/>
+ <defs>
+  <linearGradient id="blue" x1="0" y1="0" x2=".6" y2="1"><stop stop-color="#47b0ff"/><stop offset="1" stop-color="#0862e6"/></linearGradient>
+  <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#e4f0ff"/></linearGradient>
+  <radialGradient id="light" cx=".25" cy="0" r="1"><stop stop-color="#fff" stop-opacity=".24"/><stop offset=".8" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <filter id="shadow" x="-.35" y="-.35" width="1.7" height="1.8"><feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#063a91" flood-opacity=".26"/></filter>
+ </defs>
+ <rect x="4" y="4" width="248" height="248" rx="56" fill="url(#blue)"/>
+ <rect x="5" y="5" width="246" height="246" rx="55" fill="url(#light)" stroke="#fff" stroke-opacity=".15" stroke-width="2"/>
+ <g filter="url(#shadow)">
+  <rect x="54" y="54" width="148" height="142" rx="23" fill="url(#paper)"/>
+  <path d="M55 94h146" stroke="#bed8fb" stroke-width="2"/>
+  <path d="M76 76h29" stroke="#3989ed" stroke-opacity=".65" stroke-width="5" stroke-linecap="round"/>
+  <rect x="76" y="112" width="28" height="25" rx="6" fill="#328ef1"/>
+  <rect x="121" y="112" width="28" height="25" rx="6" fill="#328ef1" fill-opacity=".65"/>
+  <rect x="76" y="152" width="28" height="25" rx="6" fill="#328ef1" fill-opacity=".65"/>
+  <circle cx="172" cy="176" r="28" fill="#1d549c" stroke="#f3f8ff" stroke-width="5"/>
+  <path d="M159 176h26" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+ </g>
 </svg>

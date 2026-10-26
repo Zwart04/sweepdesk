@@ -11,11 +11,11 @@ Pengelola aplikasi GUI dan CLI untuk **Debian, Ubuntu, dan distro turunannya**. 
 ## Memasang dengan mudah
 
 1. Buka halaman **[Releases](https://github.com/Zwart04/sweepdesk/releases/latest)**.
-2. Unduh `sweepdesk_0.2.0_all.deb`.
+2. Unduh `sweepdesk_0.3.0_all.deb`.
 3. Klik dua kali untuk memasang, atau buka terminal di folder unduhan dan jalankan:
 
 ```bash
-sudo apt install ./sweepdesk_0.2.0_all.deb
+sudo apt install ./sweepdesk_0.3.0_all.deb
 ```
 
 Buka **SweepDesk** dari menu aplikasi. Jalankan sebagai pengguna biasa, tanpa sudo. Kata sandi admin hanya diminta saat operasi paket sistem memerlukannya.
@@ -39,17 +39,25 @@ Debian 11–13 dan Ubuntu 22.04/24.04/26.04 menjadi target CI. Mint, LMDE, Pop!_
 
 ## Memakai aplikasi
 
-1. Tunggu pemindaian selesai, lalu cari nama atau ID paket.
-2. Pilih sumber instalasi untuk menyaring daftar. **Manual** mencakup executable di lokasi standar dan folder tambahan.
-3. Aktifkan **Show system packages** bila ingin melihat seluruh paket pendukung. Pencarian tetap menjangkau paket tersembunyi.
-4. Klik **Review uninstall…** dan pilih opsi pembersihan bila diperlukan.
-5. Periksa paket, lokasi data, dan perintah. Centang konfirmasi sebelum menekan **Uninstall now**.
+1. Pilih kategori atau sumber instalasi pada **sidebar**. Cari nama aplikasi atau ID paket pada kolom pencarian.
+2. Gunakan **System Packages** untuk melihat paket pendukung. Tombol **View options** mengatur visibilitas paket sistem, kerapatan baris, dan panel detail.
+3. Klik dua kali untuk detail lengkap. **Klik kanan** menyediakan detail, daftar file APT, buka folder instalasi, salin ID/nama, dan pratinjau uninstall. Aksi yang tidak tersedia dibuat nonaktif.
+4. Klik **Review Uninstall…**, pilih opsi pembersihan, lalu **Preview Removal**. Periksa daftar paket dan lokasi data sebelum mencentang persetujuan dan menekan **Uninstall**.
+5. **More (•••) → Activity** menyimpan log operasi hanya untuk sesi berjalan. More juga menyediakan ekspor inventaris, status pemindaian, dan bantuan.
 
-Tombol **folder** menambahkan virtualenv Python. Tombol **+** menambahkan folder instalasi manual. Pilihan berlaku pada sesi berjalan. Alternatif:
+Tombol **Settings** pada toolbar ringkas membuka pengaturan tema Dark/Light/System, baris Compact/Comfortable, panel detail, paket sistem, sumber pemindaian, dan folder tambahan. Pengaturan tersimpan di `~/.config/sweepdesk/preferences.json` atau lokasi `XDG_CONFIG_HOME`. Inventaris dan log operasi tidak disimpan otomatis.
+
+![Settings SweepDesk](docs/settings.png)
+
+Tambahkan virtualenv atau folder instalasi melalui **Settings → Scanning** atau menu **More**. Folder bisa diingat untuk sesi berikutnya. Alternatif:
 
 ```bash
 ./run.sh --python "$HOME/proyek/demo/.venv/bin/python" --manual-dir "$HOME/Applications"
 ```
+
+Pintasan: **Ctrl+F** mencari, **Ctrl+R** memindai ulang, **Ctrl+,** membuka Settings, **Ctrl+I / Enter** membuka detail, **Ctrl+E** mengekspor, dan **Shift+F10** membuka menu klik kanan. **Delete** hanya memulai alur pratinjau, bukan langsung menghapus. Kontrol jendela tetap mengikuti desktop Linux.
+
+Logo aplikasi tersedia sebagai SVG dan PNG 16–512 piksel serta dipasang melalui paket `.deb` agar dipakai di menu aplikasi dan integrasi jendela/dock. Tombol **♥ Support** berbentuk pill membuka [Tako Zwart04](https://tako.id/Zwart04).
 
 ## Seberapa bersih penghapusannya?
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 — 2026-10-26
+
+- GitHub Pages website with feature previews, current release downloads, install guide, and support links.
+- Rebuilt the interface with a compact native toolbar, library/source sidebar, sortable software list, and selection inspector.
+- Combined the icon and name into one column, removing the empty icon header.
+- Added right-click and keyboard context menus, software details, installed-file lists, copy actions, install-folder links, and session activity.
+- Added saved Settings for dark/light/system appearance, compact/comfortable density, system-package visibility, scan sources, and additional folders.
+- Refined the support pill and native dialogs, including clear disabled and confirmation states.
+- Added a simple app-management logo with subtle lighting; bundled SVG and PNG icons from 16 to 512 pixels, with a matching native application ID for menu/dock integration.
+- Added consistent original line icons and official light-background variants for supported CLI logos.
+- Expanded interface and preference tests. Package removal safeguards remain enforced.
+
 ## 0.2.0 — 2026-10-26
 
 First public SweepDesk release.

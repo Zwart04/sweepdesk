@@ -19,6 +19,12 @@ def python_report():
 
 
 class SourceTests(unittest.TestCase):
+    def test_disabled_sources_do_not_run_package_managers(self):
+        with patch.object(b,'run') as run, patch.object(b,'desktop_index',return_value={}):
+            apps,warnings=b.scan(enabled_sources=[])
+        self.assertEqual(apps,[])
+        self.assertEqual(warnings,[])
+        run.assert_not_called()
     def test_python_probe_accepts_legacy_zip_metadata(self):
         import python_probe
         class ArchivePath:

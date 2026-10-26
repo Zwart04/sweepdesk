@@ -11,7 +11,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = re.search(r"VERSION = '([^']+)'", (ROOT/'sweepdesk.py').read_text()).group(1)
 DIST = ROOT/'dist'
-PAYLOAD = ['sweepdesk.py','backend.py','python_probe.py','README.md','README.id.md','LICENSE','THIRD_PARTY_NOTICES.md','assets','docs']
+PAYLOAD = ['sweepdesk.py','backend.py','python_probe.py','preferences.py','styles.py','ui_icons.py','README.md','README.id.md','LICENSE','THIRD_PARTY_NOTICES.md','assets','docs']
 
 
 def main():
@@ -48,6 +48,9 @@ def main():
             icons = stage/'usr/share/icons/hicolor/scalable/apps'
             icons.mkdir(parents=True)
             shutil.copy2(ROOT/'assets/sweepdesk.svg',icons/'io.github.Zwart04.SweepDesk.svg')
+            raster = ROOT/'assets/icons/hicolor'
+            if raster.is_dir():
+                shutil.copytree(raster,stage/'usr/share/icons/hicolor',dirs_exist_ok=True)
             docs = stage/'usr/share/doc/sweepdesk'
             docs.mkdir(parents=True)
             shutil.copy2(ROOT/'LICENSE',docs/'copyright')

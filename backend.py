@@ -487,8 +487,9 @@ def appimage_inventory(registered):
     return apps
 
 
-def scan(extra_python=(), extra_manual=()):
+def scan(extra_python=(), extra_manual=(), enabled_sources=None):
     apps, warnings = [], []
+    enabled = set(SOURCES if enabled_sources is None else enabled_sources)
     for label, available, loader in [
         ('APT', shutil.which('dpkg-query') and shutil.which('apt-get'), apt_inventory),
         ('Flatpak', shutil.which('flatpak'), flatpak_inventory),
@@ -501,14 +502,16 @@ def scan(extra_python=(), extra_manual=()):
         ('Cargo', executable('cargo', [HOME/'.cargo/bin/cargo']), cargo_inventory),
         ('Snap', shutil.which('snap'), snap_inventory),
     ]:
-        if available:
+        if available and label in enabled:
             try:
                 apps.extend(loader())
             except Exception as e:
                 warnings.append(label+': '+str(e))
     try:
-        apps.extend(manual_inventory(apps, extra_manual))
-        apps.extend(appimage_inventory(apps))
+        if 'Manual' in enabled:
+            apps.extend(manual_inventory(apps, extra_manual))
+        if 'ArtCraft' in enabled:
+            apps.extend(appimage_inventory(apps))
     except Exception as e:
         warnings.append('Manual: '+str(e))
     desktops = desktop_index()

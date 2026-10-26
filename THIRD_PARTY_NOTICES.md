@@ -6,10 +6,10 @@ The MIT license for SweepDesk covers its original code, its application icon, an
 
 | File | Official source | Notes |
 |---|---|---|
-| `assets/brands/opencode.svg` | [OpenCode brand page](https://opencode.ai/brand), [upstream repository](https://github.com/anomalyco/opencode) | Official square logo for a dark background, unchanged |
+| `assets/brands/opencode.svg`, `opencode-light.svg` | [OpenCode brand page](https://opencode.ai/brand), [upstream repository](https://github.com/anomalyco/opencode) | Official square logos for dark/light backgrounds, unchanged |
 | `assets/brands/command-code.png` | [CommandCodeAI GitHub organization](https://github.com/CommandCodeAI) | Official organization avatar, unchanged |
 | `assets/brands/command-code.svg` | [Command Code repository](https://github.com/CommandCodeAI/command-code/tree/main/.github/commandcode/logo) | Official wordmark, unchanged |
-| `assets/brands/curl.svg` | [curl logos](https://curl.se/logo/) | Official white curl symbol, unchanged |
+| `assets/brands/curl.svg`, `curl-light.svg` | [curl logos](https://curl.se/logo/) | Official symbols for dark/light backgrounds, unchanged |
 | `assets/brands/npm.svg` | [npm logos repository](https://github.com/npm/logos) | Official square npm icon, unchanged; see upstream trademark terms |
 
 Exact download URLs and SHA-256 hashes are in `assets/brands/sources.json`. Assets are bundled for offline use; SweepDesk does not download icons or contact these services while scanning.
