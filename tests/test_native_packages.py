@@ -77,3 +77,9 @@ class NativeTests(unittest.TestCase):
             self.assertEqual(plan.extra,[])
             self.assertIn('-Rs',plan.commands[0])
             n.revalidate(plan)
+
+    def test_privileged_remover_ignores_user_path_overrides(self):
+        app=b.App('Demo','demo','1','Pacman')
+        with patch.object(n.shutil,'which',return_value='/home/untrusted/fake-manager'),patch.object(n,'protected_owners',return_value=set()),patch.object(n,'immutable_system',return_value=False),patch.object(n,'fingerprint',return_value='fixture'),patch.object(b,'run',return_value='demo\n'):
+            plan=n.preview(app)
+            self.assertEqual(plan.commands[0][:2],['/usr/bin/pkexec','/usr/bin/pacman'])

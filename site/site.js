@@ -36,7 +36,7 @@ document.querySelector('#copy-command').addEventListener('click', async event =>
   }
 });
 
-let latestVersion = '0.5.0';
+let latestVersion = '0.5.1';
 const downloadURLs = {};
 const systemPicker = document.querySelector('#download-system');
 const packageFile = system => ({deb:`sweepdesk_${latestVersion}_all.deb`,rpm:`sweepdesk-${latestVersion}-1.fedora.noarch.rpm`,suse:`sweepdesk-${latestVersion}-1.opensuse.noarch.rpm`,arch:`sweepdesk-${latestVersion}-1-any.pkg.tar.zst`,portable:`sweepdesk-${latestVersion}.tar.gz`})[system];

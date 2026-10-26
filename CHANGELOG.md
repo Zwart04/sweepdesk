@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1
+
+- Use fixed system paths for privileged update/native removal commands, independent of user PATH overrides.
+- Add regression checks for native updater/remover command selection.
+
 ## 0.5.0
 
 - Native RPM, Pacman/ALPM, and APK inventory/removal with protected system components, immutable-system guards, and reviewed/revalidated plans.

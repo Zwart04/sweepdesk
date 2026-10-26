@@ -30,7 +30,7 @@ class UpdateTests(unittest.TestCase):
     def test_platform_package_and_native_install_commands(self):
         for system,suffix,manager in [('deb','_all.deb','apt-get'),('rpm','.fedora.noarch.rpm','dnf'),('suse','.opensuse.noarch.rpm','zypper'),('arch','-any.pkg.tar.zst','pacman')]:
             self.assertTrue(u.package_name('0.6.0',system).endswith(suffix))
-            with patch.object(u.shutil,'which',side_effect=lambda value:'/usr/bin/'+value),patch.object(u.native_packages,'immutable_system',return_value=False):
+            with patch.object(u.Path,'is_file',return_value=True),patch.object(u.native_packages,'immutable_system',return_value=False):
                 command=u.install_command('/tmp/fixture-package',system)
                 self.assertEqual(command[:2],['/usr/bin/pkexec','/usr/bin/'+manager])
                 self.assertNotIn('--nodeps',command)
@@ -57,3 +57,8 @@ class UpdateTests(unittest.TestCase):
             with self.assertRaises(RuntimeError): u.validate_url(url)
         with patch.object(u.native_packages,'immutable_system',return_value=True):
             with self.assertRaisesRegex(RuntimeError,'immutable'): u.install_command('/tmp/fixture','rpm')
+
+    def test_privileged_updater_ignores_user_path_overrides(self):
+        with patch.object(u.shutil,'which',return_value='/home/untrusted/fake-manager'),patch.object(u.Path,'is_file',return_value=True),patch.object(u.native_packages,'immutable_system',return_value=False):
+            command=u.install_command('/tmp/fixture','deb')
+            self.assertEqual(command[:2],['/usr/bin/pkexec','/usr/bin/apt-get'])

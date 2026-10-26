@@ -27,7 +27,7 @@ import ui_icons
 import i18n
 from i18n import tr
 
-VERSION = '0.5.0'
+VERSION = '0.5.1'
 APP_ID = 'io.github.Zwart04.SweepDesk'
 SUPPORT_URL = 'https://tako.id/Zwart04'
 REPOSITORY_URL = 'https://github.com/Zwart04/sweepdesk'

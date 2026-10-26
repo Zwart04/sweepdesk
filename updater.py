@@ -80,10 +80,9 @@ def package_name(version,system=None):
 def install_command(path,system=None):
     system=system or native_packages.family()
     if native_packages.immutable_system(): raise RuntimeError('System packages on immutable desktops are inventory-only. Use the distribution system updater.')
-    manager={'deb':'apt-get','rpm':'dnf','suse':'zypper','arch':'pacman'}.get(system)
-    binary=shutil.which(manager) if manager else None
-    pkexec=shutil.which('pkexec')
-    if not binary or not pkexec: raise RuntimeError('No supported native updater is available. Download the release manually.')
+    binary={'deb':'/usr/bin/apt-get','rpm':'/usr/bin/dnf','suse':'/usr/bin/zypper','arch':'/usr/bin/pacman'}.get(system)
+    pkexec='/usr/bin/pkexec'
+    if not binary or not Path(binary).is_file() or not Path(pkexec).is_file(): raise RuntimeError('No supported native updater is available. Download the release manually.')
     path=str(Path(path).absolute())
     args={'deb':['-y','install',path],'rpm':['-y','install',path],
           'suse':['--non-interactive','install',path],'arch':['-U','--noconfirm','--',path]}[system]

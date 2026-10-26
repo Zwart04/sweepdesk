@@ -705,7 +705,7 @@ def make_plan(app, dependencies=False, cleanup=False, family=False):
         elif app.source == 'Cargo':
             command = [app.manager or executable('cargo', [HOME/'.cargo/bin/cargo']), 'uninstall', app.package]
         else:
-            command = ['/usr/bin/pkexec', shutil.which('snap'), 'remove', app.package]
+            command = ['/usr/bin/pkexec', '/usr/bin/snap', 'remove', app.package]
             plan.notes.append('Snap manages package data and automatic snapshots according to its policy. --purge is not used; existing snapshots are retained.')
         plan.commands = [command]
         plan.removed = [app.package]

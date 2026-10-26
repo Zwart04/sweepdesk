@@ -153,14 +153,14 @@ def preview(app, dependencies=False):
     name=app.location if app.source=='RPM' else app.package
     if app.essential or is_critical(name) or name in protected_owners(app.source): raise RuntimeError('Core system packages cannot be removed through SweepDesk.')
     plan=Plan(app)
-    pkexec=shutil.which('pkexec') or '/usr/bin/pkexec'
+    pkexec='/usr/bin/pkexec'
     if app.source=='RPM':
         # Exact installed NEVRA: never allow rpm to remove multiple matching versions.
         records=rpm_inventory()
         matches=[entry for entry in records if entry.package==app.package and entry.version==app.version]
         if len(matches)!=1 or matches[0].essential: raise RuntimeError('Package state changed after the preview. Create a new plan before removal.')
         plan.removed=[app.package]
-        plan.commands=[[pkexec,shutil.which('rpm') or '/usr/bin/rpm','--erase','--',app.package]]
+        plan.commands=[[pkexec,'/usr/bin/rpm','--erase','--',app.package]]
         plan.notes.append('RPM removes only the selected package and checks reverse dependencies at execution. Required packages are refused. Shared dependencies and .rpmsave configuration backups are retained; DNF/Zypper history is not updated.')
     elif app.source=='Pacman':
         flags='-Rs' if dependencies else '-R'
@@ -170,7 +170,7 @@ def preview(app, dependencies=False):
         protected=protected_owners('Pacman')
         if any(is_critical(p) or p in protected for p in removed): raise RuntimeError('Core system packages cannot be removed through SweepDesk.')
         plan.removed=[app.package];plan.extra=[p for p in removed if p!=app.package]
-        plan.commands=[[pkexec,shutil.which('pacman') or '/usr/bin/pacman',flags,'--noconfirm','--',app.package]]
+        plan.commands=[[pkexec,'/usr/bin/pacman',flags,'--noconfirm','--',app.package]]
         plan.notes.append('Pacman dependency checks stay enabled. No cascading removal, forced dependency bypass, global orphan cleanup, or --nosave is used. Modified configuration may remain as .pacsave.')
     elif app.source=='APK':
         output=run(['apk','--no-network','--simulate','del','--',app.package])
@@ -183,7 +183,7 @@ def preview(app, dependencies=False):
         protected=protected_owners('APK')
         if any(is_critical(p) or p in protected for p in removed): raise RuntimeError('Core system packages cannot be removed through SweepDesk.')
         plan.removed=[app.package];plan.extra=[p for p in removed if p!=app.package]
-        plan.commands=[[pkexec,shutil.which('apk') or '/sbin/apk','--no-network','--no-interactive','del','--',app.package]]
+        plan.commands=[[pkexec,'/sbin/apk','--no-network','--no-interactive','del','--',app.package]]
         plan.notes.append('APK removes the package from world and may remove its newly unused dependencies, as listed in this preview. No recursive reverse-dependency removal or purge of modified configuration is requested.')
     else: raise RuntimeError('Removal is not supported for this source yet.')
     plan.fingerprint=fingerprint(app.source)
