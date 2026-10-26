@@ -27,9 +27,9 @@ class NativeTests(unittest.TestCase):
             database=root/'installed';database.write_text('P:demo\nV:1.0-r0\nT:Example app\nI:456\nA:x86_64\n\n')
             app=n.apk_inventory(database)[0]
             self.assertEqual((app.package,app.version,app.size),('demo','1.0-r0',456))
-        with patch.object(b,'run',return_value='demo\t0:1.0-1\tx86_64\t42\tExample app\tdemo-1.0-1.x86_64\n'),patch.object(n,'protected_owners',return_value=set()),patch.object(n,'immutable_system',return_value=False):
+        with patch.object(b,'run',return_value='demo\t0:1.0^git-1\tx86_64\t42\tExample app\tdemo-1.0^git-1.x86_64\n'),patch.object(n,'protected_owners',return_value=set()),patch.object(n,'immutable_system',return_value=False):
             app=n.rpm_inventory()[0]
-            self.assertEqual(app.package,'demo-1.0-1.x86_64')
+            self.assertEqual(app.package,'demo-1.0^git-1.x86_64')
             self.assertEqual(app.location,'demo')
 
     def test_pacman_preview_rejects_core_and_never_cascades(self):

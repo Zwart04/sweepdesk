@@ -94,7 +94,7 @@ def rpm_inventory():
         parts=line.split('\t',5)
         if len(parts)!=6: continue
         name,version,arch,size,description,identity=parts
-        if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9+_.~-]*',identity): continue
+        if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9+_.~^-]*',identity): continue
         apps.append(App(name,identity,version,'RPM',description,'package-x-generic',
                         size=int(size) if size.isdigit() else 0,support=looks_like_support(name),manager=shutil.which('rpm') or '/usr/bin/rpm',scope=arch,location=name))
     return finish(apps,'RPM')
@@ -149,7 +149,7 @@ def fingerprint(source):
 def preview(app, dependencies=False):
     from backend import Plan,run
     if immutable_system(): raise RuntimeError('System packages on immutable desktops are inventory-only. Use the distribution system updater.')
-    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9+_.~-]*',app.package): raise RuntimeError('Invalid native package identity.')
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9+_.~^-]*',app.package): raise RuntimeError('Invalid native package identity.')
     name=app.location if app.source=='RPM' else app.package
     if app.essential or is_critical(name) or name in protected_owners(app.source): raise RuntimeError('Core system packages cannot be removed through SweepDesk.')
     plan=Plan(app)
