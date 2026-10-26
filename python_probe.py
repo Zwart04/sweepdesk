@@ -14,6 +14,9 @@ def normalize(value):
 
 
 def probe():
+    # Debian's older pip adds its private wheel archives to sys.path on import.
+    # Snapshot actual installed distributions before importing its requirement parser.
+    installed = list(metadata.distributions())
     try:
         from pip._vendor.packaging.requirements import Requirement
     except ImportError:
@@ -22,7 +25,7 @@ def probe():
         except ImportError:
             Requirement = None
     packages = []
-    for dist in metadata.distributions():
+    for dist in installed:
         name = dist.metadata.get('Name')
         if not name:
             continue
