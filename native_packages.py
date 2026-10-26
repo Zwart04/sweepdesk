@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Zwart04
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SweepDesk: see LICENSE for copying terms and warranty disclaimer.
 """Conservative native inventory/removal for RPM, libalpm, and APK systems.
 
 RPM removes exactly the selected NEVRA, retaining dependency checks and config backups.

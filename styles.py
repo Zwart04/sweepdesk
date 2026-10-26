@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Zwart04
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SweepDesk: see LICENSE for copying terms and warranty disclaimer.
 """Scoped native GTK styling; no fake macOS window controls."""
 BASE = '''
 * { font-family: "Inter", "Cantarell", "Noto Sans", sans-serif; font-size: 13px; }
@@ -61,6 +64,14 @@ treeview header button:hover { background: @hover; }
 .outcome-success .section-title, .outcome-success .outcome-symbol { color: @successfg; }
 .outcome-error { border-color: @errorborder; background: @errorbg; }
 .outcome-error .section-title, .outcome-error .outcome-symbol { color: @errorfg; }
+.confirmation-card { background: @surface; border: 1px solid @border; border-radius: 9px; padding: 16px; }
+.confirmation-title { font-weight: 600; color: @fg; }
+checkbutton.confirmation-check { color: @fg; padding: 5px 0; }
+checkbutton.confirmation-check check { min-width: 20px; min-height: 20px; border: 2px solid #0a84ff; border-radius: 5px; }
+checkbutton.confirmation-check:focus check { outline: 2px solid #409cff; outline-offset: 2px; }
+.confirmation-card button { min-height: 28px; padding: 6px 16px; }
+spinner { color: #0a84ff; }
+spinner.loading-spinner { min-width: 40px; min-height: 40px; }
 .settings-scroller undershoot { background-image: none; }
 stacksidebar row { border-radius: 6px; margin: 2px 8px; padding: 8px; }
 stacksidebar row:selected { background: @navselected; color: @fg; }

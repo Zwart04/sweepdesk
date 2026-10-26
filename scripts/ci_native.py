@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+# SPDX-FileCopyrightText: 2026 Zwart04
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SweepDesk: see LICENSE for copying terms and warranty disclaimer.
 """Run UI checks and native install/remove fixtures inside a disposable CI container only."""
 from pathlib import Path
 import os

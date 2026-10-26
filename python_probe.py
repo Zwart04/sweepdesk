@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Zwart04
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SweepDesk: see LICENSE for copying terms and warranty disclaimer.
 """Read Python distribution metadata in the selected interpreter. Never imports applications."""
 import importlib.metadata as metadata
 import importlib.util

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Zwart04
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SweepDesk: see LICENSE for copying terms and warranty disclaimer.
 """Read-only inventory and reviewed uninstall plans. No commands run through a shell."""
 from __future__ import annotations
 
@@ -643,7 +646,7 @@ def make_plan(app, dependencies=False, cleanup=False, family=False):
         if 'gnome' in plan.removed:
             plan.notes.append('The gnome metapackage will also be removed. It groups desktop applications; gnome-shell and the core desktop are not in this plan.')
         if dependencies:
-            plan.notes.append('Also remove support packages that become unnecessary when this app is removed. Other packages already unused before this removal are kept.')
+            plan.notes.append('Also clean up support packages used by this app, if no other apps need them.')
     elif app.source == 'Flatpak':
         if app.scope not in ('user', 'system') or not re.fullmatch(r'[A-Za-z0-9_.-]+', app.package):
             raise RuntimeError('Invalid Flatpak identity.')

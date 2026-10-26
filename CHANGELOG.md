@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.2
+
+- Show an animated loading state while scanning, preparing removal previews, and uninstalling; never show the empty-inventory prompt during a scan.
+- Place a prominent consent checkbox, instructions, Cancel, and a trash-icon Uninstall button together at the bottom of removal review.
+- Simplify support-package cleanup explanations in English and Indonesian without changing the conservative removal scope.
+- License original code, application artwork, and documentation under GPL-3.0-or-later. Preserve third-party terms and historical MIT permissions through 0.5.1.
+
 ## 0.5.1
 
 - Use fixed system paths for privileged update/native removal commands, independent of user PATH overrides.

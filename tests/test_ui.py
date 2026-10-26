@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Zwart04
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SweepDesk: see LICENSE for copying terms and warranty disclaimer.
 """Run with xvfb-run -a python3 -m unittest discover -s tests -p test_ui.py."""
 import os
 import unittest
@@ -105,6 +108,51 @@ class UITests(unittest.TestCase):
             self.assertFalse(window.dark)
         finally:
             window.destroy()
+
+    def test_scan_stays_loading_through_filter_changes_and_recovers(self):
+        window=self.make_window()
+        completions=[]
+        try:
+            # Defer the scan result: filter changes must not show the empty prompt.
+            with patch.object(window,'async_work',side_effect=lambda work,done:completions.append(done)):
+                window.refresh()
+            window.search.set_text('no-such-app')
+            window.refilter()
+            self.assertEqual(window.list_stack.get_visible_child_name(),'loading')
+            self.assertEqual(window.counter.get_text(),'Loading…')
+            self.assertTrue(window.loading_spinner.get_property('active'))
+            completions.pop()((window.apps,[]),None)
+            self.assertEqual(window.list_stack.get_visible_child_name(),'empty')
+            self.assertFalse(window.loading_spinner.get_property('active'))
+            with patch.object(window,'async_work',side_effect=lambda work,done:completions.append(done)):
+                window.refresh()
+            completions.pop()(None,'fixture scan failure')
+            self.assertFalse(window.scanning)
+            self.assertFalse(window.loading_spinner.get_property('active'))
+            self.assertNotEqual(window.list_stack.get_visible_child_name(),'loading')
+        finally: window.destroy()
+
+    def test_review_consent_and_action_follow_reading_order(self):
+        window=self.make_window()
+        try:
+            dialog=window.build_plan_dialog(b.Plan(window.apps[0],removed=['curl']))
+            dialog.show_all()
+            while Gtk.events_pending(): Gtk.main_iteration_do(False)
+            self.assertGreater(dialog.confirm_button.get_allocation().y,dialog.acknowledgement.get_allocation().y)
+            self.assertIsNotNone(dialog.confirm_button.get_image())
+            self.assertFalse(dialog.confirm_button.get_sensitive())
+            dialog.acknowledgement.set_active(True)
+            self.assertTrue(dialog.confirm_button.get_sensitive())
+            dialog.acknowledgement.set_active(False)
+            self.assertFalse(dialog.confirm_button.get_sensitive())
+            dialog.destroy()
+            progress=window.build_progress_dialog(window.apps[0])
+            self.assertTrue(progress.progress_spinner.get_property('active'))
+            window.complete_progress(progress,window.apps[0],None)
+            self.assertFalse(progress.progress_spinner.get_property('active'))
+            self.assertEqual(progress.outcome_stack.get_visible_child_name(),'result')
+            progress.destroy()
+        finally: window.destroy()
 
     def test_search_keeps_description_matches_and_renders_description_safely(self):
         window=self.make_window()

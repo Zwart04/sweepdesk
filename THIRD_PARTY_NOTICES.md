@@ -2,7 +2,7 @@
 
 SweepDesk is an independent project by Zwart04. Debian, Ubuntu, ArtCraft, OpenCode, Command Code, curl, npm, and other product names and logos belong to their respective owners. They identify installed software; their display does not imply sponsorship or endorsement.
 
-The MIT license for SweepDesk covers its original code, its application icon, and its support artwork. It does not relicense vendor trademarks or brand artwork. Upstream terms continue to apply to the bundled brand assets.
+The GNU GPL v3.0 or later (`GPL-3.0-or-later`) for SweepDesk covers its original code, documentation, application icon, and support artwork starting with version 0.5.2. It does not relicense vendor trademarks or brand artwork. Upstream terms continue to apply to the bundled brand assets.
 
 | File | Official source | Notes |
 |---|---|---|

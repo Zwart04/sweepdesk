@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Zwart04
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SweepDesk: see LICENSE for copying terms and warranty disclaimer.
 """English/Indonesian UI catalogue. Package names and external command logs stay intact."""
 import locale
 import os
@@ -122,7 +125,7 @@ ID = {
 'INSTALLATION FILES → TRASH': 'FILE INSTALASI → SAMPAH', 'USER DATA → TRASH': 'DATA PENGGUNA → SAMPAH', 'NOTES': 'CATATAN', 'COMMANDS': 'PERINTAH',
 'About SweepDesk {version}': 'Tentang SweepDesk {version}',
 'Native software inventory and reviewed uninstall for Debian, Ubuntu, and compatible derivatives.': 'Daftar perangkat lunak dan penghapusan dengan peninjauan untuk Debian, Ubuntu, dan turunan yang kompatibel.',
-'Made by Zwart04 · MIT licensed original code.': 'Dibuat oleh Zwart04 · Kode asli berlisensi MIT.',
+'Made by Zwart04 · GPL-3.0-or-later licensed original code.': 'Dibuat oleh Zwart04 · Kode asli berlisensi GPL-3.0-or-later.',
 'Known data cleanup is opt-in. Shared dependencies, caches, and uncertain files are preserved. See the online guide for each source’s limits.': 'Pembersihan data yang dikenali bersifat opsional. Dependensi bersama, cache, dan file yang belum pasti tetap disimpan. Lihat panduan daring untuk batasan tiap sumber.',
 'Support: {url}': 'Dukungan: {url}',
 'Ctrl+F   Search\nCtrl+R   Refresh\nCtrl+,   Settings\nCtrl+I   Selected software details\nCtrl+E   Export inventory\nCtrl+Q   Quit\nCtrl+C   Copy package ID while the list is focused\nEnter     Show details\nDelete    Review uninstall (never immediate deletion)\nShift+F10 / Menu key    Context menu': 'Ctrl+F   Cari\nCtrl+R   Pindai ulang\nCtrl+,   Pengaturan\nCtrl+I   Detail perangkat lunak pilihan\nCtrl+E   Ekspor daftar\nCtrl+Q   Keluar\nCtrl+C   Salin ID paket saat daftar dipilih\nEnter     Lihat detail\nDelete    Tinjau penghapusan (tidak langsung menghapus)\nShift+F10 / tombol Menu    Menu klik kanan',
@@ -130,7 +133,7 @@ ID = {
 
 ID.update({
 'The gnome metapackage will also be removed. It groups desktop applications; gnome-shell and the core desktop are not in this plan.': 'Metapaket gnome juga akan dihapus. Paket ini mengelompokkan aplikasi desktop; gnome-shell dan komponen inti desktop tidak termasuk rencana ini.',
-'Additional dependencies are limited to those made unused by this operation. Pre-existing unused packages are excluded.': 'Hapus juga paket pendukung yang tidak lagi dibutuhkan setelah aplikasi ini dihapus. Paket lain yang sudah tidak terpakai sebelumnya tetap disimpan.',
+'Additional dependencies are limited to those made unused by this operation. Pre-existing unused packages are excluded.': 'Bersihkan juga paket bantuan yang dipakai aplikasi ini, jika sudah tidak dibutuhkan aplikasi lain.',
 'Flatpak calculates related extensions at execution time. Shared runtimes are retained; no global runtime cleanup is performed.': 'Flatpak menghitung ekstensi terkait saat dijalankan. Runtime bersama dipertahankan; tidak ada pembersihan runtime secara global.',
 'Selected data will be moved to Trash, including any history, sign-ins, profiles and settings inside the listed folders.': 'Folder data yang tercantum akan dipindahkan ke Sampah. Isinya bisa berupa riwayat, akun yang tersimpan, profil, dan pengaturan aplikasi. Anda bisa memulihkannya dari Sampah jika diperlukan.',
 'No known user-data locations were found for this package. Complete cleanup cannot be guaranteed.': 'SweepDesk belum menemukan folder data aplikasi ini. Beberapa pengaturan atau file sisa mungkin tetap ada.',
@@ -193,6 +196,18 @@ ID.update({
 })
 
 ID.update({
-'Clean up unneeded support packages':'Bersihkan paket pendukung yang tidak diperlukan',
-'Also remove support packages that become unnecessary when this app is removed. Other packages already unused before this removal are kept.':'Hapus juga paket pendukung yang tidak lagi dibutuhkan setelah aplikasi ini dihapus. Paket lain yang sudah tidak terpakai sebelumnya tetap disimpan.',
+'Clean up unneeded support packages':'Bersihkan paket bantuan yang tidak diperlukan lagi',
+'Also remove support packages that become unnecessary when this app is removed. Other packages already unused before this removal are kept.':'Bersihkan juga paket bantuan yang dipakai aplikasi ini, jika sudah tidak dibutuhkan aplikasi lain.',
+})
+
+ID.update({
+'Loading…':'Memuat…',
+'Loading your software…':'Memuat daftar perangkat lunak…',
+'Finding installed apps and command-line tools. Please wait.':'Sedang mencari aplikasi dan alat baris perintah yang terpasang. Harap tunggu.',
+'Checking which packages and data would be removed. Please wait.':'Sedang memeriksa paket dan data yang akan dihapus. Harap tunggu.',
+'Confirm before removing':'Konfirmasi penghapusan',
+'I have checked the list and agree to remove these items':'Saya sudah memeriksa daftar dan setuju menghapus item tersebut',
+'Tick the checkbox above to enable Uninstall.':'Centang kotak di atas untuk mengaktifkan tombol Hapus.',
+'Ready to remove. Click Uninstall to continue.':'Siap dihapus. Klik tombol Hapus untuk melanjutkan.',
+'Also clean up support packages used by this app, if no other apps need them.':'Bersihkan juga paket bantuan yang dipakai aplikasi ini, jika sudah tidak dibutuhkan aplikasi lain.',
 })

@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+# SPDX-FileCopyrightText: 2026 Zwart04
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SweepDesk: see LICENSE for copying terms and warranty disclaimer.
 """Build portable, Debian, Fedora/openSUSE RPM, and Arch packages with native tools."""
 import argparse
 import hashlib
@@ -76,7 +79,7 @@ def rpm(flavor):
 Version: {VERSION}
 Release: 1.{flavor}
 Summary: Native Linux software inventory and reviewed uninstall
-License: MIT
+License: GPL-3.0-or-later
 URL: https://zwart04.github.io/sweepdesk/
 BuildArch: noarch
 Requires: {requirements}
@@ -113,7 +116,7 @@ pkgrel=1
 pkgdesc='Native Linux software inventory and reviewed uninstall'
 arch=('any')
 url='https://zwart04.github.io/sweepdesk/'
-license=('MIT')
+license=('GPL-3.0-or-later')
 depends=('python' 'python-gobject' 'gtk3' 'librsvg' 'polkit')
 options=('!strip' '!debug')
 package() {{

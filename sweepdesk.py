@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+# SPDX-FileCopyrightText: 2026 Zwart04
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SweepDesk: see LICENSE for copying terms and warranty disclaimer.
 """SweepDesk's native desktop interface."""
 import argparse
 import datetime
@@ -27,7 +30,7 @@ import ui_icons
 import i18n
 from i18n import tr
 
-VERSION = '0.5.1'
+VERSION = '0.5.2'
 APP_ID = 'io.github.Zwart04.SweepDesk'
 SUPPORT_URL = 'https://tako.id/Zwart04'
 REPOSITORY_URL = 'https://github.com/Zwart04/sweepdesk'
@@ -148,7 +151,7 @@ class Window(Gtk.Window):
         self.connect('delete-event', self.on_close)
         self.connect('key-press-event', self.key_pressed)
         self.apps, self.warnings, self.activity = [], [], []
-        self.busy = self.mutating = self.pending_refresh = False
+        self.busy = self.mutating = self.pending_refresh = self.scanning = False
         self.screenshot, self.prefs_file = screenshot, prefs_file
         self.prefs = preferences.validate(prefs) if prefs is not None else preferences.load(prefs_file)
         i18n.configure(self.prefs['language'])
@@ -189,7 +192,7 @@ class Window(Gtk.Window):
         heading = Gtk.Box(spacing=12)
         self.page_title = label('Installed Software', 'page-title')
         heading.pack_start(self.page_title, True, True, 0)
-        self.counter = label('Scanning…', 'count-badge')
+        self.counter = label('Loading…', 'count-badge')
         heading.pack_end(self.counter, False, False, 0)
         main.pack_start(heading, False, False, 0)
         self.page_subtitle = label('Applications and command-line tools', 'subtitle')
@@ -270,6 +273,14 @@ class Window(Gtk.Window):
         clear.connect('clicked', lambda _: self.clear_filters())
         empty.pack_start(clear, False, False, 5)
         self.list_stack.add_named(empty, 'empty')
+        loading = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14,
+                          halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
+        self.loading_spinner = Gtk.Spinner(width_request=40, height_request=40)
+        self.loading_spinner.get_style_context().add_class('loading-spinner')
+        loading.pack_start(self.loading_spinner, False, False, 0)
+        loading.pack_start(label('Loading your software…', 'empty-title'), False, False, 0)
+        loading.pack_start(label('Finding installed apps and command-line tools. Please wait.', 'subtitle', True), False, False, 0)
+        self.list_stack.add_named(loading, 'loading')
         frame = Gtk.Frame()
         frame.get_style_context().add_class('software-frame')
         frame.add(self.list_stack)
@@ -438,6 +449,8 @@ class Window(Gtk.Window):
         card.pack_start(text, True, True, 0)
         actions = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, valign=Gtk.Align.CENTER)
         self.remove_button = Gtk.Button(label=tr('Review Uninstall…'))
+        self.remove_button.set_image(ui_icons.image('trash'))
+        self.remove_button.set_always_show_image(True)
         self.remove_button.get_style_context().add_class('suggested-action')
         self.remove_button.connect('clicked', self.review_options)
         actions.pack_start(self.remove_button, False, False, 0)
@@ -572,9 +585,9 @@ class Window(Gtk.Window):
     def refilter(self):
         self.filtered.refilter()
         count = len(self.filtered)
-        self.counter.set_text(tr('{count} item' if count==1 else '{count} items',count=f'{count:,}'))
+        self.counter.set_text(tr('Loading…') if self.scanning else tr('{count} item' if count==1 else '{count} items',count=f'{count:,}'))
         self.page_subtitle.set_text(tr('{count} installed packages · {sources} sources',count=f'{len(self.apps):,}',sources=len({a.source for a in self.apps})) if self.apps else tr('Applications and command-line tools'))
-        self.list_stack.set_visible_child_name('list' if count else 'empty')
+        self.list_stack.set_visible_child_name('loading' if self.scanning else 'list' if count else 'empty')
         self.empty_title.set_text(tr('No matches' if self.apps else 'Your software library'))
         self.empty_description.set_text(tr('Try a different search or clear your filters.' if self.apps else 'Refresh to find installed apps and command-line tools.'))
         self.selected(self.tree.get_selection())
@@ -631,14 +644,19 @@ class Window(Gtk.Window):
     def refresh(self):
         if self.busy:
             return False
-        self.status.set_text(tr('Scanning your software…'))
-        self.counter.set_text(tr('Scanning…'))
+        self.scanning = True
+        self.loading_spinner.start()
+        self.refilter()
+        self.status.set_text(tr('Loading your software…'))
         self.banner.hide()
         self.async_work(lambda: backend.scan(self.extra_python,self.extra_manual,self.prefs['enabled_sources']), self.loaded)
         return False
 
     def loaded(self, result, error):
+        self.scanning = False
+        self.loading_spinner.stop()
         if error:
+            self.refilter()
             self.banner_text.set_text(tr('Scan failed: {error}',error=error))
             self.banner.show_all()
             self.status.set_text(tr('Scan incomplete. Refresh to try again.'))
@@ -1105,6 +1123,8 @@ class Window(Gtk.Window):
         deps = Gtk.CheckButton(label=tr('Clean up unneeded support packages'))
         deps.set_sensitive(app.source in ('APT','pip','Pacman'))
         body.pack_start(deps,False,False,0)
+        if deps.get_sensitive():
+            body.pack_start(label('Also clean up support packages used by this app, if no other apps need them.', 'subtitle', True),False,False,0)
         cleanup = Gtk.CheckButton(label=tr('Move known user data and settings to Trash'))
         cleanup.set_sensitive(bool(backend.data_paths(app)))
         body.pack_start(cleanup,False,False,0)
@@ -1125,12 +1145,36 @@ class Window(Gtk.Window):
         dialog.destroy()
         if response == Gtk.ResponseType.OK:
             self.status.set_text(tr('Preparing a removal preview…'))
-            self.async_work(lambda:backend.make_plan(app,*options),self.show_plan)
+            loading = self.build_loading_dialog('Preparing a removal preview…',
+                                                'Checking which packages and data would be removed. Please wait.')
+            loading.show_all()
+            def ready(plan, error):
+                loading.destroy()
+                self.show_plan(plan, error)
+            self.async_work(lambda:backend.make_plan(app,*options),ready)
+
+    def build_loading_dialog(self, title, description):
+        dialog = dialog_shell(self, title, 480, 200)
+        dialog.get_header_bar().set_show_close_button(False)
+        dialog.connect('delete-event', lambda *_: True)
+        body = dialog.get_content_area()
+        body.set_border_width(28)
+        body.set_spacing(16)
+        dialog.spinner = Gtk.Spinner(width_request=32, height_request=32, halign=Gtk.Align.CENTER)
+        dialog.spinner.start()
+        body.pack_start(dialog.spinner, False, False, 0)
+        body.pack_start(label(description, 'subtitle', True), False, False, 0)
+        return dialog
 
     def build_plan_dialog(self, plan):
-        dialog = dialog_shell(self,'Review Removal',720,540,[('Cancel',Gtk.ResponseType.CANCEL,None),('Uninstall',Gtk.ResponseType.OK,'destructive-action')])
-        confirm = dialog.get_widget_for_response(Gtk.ResponseType.OK)
+        dialog = dialog_shell(self,'Review Removal',760,560)
+        # Keep consent and the destructive action together, in reading order.
+        confirm = Gtk.Button(label=tr('Uninstall'))
+        confirm.set_image(ui_icons.image('trash'))
+        confirm.set_always_show_image(True)
+        confirm.get_style_context().add_class('destructive-action')
         confirm.set_sensitive(False)
+        confirm.connect('clicked', lambda _: dialog.response(Gtk.ResponseType.OK))
         body = dialog.get_content_area()
         body.set_border_width(20)
         body.set_spacing(12)
@@ -1148,9 +1192,27 @@ class Window(Gtk.Window):
         hero.pack_start(info,True,True,0)
         body.pack_start(hero,False,False,0)
         body.pack_start(text_box(self.describe_plan(plan),280)[0],True,True,0)
-        acknowledgement = Gtk.CheckButton(label=tr('I reviewed the packages and data locations above'))
-        acknowledgement.connect('toggled',lambda widget:confirm.set_sensitive(widget.get_active()))
-        body.pack_start(acknowledgement,False,False,0)
+        footer = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        footer.get_style_context().add_class('confirmation-card')
+        footer.pack_start(label('Confirm before removing', 'confirmation-title'),False,False,0)
+        acknowledgement = Gtk.CheckButton(label=tr('I have checked the list and agree to remove these items'))
+        acknowledgement.get_style_context().add_class('confirmation-check')
+        footer.pack_start(acknowledgement,False,False,0)
+        hint = label('Tick the checkbox above to enable Uninstall.', 'subtitle', True)
+        footer.pack_start(hint,False,False,0)
+        def consent_changed(widget):
+            accepted = widget.get_active()
+            confirm.set_sensitive(accepted)
+            hint.set_text(tr('Ready to remove. Click Uninstall to continue.' if accepted else
+                             'Tick the checkbox above to enable Uninstall.'))
+        acknowledgement.connect('toggled', consent_changed)
+        actions = Gtk.Box(spacing=10, halign=Gtk.Align.END)
+        cancel = Gtk.Button(label=tr('Cancel'))
+        cancel.connect('clicked',lambda _:dialog.response(Gtk.ResponseType.CANCEL))
+        actions.pack_start(cancel,False,False,0)
+        actions.pack_start(confirm,False,False,0)
+        footer.pack_start(actions,False,False,0)
+        body.pack_start(footer,False,False,0)
         dialog.confirm_button, dialog.acknowledgement = confirm, acknowledgement
         return dialog
 
@@ -1190,7 +1252,14 @@ class Window(Gtk.Window):
         banner.get_style_context().add_class('outcome-pending')
         dialog.outcome_icon = Gtk.Label(label='…')
         dialog.outcome_icon.get_style_context().add_class('outcome-symbol')
-        banner.pack_start(dialog.outcome_icon,False,False,0)
+        dialog.outcome_stack = Gtk.Stack()
+        dialog.progress_spinner = Gtk.Spinner(width_request=32, height_request=32, valign=Gtk.Align.CENTER)
+        dialog.progress_spinner.start()
+        dialog.outcome_stack.add_named(dialog.progress_spinner, 'running')
+        dialog.outcome_stack.add_named(dialog.outcome_icon, 'result')
+        dialog.outcome_stack.show_all()
+        dialog.outcome_stack.set_visible_child_name('running')
+        banner.pack_start(dialog.outcome_stack,False,False,0)
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=5)
         dialog.outcome_heading = label(tr('Uninstalling {name}…',name=app.name),'section-title')
         dialog.outcome_detail = label('Removal is running. Please wait.','subtitle',True)
@@ -1206,6 +1275,8 @@ class Window(Gtk.Window):
 
     def complete_progress(self, dialog, app, error):
         failed = error is not None
+        dialog.progress_spinner.stop()
+        dialog.outcome_stack.set_visible_child_name('result')
         context = dialog.outcome_banner.get_style_context()
         context.remove_class('outcome-pending')
         context.add_class('outcome-error' if failed else 'outcome-success')
@@ -1281,7 +1352,7 @@ class Window(Gtk.Window):
     def about(self, _):
         self.message(tr('About SweepDesk {version}',version=VERSION),'\n\n'.join(tr(line) for line in [
             'Native software inventory and reviewed uninstall for major Linux desktops.',
-            'Made by Zwart04 · MIT licensed original code.',
+            'Made by Zwart04 · GPL-3.0-or-later licensed original code.',
             'Known data cleanup is opt-in. Shared dependencies, caches, and uncertain files are preserved. See the online guide for each source’s limits.',
             REPOSITORY_URL])+ '\n'+tr('Support: {url}',url=SUPPORT_URL))
 

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Zwart04
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SweepDesk: see LICENSE for copying terms and warranty disclaimer.
 """Public, pinned GitHub release checks and checksum-verified native updates."""
 from dataclasses import dataclass
 import hashlib

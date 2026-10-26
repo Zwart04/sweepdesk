@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Zwart04
+// SPDX-License-Identifier: GPL-3.0-or-later
+// SweepDesk: see LICENSE for copying terms and warranty disclaimer.
 const indonesian = document.documentElement.lang === 'id';
 const words = indonesian ? {open:'Buka navigasi',close:'Tutup navigasi',copied:'Disalin',copy:'Salin',success:'Perintah pemasangan berhasil disalin.',fallback:'Pilih perintah di atas dan salin dengan keyboard.',version:'Versi '} : {open:'Open navigation',close:'Close navigation',copied:'Copied',copy:'Copy',success:'Installation command copied.',fallback:'Select the command above and copy it with your keyboard.',version:'Version '};
 const toggle = document.querySelector('.mobile-toggle');
@@ -36,7 +39,7 @@ document.querySelector('#copy-command').addEventListener('click', async event =>
   }
 });
 
-let latestVersion = '0.5.1';
+let latestVersion = '0.5.2';
 const downloadURLs = {};
 const systemPicker = document.querySelector('#download-system');
 const packageFile = system => ({deb:`sweepdesk_${latestVersion}_all.deb`,rpm:`sweepdesk-${latestVersion}-1.fedora.noarch.rpm`,suse:`sweepdesk-${latestVersion}-1.opensuse.noarch.rpm`,arch:`sweepdesk-${latestVersion}-1-any.pkg.tar.zst`,portable:`sweepdesk-${latestVersion}.tar.gz`})[system];

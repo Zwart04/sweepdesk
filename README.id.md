@@ -16,11 +16,11 @@ Pilih distro melalui **[halaman unduh](https://zwart04.github.io/sweepdesk/id.ht
 
 | Distro | Berkas yang dipilih | Perintah dari folder unduhan |
 |---|---|---|
-| Debian / Ubuntu / Mint | `sweepdesk_0.5.1_all.deb` | `sudo apt install ./sweepdesk_0.5.1_all.deb` |
-| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.5.1-1.fedora.noarch.rpm` | `sudo dnf install ./sweepdesk-0.5.1-1.fedora.noarch.rpm` |
-| openSUSE Leap / Tumbleweed | `sweepdesk-0.5.1-1.opensuse.noarch.rpm` | `sudo zypper install ./sweepdesk-0.5.1-1.opensuse.noarch.rpm` |
-| Arch / EndeavourOS / Manjaro | `sweepdesk-0.5.1-1-any.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.5.1-1-any.pkg.tar.zst` |
-| Alpine / Linux lain dengan GTK 3 | `sweepdesk-0.5.1.tar.gz` | Ikuti bagian kode sumber di bawah |
+| Debian / Ubuntu / Mint | `sweepdesk_0.5.2_all.deb` | `sudo apt install ./sweepdesk_0.5.2_all.deb` |
+| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.5.2-1.fedora.noarch.rpm` | `sudo dnf install ./sweepdesk-0.5.2-1.fedora.noarch.rpm` |
+| openSUSE Leap / Tumbleweed | `sweepdesk-0.5.2-1.opensuse.noarch.rpm` | `sudo zypper install ./sweepdesk-0.5.2-1.opensuse.noarch.rpm` |
+| Arch / EndeavourOS / Manjaro | `sweepdesk-0.5.2-1-any.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.5.2-1-any.pkg.tar.zst` |
+| Alpine / Linux lain dengan GTK 3 | `sweepdesk-0.5.2.tar.gz` | Ikuti bagian kode sumber di bawah |
 
 Jika desktop menyediakan pemasang grafis yang sesuai, berkas paket juga dapat dibuka dengan klik dua kali. Tidak semua distro menyediakannya secara bawaan. Pengelola paket memasang komponen yang dibutuhkan. Paket RPM/Arch dari GitHub merupakan paket lokal tanpa tanda tangan; periksa checksum dan ikuti kebijakan/tanya jawab keamanan pengelola paket. SweepDesk tidak mematikan pemeriksaan keamanan secara global.
 
@@ -167,4 +167,4 @@ Hasil paket berada di `dist/`, termasuk `.deb`, arsip sumber, dan `SHA256SUMS`. 
 - [Laporkan masalah](https://github.com/Zwart04/sweepdesk/issues)
 - **[♥ Dukung Zwart04 melalui Tako](https://tako.id/Zwart04)** — tombol yang sama ada pada judul aplikasi.
 
-Jangan unggah inventaris pribadi, token, atau kata sandi ke laporan publik. Kode asli berlisensi MIT; merek dan logo tetap milik pembuatnya.
+Jangan unggah inventaris pribadi, token, atau kata sandi ke laporan publik. Mulai versi 0.5.2, kode, ilustrasi aplikasi, dan dokumentasi asli berlisensi [GNU GPL versi 3 atau lebih baru](LICENSE) (`GPL-3.0-or-later`), hak cipta (C) 2026 Zwart04, tanpa jaminan. Jika membagikan atau menjual versi modifikasi, patuhi GPL dan sediakan kode sumber yang sesuai. Versi sampai 0.5.1 tetap memiliki izin MIT sebelumnya; lihat [riwayat lisensi](docs/LICENSE-HISTORY.md). Merek dan logo pihak ketiga tetap mengikuti ketentuan pembuatnya.

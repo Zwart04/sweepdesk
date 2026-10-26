@@ -1,4 +1,7 @@
 #!/usr/bin/python3
+# SPDX-FileCopyrightText: 2026 Zwart04
+# SPDX-License-Identifier: GPL-3.0-or-later
+# SweepDesk: see LICENSE for copying terms and warranty disclaimer.
 """Render native interface states with sample data; no uninstall handlers run."""
 from pathlib import Path
 import sys
@@ -53,6 +56,14 @@ def settings_page(name):
     dialog.show_all()
     dialog.settings_stack.set_visible_child_name(name)
     return dialog,'settings-'+name.lower().replace(' & ','-').replace(' ','-')
+def loading_id():
+    window.scanning=True;window.loading_spinner.start();window.refilter()
+    return window,'loading-id'
+def review_id():
+    window.scanning=False;window.loading_spinner.stop();window.refilter()
+    return window.build_plan_dialog(plan),'review-id'
+def running_id(): return window.build_progress_dialog(apps[0]),'running-id'
+def preparing_id(): return window.build_loading_dialog('Preparing a removal preview…','Checking which packages and data would be removed. Please wait.'),'preparing-id'
 def updates_id():
     dialog=window.build_settings_dialog();dialog.show_all();dialog.settings_stack.set_visible_child_name('Updates')
     return dialog,'updates-id'
@@ -80,7 +91,7 @@ def light():
     window.search.set_text('');window.refilter()
     window.prefs['theme']='light';window.apply_style();window.apply_density();window.populate_sidebar()
     return window,'main-light'
-steps=[main_view,lambda:settings_page('Scanning'),lambda:settings_page('Sources'),lambda:settings_page('About & Support'),lambda:settings_page('Updates'),details,options,preview,activity,context,search,empty,light,indonesian,indonesian_main,updates_id,success,failure]
+steps=[main_view,lambda:settings_page('Scanning'),lambda:settings_page('Sources'),lambda:settings_page('About & Support'),lambda:settings_page('Updates'),details,options,preview,activity,context,search,empty,light,indonesian,indonesian_main,loading_id,review_id,running_id,preparing_id,updates_id,success,failure]
 index=0
 def advance():
     global index
