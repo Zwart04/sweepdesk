@@ -70,7 +70,7 @@ def rpm(flavor):
         top=Path(directory).resolve()
         for name in ('BUILD','BUILDROOT','RPMS','SOURCES','SPECS','SRPMS'): (top/name).mkdir()
         payload=top/'payload';stage_payload(payload)
-        requirements='python3 >= 3.9, python3-gobject, gtk3, '+('librsvg2, polkit' if flavor=='fedora' else 'librsvg-2-2, polkit')
+        requirements='python3 >= 3.9, python3-gobject, gtk3, '+('librsvg2, polkit' if flavor=='fedora' else 'typelib-1_0-Gtk-3_0, librsvg-2-2, polkit')
         spec=top/'SPECS/sweepdesk.spec'
         spec.write_text(f'''Name: sweepdesk
 Version: {VERSION}

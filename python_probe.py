@@ -25,6 +25,7 @@ def probe():
         except ImportError:
             Requirement = None
     packages = []
+    seen_metadata = set()
     for dist in installed:
         name = dist.metadata.get('Name')
         if not name:
@@ -36,6 +37,11 @@ def probe():
             # Older Debian pip exposes bundled wheel metadata through zipfile.Path.
             # Keep its dependency edges, but never offer it as an uninstallable directory.
             info = None
+        if info is not None:
+            identity=(normalize(name),str(info.resolve()))
+            if identity in seen_metadata:
+                continue
+            seen_metadata.add(identity)
         requirements, complete = [], Requirement is not None
         for value in dist.requires or []:
             try:

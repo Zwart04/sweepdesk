@@ -40,7 +40,7 @@ jobs:
                 ;;
               suse|leap)
                 zypper --non-interactive refresh
-                zypper --non-interactive install python3 python3-pip python3-gobject python3-cairo gtk3 librsvg-2-2 polkit rpm-build git xorg-x11-server-Xvfb xauth desktop-file-utils shadow
+                zypper --non-interactive install python3 python3-pip python3-gobject python3-cairo gtk3 typelib-1_0-Gtk-3_0 librsvg-2-2 polkit rpm-build git xorg-x11-server-Xvfb xauth desktop-file-utils shadow
                 ;;
               arch)
                 pacman -Syu --noconfirm python python-pip python-gobject python-cairo gtk3 librsvg polkit git xorg-server-xvfb xorg-xauth desktop-file-utils base-devel

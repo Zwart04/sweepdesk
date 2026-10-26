@@ -666,7 +666,7 @@ def make_plan(app, dependencies=False, cleanup=False, family=False):
             raise RuntimeError('Invalid Python distribution name.')
         report = probe_python(app.manager)
         key = re.sub(r'[-_.]+', '-', app.package).lower()
-        records = [p for p in report['packages'] if p['key'] == key and p['metadata'] == app.location]
+        records = [p for p in report['packages'] if p['key'] == key and Path(p['metadata']).resolve() == Path(app.location).resolve()]
         if len(records) != 1 or len([p for p in report['packages'] if p['key'] == key]) != 1:
             raise RuntimeError('Python distribution is missing or has overlapping installations. Refresh and resolve it in its environment.')
         record = records[0]
