@@ -4,6 +4,7 @@
 """Safety checks run without removing packages or touching real application data."""
 import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -157,6 +158,130 @@ class SafetyTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, 'cannot verify'):
                     b.make_plan(app)
                 self.assertEqual(b.desktop_launcher_inventory([app]), [])
+
+    def test_horizon_launcher_files_and_data_are_detected_separately(self):
+        with tempfile.TemporaryDirectory() as d:
+            home=Path(d)
+            applications=home/'.local/share/applications'
+            applications.mkdir(parents=True)
+            install=home/'Unduhan/horizon-launcher-linux-x86_64'
+            install.mkdir(parents=True)
+            executable=install/'horizon-launcher'
+            executable.write_text('test fixture; inventory must not execute it')
+            executable.chmod(0o755)
+            (applications/'horizon-launcher.desktop').write_text(
+                '[Desktop Entry]\nType=Application\nName=Horizon\n'
+                'Comment=Game launcher\n'
+                f'Exec="{executable}" %U\nTryExec="{executable}"\nIcon=horizon\n')
+            (applications/'horizon.desktop').write_text(
+                '[Desktop Entry]\nType=Application\nName=Horizon\nNoDisplay=true\n'
+                'Exec=horizon-client\nIcon=horizon\n')
+            icon_root=home/'.local/share/icons/hicolor'
+            for folder,name in [('48x48/apps','horizon.png'),('scalable/apps','horizon.svg')]:
+                icon=icon_root/folder/name
+                icon.parent.mkdir(parents=True,exist_ok=True)
+                icon.write_text('icon fixture')
+            data_home=home/'.local/share'
+            (data_home/'horizon-launcher/versions').mkdir(parents=True)
+            (data_home/'horizon-launcher/accounts.json').write_text('{"accounts":[]}')
+            (data_home/'horizon/saves/My World').mkdir(parents=True)
+            (home/'.minecraft/saves/Original').mkdir(parents=True)
+            with patch.object(b,'HOME',home), patch.dict('os.environ',{'XDG_DATA_HOME':str(data_home)}):
+                apps=b.desktop_launcher_inventory([])
+                self.assertEqual([app.name for app in apps],['Horizon'])
+                app=apps[0]
+                self.assertEqual(app.manager,'horizon-launcher')
+                self.assertEqual(app.readonly_reason,'')
+                self.assertIn(str(install),app.paths)
+                self.assertIn(str(applications/'horizon-launcher.desktop'),app.paths)
+                self.assertIn(str(applications/'horizon.desktop'),app.paths)
+                self.assertIn(str(icon_root/'48x48/apps/horizon.png'),app.paths)
+                self.assertNotIn(str(home/'.minecraft'),app.paths)
+                install_only=b.make_plan(app)
+                self.assertFalse(install_only.cleanup_requested)
+                self.assertEqual(install_only.data,[])
+                self.assertEqual(install_only.commands,[])
+                complete=b.make_plan(app,cleanup=True)
+                self.assertEqual(set(complete.data),{
+                    str(data_home/'horizon-launcher'),str(data_home/'horizon')})
+                self.assertTrue(complete.cleanup_requested)
+                self.assertNotIn(str(home/'.minecraft'),complete.files+complete.data)
+
+    def test_horizon_launcher_symlink_is_not_removable(self):
+        with tempfile.TemporaryDirectory() as d:
+            home=Path(d)
+            applications=home/'.local/share/applications'
+            applications.mkdir(parents=True)
+            executable=home/'horizon-launcher'
+            executable.write_text('outside managed install tree')
+            executable.chmod(0o755)
+            alias=home/'horizon-launcher-link'
+            alias.symlink_to(executable)
+            (applications/'horizon-launcher.desktop').write_text(
+                '[Desktop Entry]\nType=Application\nName=Horizon\n'
+                f'Exec="{alias}"\nIcon=horizon\n')
+            with patch.object(b,'HOME',home):
+                apps=b.desktop_launcher_inventory([])
+                self.assertEqual(len(apps),1)
+                self.assertEqual(apps[0].manager,'desktop-launcher')
+                self.assertTrue(apps[0].readonly_reason)
+
+    def test_horizon_cleanup_blocks_while_process_is_running(self):
+        with tempfile.TemporaryDirectory() as d:
+            home=Path(d)
+            executable=home/'horizon-launcher'
+            executable.touch()
+            app=b.App('Horizon','horizon-launcher','—','Manual',manager='horizon-launcher',
+                      executable=str(executable),paths=[str(executable)])
+            with patch.object(b,'HOME',home), \
+                 patch.object(b,'horizon_install_paths',return_value=[str(executable)]):
+                plan=b.make_plan(app)
+                with patch.object(b,'horizon_process_running',return_value=True):
+                    with self.assertRaisesRegex(RuntimeError,'Close Horizon'):
+                        b.execute(plan,lambda _:None)
+
+    def test_horizon_launcher_change_invalidates_reviewed_plan(self):
+        with tempfile.TemporaryDirectory() as d:
+            home=Path(d)
+            executable=home/'horizon-launcher'
+            executable.write_text('approved launcher')
+            executable.chmod(0o755)
+            path=str(executable)
+            app=b.App('Horizon','horizon-launcher','—','Manual',manager='horizon-launcher',
+                      executable=path,paths=[path])
+            with patch.object(b,'HOME',home), patch.object(b,'horizon_install_paths',return_value=[path]):
+                plan=b.make_plan(app)
+                executable.write_text('changed launcher')
+                with self.assertRaisesRegex(RuntimeError,'changed after the preview'):
+                    b.execute(plan,lambda _:None)
+
+    def test_horizon_account_signout_hides_account_identifiers(self):
+        with tempfile.TemporaryDirectory() as d:
+            home=Path(d)
+            data_home=home/'.local/share'
+            launcher_data=data_home/'horizon-launcher'
+            launcher_data.mkdir(parents=True)
+            (launcher_data/'accounts.json').write_text('{"accounts":[]}')
+            app=b.App('Horizon','horizon-launcher','—','Manual',manager='horizon-launcher',
+                      executable=str(home/'horizon-launcher'))
+            account_id='123e4567-e89b-12d3-a456-426614174000'
+            responses=[
+                subprocess.CompletedProcess([],0,
+                    json.dumps({'accounts':[{'name':'private-player','uuid':account_id}]}),''),
+                subprocess.CompletedProcess([],0,'Signed out private-player.','')]
+            calls=[]
+            def fake_run(args,**kwargs):
+                calls.append(args)
+                return responses.pop(0)
+            log=[]
+            with patch.object(b,'HOME',home), \
+                 patch.dict('os.environ',{'XDG_DATA_HOME':str(data_home)}), \
+                 patch.object(b.subprocess,'run',side_effect=fake_run):
+                b.sign_out_horizon_accounts(app,log.append)
+            self.assertEqual(calls,[
+                [app.executable,'--json','account','list'],
+                [app.executable,'account','sign-out',account_id]])
+            self.assertNotIn('private-player',''.join(log))
 
 
 if __name__ == '__main__':

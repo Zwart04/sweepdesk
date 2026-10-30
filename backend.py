@@ -13,6 +13,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import uuid
 import native_packages
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -24,6 +25,11 @@ ENV = dict(os.environ, LC_ALL="C", LANG="C", NO_COLOR="1", HOMEBREW_NO_AUTO_UPDA
 HOME = Path.home()
 ROOT = Path(__file__).resolve().parent
 SOURCES = ('APT', 'RPM', 'Pacman', 'APK', 'npm', 'pip', 'Cargo', 'Flatpak', 'Snap', 'pipx', 'uv', 'Bun', 'Homebrew', 'ArtCraft', 'Manual')
+
+
+def xdg_data_home():
+    path = Path(os.environ.get('XDG_DATA_HOME', HOME/'.local/share')).expanduser()
+    return path if path.is_absolute() else HOME/'.local/share'
 
 
 def run(args, timeout=90, check=True):
@@ -69,6 +75,7 @@ class Plan:
     notes: list[str] = field(default_factory=list)
     raw: str = ""
     fingerprint: str = ""
+    cleanup_requested: bool = False
 
 
 def distro_info(path=Path('/etc/os-release')):
@@ -95,7 +102,7 @@ def desktop_index():
     """Read installed launchers; never run their Exec fields."""
     result = {}
     roots = [Path('/usr/share/applications'), Path('/usr/local/share/applications'),
-             HOME / '.local/share/applications']
+             xdg_data_home()/'applications']
     for root in roots:
         if not root.is_dir():
             continue
@@ -518,6 +525,90 @@ DESKTOP_LAUNCHER_READONLY = (
 )
 
 
+def horizon_launcher_executable(section):
+    """Return only a directly installed, user-owned Horizon launcher executable."""
+    if section.get('Name', '').strip().casefold() != 'horizon':
+        return None
+    try:
+        tokens = shlex.split(section.get('Exec', ''))
+    except (TypeError, ValueError):
+        return None
+    if not tokens:
+        return None
+    candidate = Path(tokens[0]).expanduser()
+    home = HOME.absolute()
+    if (not candidate.is_absolute() or candidate.name != 'horizon-launcher' or
+            not candidate.absolute().is_relative_to(home) or candidate.is_symlink() or
+            not safe_user_path(candidate)):
+        return None
+    parent = candidate.parent
+    while parent != home:
+        if parent.is_symlink():
+            return None
+        parent = parent.parent
+    try:
+        return candidate.absolute() if candidate.is_file() and os.access(candidate, os.X_OK) else None
+    except OSError:
+        return None
+
+
+def horizon_install_paths(executable):
+    """List known Horizon launcher files and user icons, never user worlds."""
+    exe = Path(executable).absolute()
+    if horizon_launcher_executable({'Name': 'Horizon', 'Exec': shlex.quote(str(exe))}) != exe:
+        return []
+    paths = []
+    install_dir = exe.parent
+    # The upstream Linux archive extracts to this dedicated directory. Move the
+    # directory only when it contains exactly the verified launcher binary.
+    if (re.fullmatch(r'horizon-launcher(?:[-_].+)', install_dir.name, re.IGNORECASE) and
+            install_dir.is_dir() and not install_dir.is_symlink() and safe_user_path(install_dir)):
+        try:
+            entries = list(install_dir.iterdir())
+            if len(entries) == 1 and entries[0] == exe and not entries[0].is_symlink():
+                paths.append(str(install_dir))
+        except OSError:
+            pass
+    if not paths and safe_user_path(exe):
+        paths.append(str(exe))
+
+    desktop_root = xdg_data_home()/'applications'
+    # Horizon installs a visible launcher and may also install a hidden game entry.
+    for shortcut in sorted(desktop_root.glob('*.desktop')):
+        if shortcut.is_symlink() or not safe_user_path(shortcut):
+            continue
+        try:
+            cfg = configparser.ConfigParser(interpolation=None, strict=False)
+            cfg.read(shortcut, encoding='utf-8')
+            section = cfg['Desktop Entry']
+            identity_matches = (
+                shortcut.stem.casefold() == 'horizon-launcher' and
+                horizon_launcher_executable(section) == exe)
+            if shortcut.stem.casefold() == 'horizon':
+                try:
+                    sidecar = shlex.split(section.get('Exec', ''))
+                except (TypeError, ValueError):
+                    sidecar = []
+                identity_matches = (
+                    section.get('NoDisplay', '').strip().lower() == 'true' and
+                    bool(sidecar) and Path(sidecar[0]).name.casefold() == 'horizon-client')
+            if (section.get('Type') == 'Application' and
+                    section.get('Name', '').strip().casefold() == 'horizon' and
+                    section.get('Icon', '').strip().casefold() == 'horizon' and
+                    identity_matches):
+                paths.append(str(shortcut.absolute()))
+        except (OSError, configparser.Error, KeyError, TypeError, ValueError):
+            continue
+
+    data = xdg_data_home()
+    icon_root = data/'icons/hicolor'
+    for icon_dir in icon_root.glob('*/apps'):
+        for icon in icon_dir.glob('horizon.*'):
+            if icon.is_file() and not icon.is_symlink() and safe_user_path(icon):
+                paths.append(str(icon.absolute()))
+    return list(dict.fromkeys(paths))
+
+
 def desktop_command_path(command):
     """Resolve a desktop Exec/TryExec command without running it."""
     try:
@@ -556,7 +647,7 @@ def desktop_launcher_inventory(registered):
                 seen_paths.add(str(Path(app.executable).resolve()))
             except (OSError, RuntimeError, ValueError):
                 pass
-    root = HOME/'.local/share/applications'
+    root = xdg_data_home()/'applications'
     for shortcut in sorted(root.glob('*.desktop')):
         if shortcut.is_symlink():
             continue
@@ -577,6 +668,21 @@ def desktop_launcher_inventory(registered):
                 continue
             identity = str(executable)
             if identity in seen_paths:
+                continue
+            horizon_exe = horizon_launcher_executable(section)
+            if (horizon_exe and str(horizon_exe) == identity and
+                    shortcut.stem.casefold() in {'horizon', 'horizon-launcher'} and
+                    section.get('Icon', '').strip().casefold() == 'horizon'):
+                icon = section.get('Icon', 'horizon')
+                paths = horizon_install_paths(horizon_exe)
+                if not paths:
+                    continue
+                seen_paths.add(identity)
+                apps.append(App(
+                    'Horizon', 'horizon-launcher', '—', 'Manual',
+                    'Horizon launcher · launcher files and user icons tracked', icon,
+                    executable=identity, manager='horizon-launcher', scope='User',
+                    paths=paths, location=str(horizon_exe.parent)))
                 continue
             if shortcut.stem.casefold() in known_ids or executable.name.casefold() in known_ids:
                 continue
@@ -649,7 +755,7 @@ def profile_key(app):
 def data_paths(app):
     config = Path(os.environ.get('XDG_CONFIG_HOME', HOME/'.config'))
     cache = Path(os.environ.get('XDG_CACHE_HOME', HOME/'.cache'))
-    data = Path(os.environ.get('XDG_DATA_HOME', HOME/'.local/share'))
+    data = xdg_data_home()
     state = Path(os.environ.get('XDG_STATE_HOME', HOME/'.local/state'))
     profiles = {
         'libreoffice': [config/'libreoffice', cache/'libreoffice'],
@@ -658,11 +764,14 @@ def data_paths(app):
         'codex': [HOME/'.codex'],
         'curl': [HOME/'.curlrc'],
     }
-    if app.source == 'Flatpak' and re.fullmatch(r'[A-Za-z0-9_.-]+', app.package):
+    if app.source == 'Manual' and app.manager == 'horizon-launcher':
+        paths = [data/'horizon-launcher', data/'horizon']
+    elif app.source == 'Flatpak' and re.fullmatch(r'[A-Za-z0-9_.-]+', app.package):
         paths = [HOME/'.var/app'/app.package]
     else:
         paths = profiles.get(profile_key(app), [])
-    return [str(p) for p in paths if (p.exists() or p.is_symlink()) and safe_user_path(p)]
+    return [str(p) for p in paths if (p.exists() or p.is_symlink()) and safe_user_path(p)
+            and not (app.source == 'Manual' and app.manager == 'horizon-launcher' and p.is_symlink())]
 
 
 def safe_user_path(path, home=None):
@@ -686,6 +795,93 @@ def safe_user_path(path, home=None):
         return p.lstat().st_uid == os.getuid()
     except OSError:
         return False
+
+
+def horizon_process_running(app):
+    """Do not move Horizon executables or data while a Horizon process is live."""
+    executable = Path(app.executable).absolute()
+    roots = [Path(path).absolute() for path in app.paths if Path(path).is_dir()]
+    roots.extend(Path(path).absolute() for path in data_paths(app) if Path(path).is_dir())
+    for proc in Path('/proc').iterdir():
+        if not proc.name.isdigit():
+            continue
+        try:
+            running = Path(os.readlink(proc/'exe').removesuffix(' (deleted)')).absolute()
+            if (running == executable or running.name in {'horizon-launcher', 'horizon-client',
+                                                          'horizon-server', 'horizon-prepare'} or
+                    any(running.is_relative_to(root) for root in roots)):
+                return True
+        except (OSError, RuntimeError, ValueError):
+            continue
+    return False
+
+
+def horizon_install_fingerprint(paths, executable):
+    """Bind a Horizon preview to its exact files and launcher binary contents."""
+    records = []
+    for path in sorted(set(paths) | {str(Path(executable).absolute())}):
+        item = Path(path)
+        if not safe_user_path(item):
+            raise RuntimeError('A Horizon installation path changed. Refresh the inventory.')
+        info = item.lstat()
+        records.append((str(item), info.st_dev, info.st_ino, info.st_mode,
+                        info.st_uid, info.st_size, info.st_mtime_ns))
+    binary = Path(executable)
+    flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0)
+    try:
+        fd = os.open(binary, flags)
+        with os.fdopen(fd, 'rb') as stream:
+            opened = os.fstat(stream.fileno())
+            current = binary.lstat()
+            signature = lambda info: (info.st_dev, info.st_ino, info.st_mode,
+                                      info.st_uid, info.st_size, info.st_mtime_ns)
+            planned = next(record[1:] for record in records if record[0] == str(binary))
+            if signature(opened) != signature(current) or signature(opened) != planned:
+                raise RuntimeError('The Horizon launcher changed while preparing the removal plan.')
+            digest = hashlib.sha256()
+            for chunk in iter(lambda: stream.read(1024*1024), b''):
+                digest.update(chunk)
+            if signature(opened) != signature(os.fstat(stream.fileno())):
+                raise RuntimeError('The Horizon launcher changed while preparing the removal plan.')
+    except OSError:
+        raise RuntimeError('The Horizon launcher could not be checked safely. Refresh the inventory.')
+    return hashlib.sha256(json.dumps([records, digest.hexdigest()]).encode()).hexdigest()
+
+
+def sign_out_horizon_accounts(app, emit):
+    """Use Horizon's CLI to clear keychain tokens without logging account details."""
+    launcher_data = xdg_data_home()/'horizon-launcher'
+    accounts_file = launcher_data/'accounts.json'
+    if (not accounts_file.exists() or accounts_file.is_symlink() or
+            not safe_user_path(accounts_file) or not safe_user_path(launcher_data)):
+        return
+    try:
+        listed = subprocess.run([app.executable, '--json', 'account', 'list'],
+                                text=True, capture_output=True, env=ENV,
+                                timeout=30, stdin=subprocess.DEVNULL)
+        payload = json.loads(listed.stdout) if listed.returncode == 0 else None
+        accounts = payload.get('accounts') if isinstance(payload, dict) else None
+        if not isinstance(accounts, list):
+            raise ValueError
+        account_ids = [str(uuid.UUID(item['uuid'])) for item in accounts
+                       if isinstance(item, dict) and isinstance(item.get('uuid'), str)]
+        if len(account_ids) != len(accounts):
+            raise ValueError
+    except (OSError, subprocess.SubprocessError, ValueError, TypeError, KeyError, json.JSONDecodeError):
+        raise RuntimeError('Horizon could not safely clear its saved sign-in tokens. No Horizon files were moved; sign out in Horizon and try again.')
+    if not account_ids:
+        return
+    emit('Signing out Horizon accounts from the system keychain…\n')
+    for account_id in account_ids:
+        try:
+            signed_out = subprocess.run([app.executable, 'account', 'sign-out', account_id],
+                                        text=True, capture_output=True, env=ENV,
+                                        timeout=30, stdin=subprocess.DEVNULL)
+        except (OSError, subprocess.SubprocessError):
+            raise RuntimeError('Horizon could not finish signing out its saved accounts. No Horizon files were moved; check Horizon account state before retrying.')
+        if signed_out.returncode:
+            raise RuntimeError('Horizon could not finish signing out its saved accounts. No Horizon files were moved; check Horizon account state before retrying.')
+    emit('Horizon accounts signed out.\n')
 
 
 def removed_packages(output):
@@ -816,6 +1012,19 @@ def make_plan(app, dependencies=False, cleanup=False, family=False):
             plan.notes.append('Snap manages package data and automatic snapshots according to its policy. --purge is not used; existing snapshots are retained.')
         plan.commands = [command]
         plan.removed = [app.package]
+    elif app.source == 'Manual' and app.manager == 'horizon-launcher':
+        expected = horizon_install_paths(app.executable)
+        if (not expected or set(expected) != set(app.paths) or
+                not all(safe_user_path(path) for path in expected)):
+            raise RuntimeError('Horizon launcher files changed or are outside a safe user folder. Refresh the inventory and try again.')
+        plan.files = expected
+        plan.fingerprint = horizon_install_fingerprint(plan.files, app.executable)
+        plan.removed = ['Horizon launcher']
+        plan.notes.append('Only the detected Horizon launcher, its menu shortcuts and user icons will be moved to Trash. Original Minecraft folders are kept.')
+        install_dir = Path(app.executable).parent
+        if (install_dir.name.casefold().startswith('horizon-launcher-') and
+                str(install_dir) not in plan.files and install_dir.is_dir()):
+            plan.notes.append('The launcher folder contains other files, so only the launcher executable will be moved. Review that folder after removal.')
     elif app.source in ('Manual', 'ArtCraft'):
         if not app.paths or not all(safe_user_path(p) for p in app.paths):
             raise RuntimeError('This manual executable is in a system location or a location that cannot be cleaned automatically. It is inventory-only; use the official uninstaller.')
@@ -830,7 +1039,10 @@ def make_plan(app, dependencies=False, cleanup=False, family=False):
         if profile_key(app) == 'libreoffice' and not family:
             raise RuntimeError('LibreOffice settings are shared. Select the entire suite before cleaning its user data.')
         plan.data = data_paths(app)
-        if plan.data:
+        plan.cleanup_requested = True
+        if app.manager == 'horizon-launcher' and plan.data:
+            plan.notes.append('The listed Horizon folders include downloaded game files, versions, settings, worlds, servers and logs. Horizon accounts are signed out from the system keychain first; original Minecraft folders and custom data homes outside this list are kept.')
+        elif plan.data:
             plan.notes.append('Selected data will be moved to Trash, including any history, sign-ins, profiles and settings inside the listed folders.')
         else:
             plan.notes.append('No known user-data locations were found for this package. Complete cleanup cannot be guaranteed.')
@@ -839,6 +1051,17 @@ def make_plan(app, dependencies=False, cleanup=False, family=False):
 
 def execute(plan, emit):
     """Called only after the GUI shows the complete plan and the user confirms."""
+    if plan.app.source == 'Manual' and plan.app.manager == 'horizon-launcher':
+        expected_files = horizon_install_paths(plan.app.executable)
+        expected_data = data_paths(plan.app) if plan.cleanup_requested else []
+        if (plan.commands or set(plan.files) != set(expected_files) or
+                plan.data != expected_data or
+                not all(safe_user_path(path) for path in plan.files + plan.data)):
+            raise RuntimeError('Horizon files changed after the preview. Create a new removal plan.')
+        if horizon_install_fingerprint(plan.files, plan.app.executable) != plan.fingerprint:
+            raise RuntimeError('Horizon files changed after the preview. Create a new removal plan.')
+        if horizon_process_running(plan.app):
+            raise RuntimeError('Close Horizon, the Horizon game and Horizon servers before removing their files.')
     if plan.app.source in native_packages.SOURCES:
         native_packages.revalidate(plan)
     if plan.app.source == 'APT':
@@ -879,6 +1102,12 @@ def execute(plan, emit):
             emit(line)
         if process.wait():
             raise RuntimeError('Uninstall failed or authentication was canceled. User data has not been moved. Check the log; package changes may be partially applied.')
+    if plan.cleanup_requested and plan.app.manager == 'horizon-launcher':
+        sign_out_horizon_accounts(plan.app, emit)
+        if horizon_install_fingerprint(plan.files, plan.app.executable) != plan.fingerprint:
+            raise RuntimeError('The Horizon launcher changed during account sign-out. Horizon files were not moved; create a new preview.')
+        if horizon_process_running(plan.app):
+            raise RuntimeError('A Horizon process started during removal. Horizon files were not moved; close it and create a new preview.')
     # Never fall back to recursive deletion when the desktop Trash is unavailable.
     import gi
     from gi.repository import Gio

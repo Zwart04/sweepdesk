@@ -16,11 +16,11 @@ Pilih distro melalui **[halaman unduh](https://zwart04.github.io/sweepdesk/id.ht
 
 | Distro | Berkas yang dipilih | Perintah dari folder unduhan |
 |---|---|---|
-| Debian / Ubuntu / Mint | `sweepdesk_0.5.5_all.deb` | `sudo apt install ./sweepdesk_0.5.5_all.deb` |
-| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.5.5-1.fedora.noarch.rpm` | `sudo dnf install ./sweepdesk-0.5.5-1.fedora.noarch.rpm` |
-| openSUSE Leap / Tumbleweed | `sweepdesk-0.5.5-1.opensuse.noarch.rpm` | `sudo zypper install ./sweepdesk-0.5.5-1.opensuse.noarch.rpm` |
-| Arch / EndeavourOS / Manjaro | `sweepdesk-0.5.5-1-any.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.5.5-1-any.pkg.tar.zst` |
-| Alpine / Linux lain dengan GTK 3 | `sweepdesk-0.5.5.tar.gz` | Ikuti bagian kode sumber di bawah |
+| Debian / Ubuntu / Mint | `sweepdesk_0.5.6_all.deb` | `sudo apt install ./sweepdesk_0.5.6_all.deb` |
+| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.5.6-1.fedora.noarch.rpm` | `sudo dnf install ./sweepdesk-0.5.6-1.fedora.noarch.rpm` |
+| openSUSE Leap / Tumbleweed | `sweepdesk-0.5.6-1.opensuse.noarch.rpm` | `sudo zypper install ./sweepdesk-0.5.6-1.opensuse.noarch.rpm` |
+| Arch / EndeavourOS / Manjaro | `sweepdesk-0.5.6-1-any.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.5.6-1-any.pkg.tar.zst` |
+| Alpine / Linux lain dengan GTK 3 | `sweepdesk-0.5.6.tar.gz` | Ikuti bagian kode sumber di bawah |
 
 Jika desktop menyediakan pemasang grafis yang sesuai, berkas paket juga dapat dibuka dengan klik dua kali. Tidak semua distro menyediakannya secara bawaan. Pengelola paket memasang komponen yang dibutuhkan. Paket RPM/Arch dari GitHub merupakan paket lokal tanpa tanda tangan; periksa checksum dan ikuti kebijakan/tanya jawab keamanan pengelola paket. SweepDesk tidak mematikan pemeriksaan keamanan secara global.
 
@@ -139,12 +139,12 @@ SweepDesk memakai uninstaller asli tiap manager dan hanya membersihkan data yang
 | **Bun global** | Memakai penghapusan global dan hubungan dependensi Bun. Cache bersama dipertahankan. |
 | **Homebrew** | Memakai brew uninstall dengan perlindungan formula yang masih dibutuhkan. Tidak mengabaikan dependensi atau membersihkan cache global. |
 | **ArtCraft AppImage** | File executable, ikon, dan pintasan yang tercatat dipindahkan ke Sampah; catatan diperbarui setelah berhasil. Tutup ArtCraft Launcher dahulu. |
-| **Manual / skrip / curl** | Program/lokasi instalasi pengguna yang dikenali dapat dipindahkan ke Sampah. Aplikasi yang hanya dikenali dari pintasan desktop pengguna bersifat hanya-baca jika cara instalasi dan penghapusannya tidak dapat diverifikasi. File sistem tanpa registrasi hanya ditampilkan. Perubahan PATH, layanan, dan file sembarang dari skrip mungkin tidak terdeteksi. |
+| **Manual / skrip / curl** | Program/lokasi instalasi pengguna yang dikenali dapat dipindahkan ke Sampah. Pintasan desktop saja tetap hanya-baca, kecuali launcher Linux Horizon yang tervalidasi beserta pintasan standar dan ikonnya. File sistem tanpa registrasi hanya ditampilkan. Perubahan PATH, layanan, dan file sembarang dari skrip mungkin tidak terdeteksi. |
 
 
 **Tidak ada jaminan semua sisa setiap installer bisa diketahui.** Skrip `curl | bash` dapat menulis ke sembarang tempat tanpa daftar kepemilikan. SweepDesk mendeteksi executable/lokasi yang dikenal; file sistem tanpa registrasi hanya dapat diinventarisasi. File proyek dan seluruh virtualenv di disk tidak dipindai otomatis.
 
-Profil data yang saat ini dikenali meliputi LibreOffice, OpenCode, Claude Code, Codex, curl, dan data aplikasi Flatpak. Pembersihan data bersifat pilihan dan dapat mencakup riwayat, login, profil, serta pengaturan. Data dipindahkan ke **Sampah**, sehingga ruang baru kembali setelah Sampah dikosongkan. Bila Sampah tidak tersedia, penghapusan tidak dialihkan ke hapus permanen.
+Profil data yang saat ini dikenali meliputi LibreOffice, OpenCode, Claude Code, Codex, curl, Horizon, dan data aplikasi Flatpak. Folder Horizon dapat berisi file game unduhan, versi, dunia, data server, log, dan pengaturan. Jika pembersihan dipilih, akun Horizon dikeluarkan dari penyimpanan kredensial sistem lalu folder yang tercantum dipindahkan ke **Sampah**. Instalasi Minecraft asli dan folder Horizon khusus di luar lokasi terdeteksi tetap utuh. Ruang baru kembali setelah Sampah dikosongkan. Bila Sampah tidak tersedia, penghapusan tidak dialihkan ke hapus permanen.
 
 Ikon aplikasi dibaca dari launcher lokal. Logo resmi OpenCode, Command Code, curl, dan npm disertakan agar CLI tertentu juga mudah dikenali tanpa internet. CLI lain memakai ikon terminal bila ikon resminya belum tersedia.
 

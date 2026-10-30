@@ -30,7 +30,7 @@ import ui_icons
 import i18n
 from i18n import tr
 
-VERSION = '0.5.5'
+VERSION = '0.5.6'
 APP_ID = 'io.github.Zwart04.SweepDesk'
 SUPPORT_URL = 'https://tako.id/Zwart04'
 REPOSITORY_URL = 'https://github.com/Zwart04/sweepdesk'
@@ -608,7 +608,7 @@ class Window(Gtk.Window):
 
     @staticmethod
     def app_is_cli(app):
-        if app.source=='Manual' and app.manager=='desktop-launcher':
+        if app.source=='Manual' and app.manager in ('desktop-launcher','horizon-launcher'):
             return False
         if app.source=='Manual' and app.executable.lower().endswith('.appimage'):
             return False
@@ -1306,7 +1306,7 @@ class Window(Gtk.Window):
             self.refresh()
 
     def build_options_dialog(self, app):
-        dialog = dialog_shell(self,'Uninstall Options',580,350,[('Cancel',Gtk.ResponseType.CANCEL,None),('Preview Removal',Gtk.ResponseType.OK,'suggested-action')])
+        dialog = dialog_shell(self,'Uninstall Options',580,420 if app.manager=='horizon-launcher' else 350,[('Cancel',Gtk.ResponseType.CANCEL,None),('Preview Removal',Gtk.ResponseType.OK,'suggested-action')])
         body = dialog.get_content_area()
         body.set_border_width(22)
         body.set_spacing(16)
@@ -1328,6 +1328,8 @@ class Window(Gtk.Window):
         cleanup = Gtk.CheckButton(label=tr('Move known user data and settings to Trash'))
         cleanup.set_sensitive(bool(backend.data_paths(app)))
         body.pack_start(cleanup,False,False,0)
+        if app.manager=='horizon-launcher':
+            body.pack_start(label(tr('If selected, Horizon worlds, server data and downloaded game files in the listed folders go to Trash. Saved Horizon accounts are signed out first. Original Minecraft folders stay untouched.'),'subtitle',True),False,False,0)
         body.pack_start(label('Nothing changes yet. The next screen lists every package and known data location for your review.','subtitle',True),False,False,0)
         if app.source=='Snap':
             body.pack_start(label('Snap manages its own data and normal snapshots.','caption',True),False,False,0)

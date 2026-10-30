@@ -20,7 +20,8 @@ class UITests(unittest.TestCase):
     def test_icons_source_filter_and_support_link(self):
         apps=[b.decorate(b.App('curl','curl','1','APT'),{}),
               b.decorate(b.App('OpenCode','opencode','1','Manual'),{}),
-              b.App('Protected','protected','1','pip',readonly_reason='Externally managed')]
+              b.App('Protected','protected','1','pip',readonly_reason='Externally managed'),
+              b.App('Horizon','horizon-launcher','—','Manual',manager='horizon-launcher')]
         with patch.object(ui.Window,'refresh'):
             window=ui.Window(prefs=dict(preferences.defaults(),language='en',auto_check_updates=False))
         try:
@@ -40,6 +41,11 @@ class UITests(unittest.TestCase):
             window.refilter()
             window.tree.get_selection().select_path(Gtk.TreePath.new_from_indices([0]))
             self.assertFalse(window.remove_button.get_sensitive())
+            window.search.set_text('horizon')
+            window.refilter()
+            window.tree.get_selection().select_path(Gtk.TreePath.new_from_indices([0]))
+            self.assertTrue(window.remove_button.get_sensitive())
+            self.assertFalse(ui.Window.app_is_cli(window.active_app()))
         finally:
             window.destroy()
 

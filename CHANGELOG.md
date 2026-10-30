@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.6
+
+- Detect the verified Horizon Linux launcher, its standard visible/hidden desktop entries, and matching user hicolor icons; keep other launcher-only apps read-only.
+- Add a reviewed Horizon removal plan with install files sent to Trash and user worlds/settings/downloads as an explicit opt-in.
+- Sign Horizon accounts out of the system keychain only when data cleanup is selected; block while Horizon processes are running and revalidate the plan before moving files.
+- Preserve original Minecraft folders and custom data paths outside the two detected Horizon data folders.
+
 ## 0.5.5
 
 - Include installed apps discovered through valid user desktop launchers in the Manual inventory. Launcher commands are parsed as metadata and never executed; launcher-only apps stay read-only because their installation and removal scope cannot be verified.
