@@ -30,7 +30,7 @@ import ui_icons
 import i18n
 from i18n import tr
 
-VERSION = '0.5.4'
+VERSION = '0.5.5'
 APP_ID = 'io.github.Zwart04.SweepDesk'
 SUPPORT_URL = 'https://tako.id/Zwart04'
 REPOSITORY_URL = 'https://github.com/Zwart04/sweepdesk'
@@ -608,6 +608,8 @@ class Window(Gtk.Window):
 
     @staticmethod
     def app_is_cli(app):
+        if app.source=='Manual' and app.manager=='desktop-launcher':
+            return False
         if app.source=='Manual' and app.executable.lower().endswith('.appimage'):
             return False
         if app.package.split(':')[0] in ('git','curl','wget','jq','ripgrep','fd-find','htop','btop','tmux','zsh','bash','fish','nodejs','cargo','rustc','vim','neovim'):

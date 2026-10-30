@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.5
+
+- Include installed apps discovered through valid user desktop launchers in the Manual inventory. Launcher commands are parsed as metadata and never executed; launcher-only apps stay read-only because their installation and removal scope cannot be verified.
+- Keep desktop launcher apps in the Applications category and document the inventory-only safety behavior.
+
 ## 0.5.4
 
 - Keep manual update checks, Update Now, verified installation progress, failure retry, and Restart in one window. No detour to the main-window update button.

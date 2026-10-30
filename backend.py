@@ -512,6 +512,86 @@ def appimage_inventory(registered):
     return apps
 
 
+DESKTOP_LAUNCHER_READONLY = (
+    'Found from a user desktop shortcut. SweepDesk cannot verify its installation '
+    'or remove it safely; use the original installer.'
+)
+
+
+def desktop_command_path(command):
+    """Resolve a desktop Exec/TryExec command without running it."""
+    try:
+        tokens = shlex.split(command)
+    except (TypeError, ValueError):
+        return None
+    if not tokens:
+        return None
+    command = tokens[0]
+    candidate = Path(command).expanduser()
+    if not candidate.is_absolute():
+        # Desktop Exec is not a shell command. Do not interpret relative paths,
+        # shell operators, or wrapper arguments as executable paths.
+        if '/' in command or '\\' in command:
+            return None
+        found = shutil.which(command)
+        if not found:
+            return None
+        candidate = Path(found)
+    try:
+        candidate = candidate.resolve(strict=True)
+        return candidate if candidate.is_file() and os.access(candidate, os.X_OK) else None
+    except (OSError, RuntimeError, ValueError):
+        return None
+
+
+def desktop_launcher_inventory(registered):
+    """List user launchers with an unmanaged executable as read-only Manual apps."""
+    apps, seen_paths = [], set()
+    home = HOME.resolve()
+    known_ids = {value.casefold() for app in registered
+                 for value in (app.name, app.package, app.package.split(':')[0]) if value}
+    for app in registered:
+        if app.executable:
+            try:
+                seen_paths.add(str(Path(app.executable).resolve()))
+            except (OSError, RuntimeError, ValueError):
+                pass
+    root = HOME/'.local/share/applications'
+    for shortcut in sorted(root.glob('*.desktop')):
+        if shortcut.is_symlink():
+            continue
+        try:
+            if not shortcut.resolve().is_relative_to(home) or shortcut.stat().st_uid != os.getuid():
+                continue
+            cfg = configparser.ConfigParser(interpolation=None, strict=False)
+            cfg.read(shortcut, encoding='utf-8')
+            section = cfg['Desktop Entry']
+            if (section.get('Type') != 'Application' or
+                    section.get('Hidden', '').strip().lower() == 'true' or
+                    section.get('NoDisplay', '').strip().lower() == 'true'):
+                continue
+            if section.get('TryExec', '').strip() and not desktop_command_path(section.get('TryExec')):
+                continue
+            executable = desktop_command_path(section.get('Exec', ''))
+            if not executable or not executable.is_relative_to(home):
+                continue
+            identity = str(executable)
+            if identity in seen_paths:
+                continue
+            if shortcut.stem.casefold() in known_ids or executable.name.casefold() in known_ids:
+                continue
+            seen_paths.add(identity)
+            apps.append(App(
+                section.get('Name', shortcut.stem), shortcut.stem, '—', 'Manual',
+                section.get('Comment', 'Application found through a user desktop shortcut'),
+                section.get('Icon', 'application-x-executable'), executable=identity,
+                manager='desktop-launcher', scope='User', paths=[identity],
+                location=str(executable.parent), readonly_reason=DESKTOP_LAUNCHER_READONLY))
+        except (OSError, configparser.Error, KeyError, TypeError, ValueError):
+            continue
+    return apps
+
+
 def scan(extra_python=(), extra_manual=(), enabled_sources=None):
     apps, warnings = [], []
     enabled = set(SOURCES if enabled_sources is None else enabled_sources)
@@ -549,6 +629,8 @@ def scan(extra_python=(), extra_manual=(), enabled_sources=None):
             apps.extend(manual_inventory(apps, extra_manual))
         if 'ArtCraft' in enabled:
             apps.extend(appimage_inventory(apps))
+        if 'Manual' in enabled:
+            apps.extend(desktop_launcher_inventory(apps))
     except Exception as e:
         warnings.append('Manual: '+str(e))
     for app in apps:

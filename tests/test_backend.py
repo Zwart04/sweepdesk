@@ -125,6 +125,39 @@ class SafetyTests(unittest.TestCase):
                 apps=b.appimage_inventory([])
             self.assertEqual([a.package for a in apps],['gridcraft'])
 
+    def test_user_desktop_launcher_is_listed_readonly(self):
+        with tempfile.TemporaryDirectory() as d:
+            home=Path(d)
+            applications=home/'.local/share/applications'
+            applications.mkdir(parents=True)
+            executable=home/'Unduhan'/'Horizon Client'
+            executable.parent.mkdir()
+            executable.write_text('not executed by inventory')
+            executable.chmod(0o755)
+            (applications/'horizon-launcher.desktop').write_text(
+                '[Desktop Entry]\nType=Application\nName=Horizon\n'
+                'Comment=Minecraft launcher\n'
+                f'Exec="{executable}" %U\nTryExec="{executable}"\nIcon=horizon\n')
+            (applications/'hidden.desktop').write_text(
+                '[Desktop Entry]\nType=Application\nName=Hidden\nNoDisplay=true\n'
+                f'Exec="{executable}"\n')
+            (applications/'missing.desktop').write_text(
+                '[Desktop Entry]\nType=Application\nName=Missing\n'
+                f'Exec="{home}/missing-app"\n')
+            (applications/'system.desktop').write_text(
+                '[Desktop Entry]\nType=Application\nName=System\nExec=/usr/bin/true\n')
+            with patch.object(b, 'HOME', home):
+                apps=b.desktop_launcher_inventory([])
+                self.assertEqual([app.name for app in apps], ['Horizon'])
+                app=apps[0]
+                self.assertEqual(app.source, 'Manual')
+                self.assertEqual(app.manager, 'desktop-launcher')
+                self.assertEqual(app.executable, str(executable))
+                self.assertTrue(app.readonly_reason)
+                with self.assertRaisesRegex(RuntimeError, 'cannot verify'):
+                    b.make_plan(app)
+                self.assertEqual(b.desktop_launcher_inventory([app]), [])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -43,16 +43,16 @@ Open [the download selector](https://zwart04.github.io/sweepdesk/#install) or [R
 
 ```bash
 # Debian / Ubuntu / Linux Mint
-sudo apt install ./sweepdesk_0.5.4_all.deb
+sudo apt install ./sweepdesk_0.5.5_all.deb
 
 # Fedora / Rocky / AlmaLinux / RHEL-compatible
-sudo dnf install ./sweepdesk-0.5.4-1.fedora.noarch.rpm
+sudo dnf install ./sweepdesk-0.5.5-1.fedora.noarch.rpm
 
 # openSUSE Leap / Tumbleweed
-sudo zypper install ./sweepdesk-0.5.4-1.opensuse.noarch.rpm
+sudo zypper install ./sweepdesk-0.5.5-1.opensuse.noarch.rpm
 
 # Arch / EndeavourOS / Manjaro
-sudo pacman -U ./sweepdesk-0.5.4-1-any.pkg.tar.zst
+sudo pacman -U ./sweepdesk-0.5.5-1-any.pkg.tar.zst
 ```
 
 A graphical package installer can open these files when the desktop provides one; a double-click installer is not guaranteed on every distribution. Native managers install the declared runtime dependencies. GitHub RPM/Arch artifacts are unsigned local packages; inspect native signature prompts/policies and verify the published SHA-256 checksums. SweepDesk does not globally disable signature or dependency checks.
@@ -90,7 +90,7 @@ sudo apk add python3 py3-gobject3 gtk+3.0 librsvg polkit
 
 Some Debian-family systems provide `pkexec` separately instead of `policykit-1`. Use the desktop's polkit agent for password dialogs. For a source installation, Python must be the interpreter that can import `gi` and the GTK 3 namespace.
 
-Download and extract `sweepdesk-0.5.4.tar.gz` from Releases, or clone the repository:
+Download and extract `sweepdesk-0.5.5.tar.gz` from Releases, or clone the repository:
 
 ```bash
 git clone https://github.com/Zwart04/sweepdesk.git
@@ -202,7 +202,7 @@ An inventory export can contain usernames, installation paths, and package names
 | **Bun global** | The configured global installation | Uses Bun's global removal and dependency graph; shared cache retained |
 | **Homebrew** | Installed Linux formulae | Uses Homebrew uninstall; dependent formulae remain protected; unrelated orphan/cache cleanup is disabled |
 | **ArtCraft AppImages** | AppImages recorded by ArtCraft Launcher | Moves recorded executable/icon/shortcut files to Trash and updates the launcher record after success; close ArtCraft Launcher first |
-| **Manual / script / curl installs** | Standard user bin locations, `/usr/local/bin`, user AppImage launchers, known OpenCode/Claude native locations, and custom folders you add | Known user-owned executable paths or install trees can go to Trash; system-wide unregistered files are inventory-only |
+| **Manual / script / curl installs** | Standard user bin locations, `/usr/local/bin`, user AppImage and desktop launchers, known OpenCode/Claude native locations, and custom folders you add | Known user-owned executable paths or install trees can go to Trash; desktop-launcher-only apps and system-wide unregistered files are inventory-only |
 
 ### “Clean” does not mean guessing every file
 

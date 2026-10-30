@@ -53,6 +53,7 @@ ID = {
 '{count} installed packages · {sources} sources': '{count} paket terpasang · {sources} sumber',
 'Installed software': 'Perangkat lunak terpasang', 'Version unknown': 'Versi tidak diketahui',
 'Protected system package': 'Paket sistem terlindungi',
+'Found from a user desktop shortcut. SweepDesk cannot verify its installation or remove it safely; use the original installer.': 'Ditemukan melalui pintasan desktop pengguna. SweepDesk tidak dapat memverifikasi instalasinya atau menghapusnya dengan aman; gunakan installer aslinya.',
 'Review the complete removal plan': 'Tinjau seluruh rencana penghapusan',
 'Scanning your software…': 'Memindai perangkat lunak…', 'Scan failed: {error}': 'Pemindaian gagal: {error}',
 'Scan incomplete. Refresh to try again.': 'Pemindaian belum selesai. Pindai ulang untuk mencoba lagi.',
