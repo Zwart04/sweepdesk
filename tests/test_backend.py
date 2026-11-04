@@ -255,6 +255,82 @@ class SafetyTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError,'changed after the preview'):
                     b.execute(plan,lambda _:None)
 
+    def test_steam_games_are_detected_and_tools_are_skipped(self):
+        with tempfile.TemporaryDirectory() as d:
+            home=Path(d)
+            library=home/'.local/share/Steam/steamapps'
+            common=library/'common'
+            game=common/'Demo Game'
+            game.mkdir(parents=True)
+            (game/'game.bin').write_text('fixture')
+            manifest=library/'appmanifest_12345.acf'
+            manifest.write_text('"AppState"\n{\n\t"appid"\t\t"12345"\n\t"name"\t\t"Demo Game"\n'
+                                '\t"StateFlags"\t\t"4"\n\t"installdir"\t\t"Demo Game"\n'
+                                '\t"SizeOnDisk"\t\t"2048"\n\t"buildid"\t\t"99"\n'
+                                '\t"InstalledDepots"\n\t{\n\t}\n}\n')
+            for appid,name,installdir in [('228980','Steamworks Common Redistributables','Steamworks Shared'),
+                                          ('4183110','Steam Linux Runtime 4.0','SteamLinuxRuntime_4'),
+                                          ('1493710','Proton Experimental','Proton - Experimental')]:
+                (common/installdir).mkdir()
+                (library/f'appmanifest_{appid}.acf').write_text(
+                    '"AppState"\n{\n\t"appid"\t\t"'+appid+'"\n\t"name"\t\t"'+name+'"\n'
+                    '\t"StateFlags"\t\t"4"\n\t"installdir"\t\t"'+installdir+'"\n}\n')
+            second=home/'Games/SteamLibrary/steamapps'
+            second_game=second/'common/Second Game'
+            second_game.mkdir(parents=True)
+            (second/'appmanifest_777.acf').write_text(
+                '"AppState"\n{\n\t"appid"\t\t"777"\n\t"name"\t\t"Second Game"\n'
+                '\t"StateFlags"\t\t"4"\n\t"installdir"\t\t"Second Game"\n}\n')
+            (library/'libraryfolders.vdf').write_text(
+                '"libraryfolders"\n{\n\t"0"\n\t{\n\t\t"path"\t\t"'+str(home/'Games/SteamLibrary')+'"\n\t}\n}\n')
+            compat=library/'compatdata/12345'
+            shader=library/'shadercache/12345'
+            compat.mkdir(parents=True)
+            shader.mkdir(parents=True)
+            leftover=common/'Old Game'
+            leftover.mkdir()
+            with patch.object(b,'HOME',home):
+                apps=b.steam_inventory()
+                self.assertEqual(sorted(a.package for a in apps),['12345','777','Old Game'])
+                app=next(a for a in apps if a.package=='12345')
+                self.assertEqual(app.source,'Steam')
+                self.assertEqual(app.manager,'steam-game')
+                self.assertEqual(app.size,2048)
+                self.assertEqual(set(app.paths),{str(game),str(manifest)})
+                plan=b.make_plan(app)
+                self.assertEqual(set(plan.files),{str(game),str(manifest)})
+                self.assertEqual(plan.commands,[])
+                self.assertEqual(plan.data,[])
+                complete=b.make_plan(app,cleanup=True)
+                self.assertEqual(set(complete.data),{str(compat),str(shader)})
+                self.assertNotIn(str(home/'.local/share/Steam/steamapps/common/Steamworks Shared'),
+                                 complete.files+complete.data)
+                old=next(a for a in apps if a.package=='Old Game')
+                self.assertEqual(old.manager,'steam-leftover')
+                old_plan=b.make_plan(old)
+                self.assertEqual(old_plan.files,[str(leftover)])
+                self.assertEqual(old_plan.commands,[])
+                with patch.object(b,'steam_process_running',return_value=True):
+                    with self.assertRaisesRegex(RuntimeError,'Close Steam'):
+                        b.execute(complete,lambda _:None)
+
+    def test_steam_manifest_change_invalidates_reviewed_plan(self):
+        with tempfile.TemporaryDirectory() as d:
+            home=Path(d)
+            library=home/'.local/share/Steam/steamapps'
+            game=library/'common/Demo Game'
+            game.mkdir(parents=True)
+            manifest=library/'appmanifest_12345.acf'
+            manifest.write_text('"AppState"\n{\n\t"appid"\t\t"12345"\n\t"name"\t\t"Demo Game"\n'
+                                '\t"StateFlags"\t\t"4"\n\t"installdir"\t\t"Demo Game"\n}\n')
+            with patch.object(b,'HOME',home):
+                app=b.steam_inventory()[0]
+                plan=b.make_plan(app)
+                manifest.write_text(manifest.read_text()+'# updated\n')
+                with self.assertRaisesRegex(RuntimeError,'changed after the preview'):
+                    b.execute(plan,lambda _:None)
+
+
     def test_horizon_account_signout_hides_account_identifiers(self):
         with tempfile.TemporaryDirectory() as d:
             home=Path(d)

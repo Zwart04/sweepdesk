@@ -24,7 +24,7 @@ ENV = dict(os.environ, LC_ALL="C", LANG="C", NO_COLOR="1", HOMEBREW_NO_AUTO_UPDA
            PIP_DISABLE_PIP_VERSION_CHECK="1", npm_config_update_notifier="false")
 HOME = Path.home()
 ROOT = Path(__file__).resolve().parent
-SOURCES = ('APT', 'RPM', 'Pacman', 'APK', 'npm', 'pip', 'Cargo', 'Flatpak', 'Snap', 'pipx', 'uv', 'Bun', 'Homebrew', 'ArtCraft', 'Manual')
+SOURCES = ('APT', 'RPM', 'Pacman', 'APK', 'npm', 'pip', 'Cargo', 'Flatpak', 'Snap', 'pipx', 'uv', 'Bun', 'Homebrew', 'Steam', 'ArtCraft', 'Manual')
 
 
 def xdg_data_home():
@@ -130,7 +130,7 @@ def desktop_index():
 
 def decorate(app, desktops):
     aliases = {'@anthropic-ai/claude-code': 'claude', '@openai/codex': 'codex',
-               'opencode-ai': 'opencode', 'curl': 'curl'}
+               'opencode-ai': 'opencode', 'curl': 'curl', 'steam-launcher': 'steam'}
     key = app.package.split(':')[0]
     for candidate in [app.location if app.source=='RPM' else '',key, aliases.get(key, ''), Path(app.executable).name.lower()]:
         if candidate and candidate.lower() in desktops:
@@ -300,7 +300,8 @@ def apt_inventory():
         base = pkg.split(':')[0]
         support = (essential == 'yes' or priority in ('required', 'important') or
                    pkg in automatic or base in automatic or
-                   base.startswith(('lib', 'fonts-', 'gir1.', 'linux-', 'python3-')))
+                   base.startswith(('lib', 'fonts-', 'gir1.', 'linux-', 'python3-',
+                                    'steam-libs')))
         apps.append(App(base, pkg, version, 'APT', description,
                         'package-x-generic' if support else 'utilities-terminal',
                         int(size or 0)*1024, support,
@@ -609,6 +610,207 @@ def horizon_install_paths(executable):
     return list(dict.fromkeys(paths))
 
 
+def steam_manifest_fields(manifest):
+    """Read top-level AppState fields without trusting or executing the file."""
+    try:
+        text = Path(manifest).read_text(encoding='utf-8', errors='replace')
+    except OSError:
+        return None
+    head = text.split('"InstalledDepots"', 1)[0]
+    fields = dict(re.findall(r'^\s*"([A-Za-z]+)"\s+"([^"]*)"', head, re.M))
+    appid = fields.get('appid', '')
+    if (not re.fullmatch(r'\d{1,10}', appid) or
+            Path(manifest).name != 'appmanifest_'+appid+'.acf'):
+        return None
+    return fields
+
+def steam_protected_dir(name):
+    return name.casefold().startswith(('proton', 'steamlinuxruntime', 'steamworks'))
+
+def steam_is_game(fields):
+    """Steam tools, Proton and runtimes are not games and stay out of the list."""
+    name = fields.get('name', '').strip()
+    installdir = fields.get('installdir', '').strip()
+    if not name or not installdir or '/' in installdir or installdir in ('.', '..'):
+        return False
+    if not installdir.isprintable() or installdir.startswith('.'):
+        return False
+    lowered = (name+' '+installdir).casefold()
+    try:
+        installed = int(fields.get('StateFlags', '0') or 0) & 4
+    except ValueError:
+        installed = 0
+    return bool(installed) and not (
+        steam_protected_dir(installdir) or
+        name.casefold().startswith(('proton', 'steam linux runtime', 'steamworks common')) or
+        'steamworks common redistributables' in lowered)
+
+def steam_libraries():
+    """Native, symlinked and Flatpak Steam libraries, including libraryfolders.vdf paths."""
+    libraries = []
+    for root in (HOME/'.local/share/Steam', HOME/'.steam/steam',
+                 HOME/'.var/app/com.valvesoftware.Steam/.local/share/Steam'):
+        folder = root/'steamapps'
+        if folder.is_dir() and not folder.is_symlink():
+            libraries.append(folder)
+    for folder in list(libraries):
+        vdf = folder/'libraryfolders.vdf'
+        if not vdf.is_file() or vdf.is_symlink():
+            continue
+        try:
+            text = vdf.read_text(encoding='utf-8', errors='replace')
+        except OSError:
+            continue
+        for raw in re.findall(r'"path"\s+"([^"]+)"', text):
+            extra = Path(raw.replace('\\\\', '/'))/'steamapps'
+            if extra.is_dir() and not extra.is_symlink():
+                libraries.append(extra)
+    return list(dict.fromkeys(str(folder.resolve(strict=False)) for folder in libraries))
+
+def steam_inventory(libraries=None):
+    apps = []
+    libraries = steam_libraries() if libraries is None else list(libraries)
+    icons = {Path(folder).parent/'appcache/librarycache' for folder in libraries}
+    for folder in libraries:
+        library = Path(folder)
+        referenced = set()
+        parsed_all = True
+        for manifest in sorted(library.glob('appmanifest_*.acf')):
+            if manifest.is_symlink():
+                parsed_all = False
+                continue
+            fields = steam_manifest_fields(manifest)
+            if fields:
+                referenced.add(fields.get('installdir', '').casefold())
+            else:
+                parsed_all = False
+            if not fields or not steam_is_game(fields):
+                continue
+            appid = fields['appid']
+            name = fields.get('name', appid)
+            install = library/'common'/fields['installdir']
+            if not install.is_dir() or install.is_symlink():
+                continue
+            paths = [str(install), str(manifest)]
+            icon = next((str(base/f'{appid}_icon.jpg') for base in icons
+                         if (base/f'{appid}_icon.jpg').is_file()), 'applications-games')
+            try:
+                size = int(fields.get('SizeOnDisk', '0') or 0)
+            except ValueError:
+                size = 0
+            apps.append(App(
+                name, appid, fields.get('buildid', ''), 'Steam',
+                'Steam game · '+str(library), icon, size, manager='steam-game',
+                scope='User', paths=paths, location=str(library),
+                readonly_reason='' if all(removable_user_path(p) for p in paths) else
+                'This Steam game is in a location SweepDesk cannot move to Trash safely.'))
+        common = library/'common'
+        if not parsed_all or not common.is_dir() or common.is_symlink():
+            continue
+        for install in sorted(common.iterdir()):
+            if (not install.is_dir() or install.is_symlink() or
+                    not install.name.isprintable() or install.name.startswith('.') or
+                    install.name.casefold() in referenced or steam_protected_dir(install.name)):
+                continue
+            paths = [str(install)]
+            apps.append(App(
+                install.name, install.name, '', 'Steam',
+                'Steam library leftover · no app manifest · '+str(library),
+                'applications-games', 0, manager='steam-leftover', scope='User',
+                paths=paths, location=str(library),
+                readonly_reason='' if removable_user_path(install) else
+                'This Steam library folder is in a location SweepDesk cannot move to Trash safely.'))
+    return apps
+
+def removable_user_path(path):
+    """Like safe_user_path, but also allows user-owned Steam libraries outside home."""
+    try:
+        item = Path(path).absolute()
+    except (OSError, RuntimeError, ValueError):
+        return False
+    if safe_user_path(item):
+        return True
+    broad = {Path('/'), Path('/home'), Path('/mnt'), Path('/media'), Path('/tmp'),
+             Path('/opt'), Path('/srv'), Path('/var'), Path('/usr'), HOME, *HOME.parents}
+    if (not item.is_absolute() or '..' in Path(path).parts or item in broad or
+            len(item.parts) < 3 or item.is_symlink()):
+        return False
+    parent = item.parent
+    while parent != Path('/'):
+        if parent.is_symlink():
+            return False
+        parent = parent.parent
+    try:
+        return item.lstat().st_uid == os.getuid()
+    except OSError:
+        return False
+
+def steam_game_paths(app):
+    """Recompute the exact game folder and manifest inside the planned library."""
+    library = Path(app.location)
+    manifest = library/f'appmanifest_{app.package}.acf'
+    if not manifest.is_file() or manifest.is_symlink():
+        return []
+    fields = steam_manifest_fields(manifest)
+    if (not fields or not steam_is_game(fields) or fields['appid'] != app.package or
+            str(library) not in steam_libraries()):
+        return []
+    install = library/'common'/fields['installdir']
+    if not install.is_dir() or install.is_symlink():
+        return []
+    return [str(install), str(manifest)]
+
+def steam_leftover_paths(app):
+    """Recheck a manifest-less library folder before it may be moved to Trash."""
+    name = app.package
+    if (not name or '/' in name or name in ('.', '..') or name.startswith('.') or
+            not name.isprintable() or steam_protected_dir(name)):
+        return []
+    for folder in steam_libraries():
+        library = Path(folder)
+        if str(library) != app.location:
+            continue
+        target = library/'common'/name
+        if not target.is_dir() or target.is_symlink():
+            return []
+        for manifest in library.glob('appmanifest_*.acf'):
+            fields = steam_manifest_fields(manifest)
+            if fields and fields.get('installdir', '').casefold() == name.casefold():
+                return []
+        return [str(target)]
+    return []
+
+def steam_game_fingerprint(paths):
+    records = []
+    for path in sorted(set(paths)):
+        item = Path(path)
+        if not removable_user_path(item) or item.is_symlink():
+            raise RuntimeError('A Steam game path changed. Refresh the inventory.')
+        info = item.lstat()
+        records.append((str(item), info.st_dev, info.st_ino, info.st_mode,
+                        info.st_uid, info.st_size, info.st_mtime_ns))
+    return hashlib.sha256(json.dumps(records).encode()).hexdigest()
+
+def steam_process_running(app):
+    """Do not move game files while Steam or the game itself is running."""
+    roots = [Path(path).absolute() for path in app.paths if Path(path).is_dir()]
+    if app.location:
+        roots.append(Path(app.location)/'compatdata'/app.package)
+        roots.append(Path(app.location).parent)
+    for proc in Path('/proc').iterdir():
+        if not proc.name.isdigit():
+            continue
+        try:
+            running = Path(os.readlink(proc/'exe').removesuffix(' (deleted)')).absolute()
+            if running.name in ('steam', 'steamwebhelper'):
+                return True
+            if any(running.is_relative_to(root.resolve(strict=False)) for root in roots):
+                return True
+        except (OSError, RuntimeError, ValueError):
+            continue
+    return False
+
+
 def desktop_command_path(command):
     """Resolve a desktop Exec/TryExec command without running it."""
     try:
@@ -716,6 +918,7 @@ def scan(extra_python=(), extra_manual=(), enabled_sources=None):
         ('Homebrew', lambda: executable('brew', [Path('/home/linuxbrew/.linuxbrew/bin/brew'), HOME/'.linuxbrew/bin/brew']), brew_inventory),
         ('Cargo', lambda: executable('cargo', [HOME/'.cargo/bin/cargo']), cargo_inventory),
         ('Snap', lambda: shutil.which('snap'), snap_inventory),
+        ('Steam', steam_libraries, steam_inventory),
     ]
     def read_source(available, loader):
         return loader() if available() else []
@@ -766,12 +969,17 @@ def data_paths(app):
     }
     if app.source == 'Manual' and app.manager == 'horizon-launcher':
         paths = [data/'horizon-launcher', data/'horizon']
+    elif app.source == 'Steam' and app.manager == 'steam-game':
+        library = Path(app.location)
+        paths = [library/'compatdata'/app.package, library/'shadercache'/app.package]
     elif app.source == 'Flatpak' and re.fullmatch(r'[A-Za-z0-9_.-]+', app.package):
         paths = [HOME/'.var/app'/app.package]
     else:
         paths = profiles.get(profile_key(app), [])
-    return [str(p) for p in paths if (p.exists() or p.is_symlink()) and safe_user_path(p)
-            and not (app.source == 'Manual' and app.manager == 'horizon-launcher' and p.is_symlink())]
+    allowed = removable_user_path if app.source == 'Steam' else safe_user_path
+    blocked_link = app.manager in ('horizon-launcher', 'steam-game')
+    return [str(p) for p in paths if (p.exists() or p.is_symlink()) and allowed(p)
+            and not (blocked_link and p.is_symlink())]
 
 
 def safe_user_path(path, home=None):
@@ -1025,6 +1233,24 @@ def make_plan(app, dependencies=False, cleanup=False, family=False):
         if (install_dir.name.casefold().startswith('horizon-launcher-') and
                 str(install_dir) not in plan.files and install_dir.is_dir()):
             plan.notes.append('The launcher folder contains other files, so only the launcher executable will be moved. Review that folder after removal.')
+    elif app.source == 'Steam' and app.manager == 'steam-game':
+        expected = steam_game_paths(app)
+        if (not expected or set(expected) != set(app.paths) or
+                not all(removable_user_path(path) for path in expected)):
+            raise RuntimeError('Steam game files changed or are outside a safe user folder. Refresh the inventory and try again.')
+        plan.files = expected
+        plan.fingerprint = steam_game_fingerprint(plan.files)
+        plan.removed = [app.name]
+        plan.notes.append('The Steam game folder and its app manifest will be moved to Trash. Steam will no longer list this game.')
+    elif app.source == 'Steam' and app.manager == 'steam-leftover':
+        expected = steam_leftover_paths(app)
+        if (not expected or set(expected) != set(app.paths) or
+                not all(removable_user_path(path) for path in expected)):
+            raise RuntimeError('Steam library folder changed or is outside a safe user folder. Refresh the inventory and try again.')
+        plan.files = expected
+        plan.fingerprint = steam_game_fingerprint(plan.files)
+        plan.removed = [app.name]
+        plan.notes.append('This folder sits in the Steam library but has no app manifest. It will be moved to Trash; Steam does not list it as an installed game.')
     elif app.source in ('Manual', 'ArtCraft'):
         if not app.paths or not all(safe_user_path(p) for p in app.paths):
             raise RuntimeError('This manual executable is in a system location or a location that cannot be cleaned automatically. It is inventory-only; use the official uninstaller.')
@@ -1042,6 +1268,8 @@ def make_plan(app, dependencies=False, cleanup=False, family=False):
         plan.cleanup_requested = True
         if app.manager == 'horizon-launcher' and plan.data:
             plan.notes.append('The listed Horizon folders include downloaded game files, versions, settings, worlds, servers and logs. Horizon accounts are signed out from the system keychain first; original Minecraft folders and custom data homes outside this list are kept.')
+        elif app.manager == 'steam-game' and plan.data:
+            plan.notes.append('The listed Proton prefix and shader cache belong to this game. Steam Cloud saves, shared runtimes and other games are not changed.')
         elif plan.data:
             plan.notes.append('Selected data will be moved to Trash, including any history, sign-ins, profiles and settings inside the listed folders.')
         else:
@@ -1062,6 +1290,18 @@ def execute(plan, emit):
             raise RuntimeError('Horizon files changed after the preview. Create a new removal plan.')
         if horizon_process_running(plan.app):
             raise RuntimeError('Close Horizon, the Horizon game and Horizon servers before removing their files.')
+    if plan.app.source == 'Steam' and plan.app.manager in ('steam-game', 'steam-leftover'):
+        expected_files = (steam_game_paths(plan.app) if plan.app.manager == 'steam-game'
+                          else steam_leftover_paths(plan.app))
+        expected_data = data_paths(plan.app) if plan.cleanup_requested else []
+        if (plan.commands or set(plan.files) != set(expected_files) or
+                plan.data != expected_data or
+                not all(removable_user_path(path) for path in plan.files + plan.data)):
+            raise RuntimeError('Steam files changed after the preview. Create a new removal plan.')
+        if steam_game_fingerprint(plan.files) != plan.fingerprint:
+            raise RuntimeError('Steam files changed after the preview. Create a new removal plan.')
+        if steam_process_running(plan.app):
+            raise RuntimeError('Close Steam and this game before removing their files.')
     if plan.app.source in native_packages.SOURCES:
         native_packages.revalidate(plan)
     if plan.app.source == 'APT':
@@ -1112,7 +1352,8 @@ def execute(plan, emit):
     import gi
     from gi.repository import Gio
     for path in dict.fromkeys(plan.files + plan.data):
-        if not safe_user_path(path):
+        allowed = removable_user_path if plan.app.source == 'Steam' else safe_user_path
+        if not allowed(path):
             raise RuntimeError('Path changed or is not safe to clean: '+path)
         Gio.File.new_for_path(path).trash(None)
         emit('Moved to Trash: '+path+'\n')

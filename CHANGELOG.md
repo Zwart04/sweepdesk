@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.7
+
+- Detect installed Steam games from `appmanifest_*.acf` files in native, Flatpak, and extra `libraryfolders.vdf` libraries, including games on other user-owned drives.
+- Show Steam games with their real names, build IDs, and sizes; skip Proton, Steam Linux Runtime, and Steamworks redistributable manifests.
+- Add a reviewed Steam removal plan that moves the game folder and manifest to Trash, with the game's Proton prefix and shader cache as an explicit opt-in.
+- Detect manifest-less folders left inside `steamapps/common` so stale game data can be cleaned without touching shared runtimes.
+- Block Steam removal while Steam or the selected game is running, and revalidate paths and fingerprints before moving anything.
+- Decorate the `steam-launcher` APT package as **Steam** with its own icon and group `steam-libs*` dependencies as support packages.
+
 ## 0.5.6
 
 - Detect the verified Horizon Linux launcher, its standard visible/hidden desktop entries, and matching user hicolor icons; keep other launcher-only apps read-only.

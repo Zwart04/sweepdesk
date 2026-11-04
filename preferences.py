@@ -11,7 +11,7 @@ from backend import SOURCES
 
 
 def defaults():
-    return {'auto_check_updates': True, 'last_update_check': 0, 'language': 'system', 'theme': 'dark', 'density': 'compact', 'show_system': False,
+    return {'schema': 2, 'auto_check_updates': True, 'last_update_check': 0, 'language': 'system', 'theme': 'dark', 'density': 'compact', 'show_system': False,
             'show_details': True, 'show_empty_sources': False, 'scan_on_start': True,
             'remember_folders': True, 'python_folders': [], 'manual_folders': [],
             'enabled_sources': list(SOURCES)}
@@ -43,7 +43,10 @@ def validate(data):
         if isinstance(data.get(key), list):
             result[key] = list(dict.fromkeys(p for p in data[key] if isinstance(p, str) and Path(p).is_absolute()))
     if isinstance(data.get('enabled_sources'), list):
-        result['enabled_sources'] = [s for s in SOURCES if s in data['enabled_sources']]
+        enabled = [s for s in SOURCES if s in data['enabled_sources']]
+        if data.get('schema', 1) < 2 and 'Steam' not in enabled:
+            enabled.append('Steam')
+        result['enabled_sources'] = enabled
     return result
 
 

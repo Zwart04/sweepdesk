@@ -27,7 +27,11 @@ class PreferenceTests(unittest.TestCase):
         self.assertEqual(data['theme'],'dark')
         self.assertFalse(data['show_system'])
         self.assertEqual(data['manual_folders'],['/valid'])
-        self.assertEqual(data['enabled_sources'],['APT','npm'])
+        self.assertEqual(data['enabled_sources'],['APT','npm','Steam'])
+        migrated=preferences.validate({'schema':1,'enabled_sources':['APT','npm']})
+        self.assertIn('Steam',migrated['enabled_sources'])
+        current=preferences.validate({'schema':2,'enabled_sources':['APT','npm']})
+        self.assertEqual(current['enabled_sources'],['APT','npm'])
 
     def test_symlink_settings_file_is_not_overwritten(self):
         with tempfile.TemporaryDirectory() as d:

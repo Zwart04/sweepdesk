@@ -95,6 +95,22 @@ class SourceTests(unittest.TestCase):
             apps=b.apt_inventory()
         self.assertEqual(apps[0].version,'8.0')
 
+    def test_steam_launcher_identity_and_support_packages(self):
+        def query(args, **kwargs):
+            if 'dpkg-query' in args[0]:
+                return ('steam-launcher\t1:1.0\t100\tno\toptional\tii \tLauncher for Steam\n'
+                        'steam-libs\t1:1.0\t10\tno\toptional\tii \tMetapackage\n'
+                        'steam-libs-amd64\t1:1.0\t10\tno\toptional\tii \tSteam libraries\n')
+            return ''
+        with patch.object(b,'run',side_effect=query):
+            apps=b.apt_inventory()
+        by={app.package:app for app in apps}
+        self.assertFalse(by['steam-launcher'].support)
+        self.assertTrue(by['steam-libs'].support)
+        self.assertTrue(by['steam-libs-amd64'].support)
+        decorated=b.decorate(by['steam-launcher'],{'steam':('Steam','steam','/usr/share/applications/steam.desktop')})
+        self.assertEqual((decorated.name,decorated.icon),('Steam','steam'))
+
     def test_bun_detects_custom_global_directory(self):
         with tempfile.TemporaryDirectory() as d:
             folder=Path(d)/'Custom global'

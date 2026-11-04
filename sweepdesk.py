@@ -30,7 +30,7 @@ import ui_icons
 import i18n
 from i18n import tr
 
-VERSION = '0.5.6'
+VERSION = '0.5.7'
 APP_ID = 'io.github.Zwart04.SweepDesk'
 SUPPORT_URL = 'https://tako.id/Zwart04'
 REPOSITORY_URL = 'https://github.com/Zwart04/sweepdesk'
@@ -608,7 +608,7 @@ class Window(Gtk.Window):
 
     @staticmethod
     def app_is_cli(app):
-        if app.source=='Manual' and app.manager in ('desktop-launcher','horizon-launcher'):
+        if app.source in ('Steam',) or (app.source=='Manual' and app.manager in ('desktop-launcher','horizon-launcher')):
             return False
         if app.source=='Manual' and app.executable.lower().endswith('.appimage'):
             return False
@@ -656,7 +656,7 @@ class Window(Gtk.Window):
             count = sum(a.source == source for a in self.apps)
             if not count and not self.prefs['show_empty_sources']:
                 continue
-            row = item(source, 'folder-symbolic' if source in ('Manual','ArtCraft') else 'package-x-generic-symbolic', 'source', source, count)
+            row = item(source, 'applications-games-symbolic' if source=='Steam' else ('folder-symbolic' if source in ('Manual','ArtCraft') else 'package-x-generic-symbolic'), 'source', source, count)
             if self.source_id == source:
                 chosen = row
         self.nav.show_all()
@@ -954,6 +954,8 @@ class Window(Gtk.Window):
             candidates.append(base/'app'/app.package)
         elif app.source=='Snap':
             candidates.append(Path('/snap')/app.package/'current')
+        elif app.source=='Steam' and app.paths:
+            candidates.append(Path(app.paths[0]))
         for candidate in candidates:
             if candidate.is_dir():
                 return candidate
@@ -1306,7 +1308,7 @@ class Window(Gtk.Window):
             self.refresh()
 
     def build_options_dialog(self, app):
-        dialog = dialog_shell(self,'Uninstall Options',580,420 if app.manager=='horizon-launcher' else 350,[('Cancel',Gtk.ResponseType.CANCEL,None),('Preview Removal',Gtk.ResponseType.OK,'suggested-action')])
+        dialog = dialog_shell(self,'Uninstall Options',580,420 if app.manager in ('horizon-launcher','steam-game') else 350,[('Cancel',Gtk.ResponseType.CANCEL,None),('Preview Removal',Gtk.ResponseType.OK,'suggested-action')])
         body = dialog.get_content_area()
         body.set_border_width(22)
         body.set_spacing(16)
@@ -1330,6 +1332,8 @@ class Window(Gtk.Window):
         body.pack_start(cleanup,False,False,0)
         if app.manager=='horizon-launcher':
             body.pack_start(label(tr('If selected, Horizon worlds, server data and downloaded game files in the listed folders go to Trash. Saved Horizon accounts are signed out first. Original Minecraft folders stay untouched.'),'subtitle',True),False,False,0)
+        if app.manager=='steam-game':
+            body.pack_start(label(tr("If selected, this game's Proton prefix, shader cache and logs go to Trash too. Steam Cloud saves, shared runtimes and other games are not changed."),'subtitle',True),False,False,0)
         body.pack_start(label('Nothing changes yet. The next screen lists every package and known data location for your review.','subtitle',True),False,False,0)
         if app.source=='Snap':
             body.pack_start(label('Snap manages its own data and normal snapshots.','caption',True),False,False,0)
