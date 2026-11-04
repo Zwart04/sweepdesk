@@ -28,7 +28,9 @@ try:
         flavor='opensuse' if system=='suse' else 'fedora'
         subprocess.run([sys.executable,'scripts/build.py','--format','rpm','--rpm-flavor',flavor],check=True)
         package=next((ROOT/'dist').glob('*.rpm'))
-        subprocess.run(['rpm','-Uvh',str(package)],check=True)
+        # The CI package is built seconds earlier in this disposable container and
+        # cannot carry a distribution signature; newer Fedora enforces signatures.
+        subprocess.run(['rpm','-Uvh','--nosignature',str(package)],check=True)
         loader=native.rpm_inventory
         subprocess.run((['zypper','--non-interactive','install','tree'] if system=='suse' else ['dnf','-y','install','tree']),check=True)
     elif system=='arch':
