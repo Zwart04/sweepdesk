@@ -28,7 +28,8 @@ if FAMILY in ('fedora','suse'):
 else:
     subprocess.run(['useradd','-m','builder'],check=True)
     (ROOT/'dist').mkdir(exist_ok=True)
-    subprocess.run(['chown','-R','builder:builder',str(ROOT/'dist')],check=True)
+    # The checkout belongs to root; the build user needs to write Cargo's target directory.
+    subprocess.run(['chown','-R','builder:builder',str(ROOT)],check=True)
     subprocess.run(['su','-s','/bin/sh','builder','-c','cd /workspace && python3 scripts/build.py --format arch'],check=True)
     package=next((ROOT/'dist').glob('*.pkg.tar.zst'))
     subprocess.run(['pacman','-U','--noconfirm',str(package)],check=True)
