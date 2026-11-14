@@ -1,5 +1,7 @@
 # SweepDesk
 
+<img src="assets/sweepdesk.png" width="100" alt="Ikon SweepDesk">
+
 **[Website Bahasa Indonesia](https://zwart04.github.io/sweepdesk/id.html)** · [Unduh versi terbaru](https://github.com/Zwart04/sweepdesk/releases/latest) · [English](README.md)
 
 Pengelola aplikasi GUI dan CLI untuk **Debian, Ubuntu, Fedora, openSUSE, Arch Linux, Alpine, dan distro turunan yang kompatibel**. Tema gelap memakai palet abu-abu netral dan aksen biru ala macOS.
@@ -16,11 +18,11 @@ Pilih distro melalui **[halaman unduh](https://zwart04.github.io/sweepdesk/id.ht
 
 | Distro | Berkas yang dipilih | Perintah dari folder unduhan |
 |---|---|---|
-| Debian / Ubuntu / Mint | `sweepdesk_0.5.7_all.deb` | `sudo apt install ./sweepdesk_0.5.7_all.deb` |
-| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.5.7-1.fedora.noarch.rpm` | `sudo dnf install ./sweepdesk-0.5.7-1.fedora.noarch.rpm` |
-| openSUSE Leap / Tumbleweed | `sweepdesk-0.5.7-1.opensuse.noarch.rpm` | `sudo zypper install ./sweepdesk-0.5.7-1.opensuse.noarch.rpm` |
-| Arch / EndeavourOS / Manjaro | `sweepdesk-0.5.7-1-any.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.5.7-1-any.pkg.tar.zst` |
-| Alpine / Linux lain dengan GTK 3 | `sweepdesk-0.5.7.tar.gz` | Ikuti bagian kode sumber di bawah |
+| Debian / Ubuntu / Mint | `sweepdesk_0.5.8_all.deb` | `sudo apt install ./sweepdesk_0.5.8_all.deb` |
+| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.5.8-1.fedora.noarch.rpm` | `sudo dnf install ./sweepdesk-0.5.8-1.fedora.noarch.rpm` |
+| openSUSE Leap / Tumbleweed | `sweepdesk-0.5.8-1.opensuse.noarch.rpm` | `sudo zypper install ./sweepdesk-0.5.8-1.opensuse.noarch.rpm` |
+| Arch / EndeavourOS / Manjaro | `sweepdesk-0.5.8-1-any.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.5.8-1-any.pkg.tar.zst` |
+| Alpine / Linux lain dengan GTK 3 | `sweepdesk-0.5.8.tar.gz` | Ikuti bagian kode sumber di bawah |
 
 Jika desktop menyediakan pemasang grafis yang sesuai, berkas paket juga dapat dibuka dengan klik dua kali. Tidak semua distro menyediakannya secara bawaan. Pengelola paket memasang komponen yang dibutuhkan. Paket RPM/Arch dari GitHub merupakan paket lokal tanpa tanda tangan; periksa checksum dan ikuti kebijakan/tanya jawab keamanan pengelola paket. SweepDesk tidak mematikan pemeriksaan keamanan secara global.
 

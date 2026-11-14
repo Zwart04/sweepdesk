@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.8
+
+- Replace the app icon with the new penguin-in-a-bin artwork across the window, desktop entry, hicolor PNG sizes, website, and README.
+- Update preview screenshots with the new icon.
+
 ## 0.5.7
 
 - Detect installed Steam games from `appmanifest_*.acf` files in native, Flatpak, and extra `libraryfolders.vdf` libraries, including games on other user-owned drives.

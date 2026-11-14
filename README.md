@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/sweepdesk.svg" width="100" alt="SweepDesk icon">
+  <img src="assets/sweepdesk.png" width="100" alt="SweepDesk icon">
   <h1>SweepDesk</h1>
   <p><strong>Your software, in one place.</strong><br>A native software inventory and uninstall app for major Linux desktop families.</p>
   <p>
@@ -43,16 +43,16 @@ Open [the download selector](https://zwart04.github.io/sweepdesk/#install) or [R
 
 ```bash
 # Debian / Ubuntu / Linux Mint
-sudo apt install ./sweepdesk_0.5.7_all.deb
+sudo apt install ./sweepdesk_0.5.8_all.deb
 
 # Fedora / Rocky / AlmaLinux / RHEL-compatible
-sudo dnf install ./sweepdesk-0.5.7-1.fedora.noarch.rpm
+sudo dnf install ./sweepdesk-0.5.8-1.fedora.noarch.rpm
 
 # openSUSE Leap / Tumbleweed
-sudo zypper install ./sweepdesk-0.5.7-1.opensuse.noarch.rpm
+sudo zypper install ./sweepdesk-0.5.8-1.opensuse.noarch.rpm
 
 # Arch / EndeavourOS / Manjaro
-sudo pacman -U ./sweepdesk-0.5.7-1-any.pkg.tar.zst
+sudo pacman -U ./sweepdesk-0.5.8-1-any.pkg.tar.zst
 ```
 
 A graphical package installer can open these files when the desktop provides one; a double-click installer is not guaranteed on every distribution. Native managers install the declared runtime dependencies. GitHub RPM/Arch artifacts are unsigned local packages; inspect native signature prompts/policies and verify the published SHA-256 checksums. SweepDesk does not globally disable signature or dependency checks.
@@ -90,7 +90,7 @@ sudo apk add python3 py3-gobject3 gtk+3.0 librsvg polkit
 
 Some Debian-family systems provide `pkexec` separately instead of `policykit-1`. Use the desktop's polkit agent for password dialogs. For a source installation, Python must be the interpreter that can import `gi` and the GTK 3 namespace.
 
-Download and extract `sweepdesk-0.5.7.tar.gz` from Releases, or clone the repository:
+Download and extract `sweepdesk-0.5.8.tar.gz` from Releases, or clone the repository:
 
 ```bash
 git clone https://github.com/Zwart04/sweepdesk.git
@@ -219,7 +219,7 @@ APT plans and pip environments are checked again before execution. Close other p
 
 ## Icons
 
-SweepDesk has a matching native application ID, a vector app-management icon, and PNG variants from 16 to 512 pixels. The Debian package installs the icon into the standard hicolor theme for application menus and running-window integration. Its structural controls use consistent original line icons, avoiding missing theme icons.
+SweepDesk has a matching native application ID, a transparent app icon, and PNG variants from 16 to 512 pixels. The Debian package installs the icon into the standard hicolor theme for application menus and running-window integration. Its structural controls use consistent original line icons, avoiding missing theme icons.
 
 SweepDesk prefers icons from the installed app's launcher/theme. Official **OpenCode, Command Code, curl, and npm** brand assets are bundled for supported CLI identities and work offline. Tools without an available official icon use a terminal/package symbol. See [third-party notices](THIRD_PARTY_NOTICES.md) and the [asset source manifest](assets/brands/sources.json).
 

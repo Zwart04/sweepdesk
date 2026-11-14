@@ -28,8 +28,6 @@ def stage_payload(stage):
     binary.write_text('#!/bin/sh\nexec /usr/bin/python3 /usr/share/sweepdesk/sweepdesk.py "$@"\n');binary.chmod(0o755)
     desktop=stage/'usr/share/applications';desktop.mkdir(parents=True)
     shutil.copy2(ROOT/'sweepdesk.desktop',desktop/'io.github.Zwart04.SweepDesk.desktop')
-    icons=stage/'usr/share/icons/hicolor/scalable/apps';icons.mkdir(parents=True)
-    shutil.copy2(ROOT/'assets/sweepdesk.svg',icons/'io.github.Zwart04.SweepDesk.svg')
     shutil.copytree(ROOT/'assets/icons/hicolor',stage/'usr/share/icons/hicolor',dirs_exist_ok=True)
     docs=stage/'usr/share/licenses/sweepdesk';docs.mkdir(parents=True)
     shutil.copy2(ROOT/'LICENSE',docs/'LICENSE')

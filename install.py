@@ -63,7 +63,7 @@ def main():
     command = '"'+str(wrapper).replace('\\','\\\\').replace('"','\\"').replace('$','\\$').replace('`','\\`')+'"'
     desktop.write_text('[Desktop Entry]\nType=Application\nName=SweepDesk\n'
                        'Comment=Software inventory and reviewed uninstall for Linux desktops\n'
-                       'Exec='+command+'\nIcon='+str(target/'assets/sweepdesk.svg')+'\n'
+                       'Exec='+command+'\nIcon='+str(target/'assets/sweepdesk.png')+'\n'
                        'Terminal=false\nCategories=System;PackageManager;\nStartupNotify=true\nStartupWMClass=io.github.Zwart04.SweepDesk\nX-SweepDesk-Managed=true\n')
     print('SweepDesk installed. Open it from your application menu.\nCommand: '+str(wrapper))
     print('Support Zwart04: https://tako.id/Zwart04')

@@ -30,7 +30,7 @@ import ui_icons
 import i18n
 from i18n import tr
 
-VERSION = '0.5.7'
+VERSION = '0.5.8'
 APP_ID = 'io.github.Zwart04.SweepDesk'
 SUPPORT_URL = 'https://tako.id/Zwart04'
 REPOSITORY_URL = 'https://github.com/Zwart04/sweepdesk'
@@ -147,7 +147,7 @@ class Window(Gtk.Window):
         self.set_default_size(1120, 720)
         self.set_size_request(850, 540)
         self.set_position(Gtk.WindowPosition.CENTER)
-        self.set_icon_from_file(str(ROOT/'assets/sweepdesk.svg'))
+        self.set_icon_from_file(str(ROOT/'assets/sweepdesk.png'))
         self.connect('delete-event', self.on_close)
         self.connect('key-press-event', self.key_pressed)
         self.apps, self.warnings, self.activity = [], [], []
@@ -371,7 +371,7 @@ class Window(Gtk.Window):
         body.set_border_width(24)
         body.set_spacing(16)
         hero = Gtk.Box(spacing=16)
-        hero.pack_start(Gtk.Image.new_from_pixbuf(self.cached_icon(str(ROOT/'assets/sweepdesk.svg'),56)),False,False,0)
+        hero.pack_start(Gtk.Image.new_from_pixbuf(self.cached_icon(str(ROOT/'assets/sweepdesk.png'),56)),False,False,0)
         text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
         dialog.status_title = label('Checking GitHub for updates…','section-title',True)
         dialog.version_label = label('SweepDesk '+VERSION,'caption')
@@ -540,7 +540,7 @@ class Window(Gtk.Window):
         header.set_has_subtitle(False)
         self.set_titlebar(header)
         header.pack_start(icon_button('view-sidebar-symbolic', 'Toggle sidebar', lambda _: self.sidebar_revealer.set_reveal_child(not self.sidebar_revealer.get_reveal_child())))
-        header.pack_start(Gtk.Image.new_from_pixbuf(icon_pixbuf(str(ROOT/'assets/sweepdesk.svg'), 22, self.dark)))
+        header.pack_start(Gtk.Image.new_from_pixbuf(icon_pixbuf(str(ROOT/'assets/sweepdesk.png'), 22, self.dark)))
         self.spinner = Gtk.Spinner()
         header.pack_start(self.spinner)
         self.support_link = Gtk.LinkButton.new_with_label(SUPPORT_URL,tr('Buy me a coffee'))
@@ -1212,7 +1212,7 @@ class Window(Gtk.Window):
         check_updates_button.connect('clicked',lambda _:self.check_updates(True))
         updates.pack_start(check_updates_button,False,False,0)
         about = page('About','SweepDesk '+VERSION+' · '+tr('Free and open source, made by Zwart04.'))
-        logo = Gtk.Image.new_from_pixbuf(icon_pixbuf(str(ROOT/'assets/sweepdesk.svg'),80,self.dark))
+        logo = Gtk.Image.new_from_pixbuf(icon_pixbuf(str(ROOT/'assets/sweepdesk.png'),80,self.dark))
         about.pack_start(logo,False,False,4)
         for text in ('For Debian, Ubuntu, Fedora, openSUSE, Arch Linux, and compatible derivatives.','Removal always requires a reviewed plan. Known user data goes to Trash; shared dependencies and uncertain files are kept.'):
             about.pack_start(label(text,'subtitle',True),False,False,0)
@@ -1613,7 +1613,7 @@ def main():
         raise SystemExit('Run SweepDesk as a regular user. Administrator authentication is only requested for system package operations.')
     GLib.set_application_name('SweepDesk')
     GLib.set_prgname(APP_ID)
-    Gtk.Window.set_default_icon_from_file(str(ROOT/'assets/sweepdesk.svg'))
+    Gtk.Window.set_default_icon_from_file(str(ROOT/'assets/sweepdesk.png'))
     application = Gtk.Application(application_id=APP_ID)
     quit_action=Gio.SimpleAction.new('quit',None)
     quit_action.connect('activate',lambda *_:application.main_window.on_close() if hasattr(application,'main_window') else application.quit())
