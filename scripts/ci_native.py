@@ -21,7 +21,10 @@ if FAMILY in ('fedora','suse'):
     subprocess.run([sys.executable,'scripts/build.py','--format','rpm','--rpm-flavor',flavor],check=True)
     package=next((ROOT/'dist').glob('*.rpm'))
     # Built seconds earlier in this disposable container, so it carries no signature.
-    subprocess.run(['rpm','-Uvh','--nosignature',str(package)],check=True)
+    if FAMILY=='suse':
+        subprocess.run(['zypper','--non-interactive','--no-gpg-checks','install',str(package)],check=True)
+    else:
+        subprocess.run(['dnf','-y','install','--nogpgcheck',str(package)],check=True)
 else:
     subprocess.run(['useradd','-m','builder'],check=True)
     (ROOT/'dist').mkdir(exist_ok=True)
