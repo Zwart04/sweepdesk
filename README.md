@@ -42,16 +42,16 @@ Open [Releases](https://github.com/Zwart04/sweepdesk/releases/latest), download 
 
 ```bash
 # Debian / Ubuntu / Linux Mint
-sudo apt install ./sweepdesk_0.6.1_amd64.deb
+sudo apt install ./sweepdesk_0.6.2_amd64.deb
 
 # Fedora / Rocky / AlmaLinux / RHEL-compatible
-sudo dnf install ./sweepdesk-0.6.1-1.fedora.x86_64.rpm
+sudo dnf install ./sweepdesk-0.6.2-1.fedora.x86_64.rpm
 
 # openSUSE Leap / Tumbleweed
-sudo zypper install ./sweepdesk-0.6.1-1.opensuse.x86_64.rpm
+sudo zypper install ./sweepdesk-0.6.2-1.opensuse.x86_64.rpm
 
 # Arch / EndeavourOS / Manjaro
-sudo pacman -U ./sweepdesk-0.6.1-1-x86_64.pkg.tar.zst
+sudo pacman -U ./sweepdesk-0.6.2-1-x86_64.pkg.tar.zst
 ```
 
 GitHub RPM/Arch artifacts are unsigned local packages; verify the published SHA-256 checksums if your policies require it. SweepDesk does not disable signature or dependency checks. Open **SweepDesk** from the application menu, or run `sweepdesk` as your normal user. Administrator authentication is requested only for system package removal.
@@ -59,8 +59,8 @@ GitHub RPM/Arch artifacts are unsigned local packages; verify the published SHA-
 ### Run the portable archive
 
 ```bash
-tar xzf sweepdesk-0.6.1-x86_64.tar.gz
-cd sweepdesk-0.6.1
+tar xzf sweepdesk-0.6.2-x86_64.tar.gz
+cd sweepdesk-0.6.2
 ./sweepdesk
 ```
 
@@ -128,7 +128,7 @@ Preferences live in `$XDG_CONFIG_HOME/sweepdesk/preferences.json` (normally `~/.
 
 ### Updates
 
-**Check for Updates** opens the public releases page in your browser. SweepDesk does not download or install updates by itself and never changes system packages automatically.
+**Check for Updates** asks GitHub for the latest release, downloads the package that matches your distribution, verifies it against the published `SHA256SUMS`, and installs it with your distribution's package manager through `pkexec`. Nothing is downloaded or installed until you press **Install update**, and the authentication prompt is the same one your system uses for any package change. Builds without a matching package fall back to opening the releases page.
 
 ## Troubleshooting
 

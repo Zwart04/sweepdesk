@@ -65,6 +65,28 @@ fn unknown_icons_fall_back_to_a_glyph() {
 }
 
 #[test]
+fn version_comparison_is_numeric() {
+    use crate::update::newer;
+    assert!(newer("0.6.2", "0.6.1"));
+    assert!(newer("0.7.0", "0.6.9"));
+    assert!(newer("0.6.10", "0.6.9"));
+    assert!(newer("1.0", "0.9.9"));
+    assert!(!newer("0.6.1", "0.6.1"));
+    assert!(!newer("0.6.0", "0.6.1"));
+}
+
+#[test]
+fn checksum_lookup_reads_sha256sums_lines() {
+    use crate::update::checksum_for;
+    let text = "aaaa  sweepdesk_0.6.1_amd64.deb\nbbbb  sweepdesk-0.6.1-x86_64.tar.gz\n";
+    assert_eq!(
+        checksum_for(text, "sweepdesk_0.6.1_amd64.deb"),
+        Some("aaaa".into())
+    );
+    assert_eq!(checksum_for(text, "missing.deb"), None);
+}
+
+#[test]
 fn preferences_migrate_the_steam_source_once() {
     let mut raw = Preferences::default();
     raw.schema = 1;

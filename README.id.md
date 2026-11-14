@@ -18,11 +18,11 @@ SweepDesk membutuhkan **glibc 2.28 atau lebih baru** dan sesi desktop Linux. `pk
 
 | Distro | Berkas yang dipilih | Perintah dari folder unduhan |
 |---|---|---|
-| Debian / Ubuntu / Mint | `sweepdesk_0.6.1_amd64.deb` | `sudo apt install ./sweepdesk_0.6.1_amd64.deb` |
-| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.6.1-1.fedora.x86_64.rpm` | `sudo dnf install ./sweepdesk-0.6.1-1.fedora.x86_64.rpm` |
-| openSUSE Leap / Tumbleweed | `sweepdesk-0.6.1-1.opensuse.x86_64.rpm` | `sudo zypper install ./sweepdesk-0.6.1-1.opensuse.x86_64.rpm` |
-| Arch / EndeavourOS / Manjaro | `sweepdesk-0.6.1-1-x86_64.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.6.1-1-x86_64.pkg.tar.zst` |
-| Distro Linux lain / immutable | `sweepdesk-0.6.1-x86_64.tar.gz` | Jalankan `./sweepdesk` dari folder hasil ekstrak |
+| Debian / Ubuntu / Mint | `sweepdesk_0.6.2_amd64.deb` | `sudo apt install ./sweepdesk_0.6.2_amd64.deb` |
+| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.6.2-1.fedora.x86_64.rpm` | `sudo dnf install ./sweepdesk-0.6.2-1.fedora.x86_64.rpm` |
+| openSUSE Leap / Tumbleweed | `sweepdesk-0.6.2-1.opensuse.x86_64.rpm` | `sudo zypper install ./sweepdesk-0.6.2-1.opensuse.x86_64.rpm` |
+| Arch / EndeavourOS / Manjaro | `sweepdesk-0.6.2-1-x86_64.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.6.2-1-x86_64.pkg.tar.zst` |
+| Distro Linux lain / immutable | `sweepdesk-0.6.2-x86_64.tar.gz` | Jalankan `./sweepdesk` dari folder hasil ekstrak |
 
 Paket RPM/Arch dari GitHub merupakan paket lokal tanpa tanda tangan; periksa checksum SHA-256 bila kebijakan Anda memintanya. SweepDesk tidak mematikan pemeriksaan tanda tangan atau dependensi. Buka **SweepDesk** dari menu aplikasi sebagai pengguna biasa; kata sandi admin hanya diminta saat menghapus paket sistem.
 
@@ -31,8 +31,8 @@ Untuk menghapus SweepDesk, gunakan pengelola distro: `sudo apt purge sweepdesk`,
 ## Menjalankan dari arsip portabel atau kode sumber
 
 ```bash
-tar xzf sweepdesk-0.6.1-x86_64.tar.gz
-cd sweepdesk-0.6.1
+tar xzf sweepdesk-0.6.2-x86_64.tar.gz
+cd sweepdesk-0.6.2
 ./sweepdesk
 ```
 
@@ -98,7 +98,7 @@ Preferensi disimpan di `$XDG_CONFIG_HOME/sweepdesk/preferences.json` (biasanya `
 
 ### Pembaruan
 
-**Check for Updates** membuka halaman rilis di browser. SweepDesk tidak mengunduh atau memasang pembaruan sendiri dan tidak mengubah paket sistem secara otomatis.
+**Periksa Pembaruan** menanyakan rilis terbaru ke GitHub, mengunduh paket yang sesuai distro Anda, memverifikasinya terhadap `SHA256SUMS` resmi, lalu memasangnya dengan pengelola paket distro melalui `pkexec`. Tidak ada yang diunduh atau dipasang sebelum Anda menekan **Pasang pembaruan**, dan permintaan kata sandi sama seperti perubahan paket biasa. Jika paket untuk distro Anda tidak tersedia, SweepDesk membuka halaman rilis.
 
 ## Jika ada masalah
 

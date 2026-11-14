@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2
+
+- Update from inside the app. **Check for Updates** asks the GitHub releases API for the newest version, offers to install it, downloads the package that matches your distribution, verifies it against the published `SHA256SUMS`, and installs it through `pkexec` so your package manager stays the source of truth. A **Restart** button relaunches the app when the install finishes.
+- Show the update state in a banner: checking, available with the version number, downloading, installing, up to date, and failures with a link to the release page. Nothing is installed unless you press **Install update** and approve the administrator prompt.
+- Give the window a proper X11/Wayland application id (`io.github.Zwart04.SweepDesk`) so the taskbar and app switcher match the installed desktop entry and show the SweepDesk logo instead of a generic icon.
+
 ## 0.6.1
 
 - Draw real per-application icons in the list and the details panel by resolving freedesktop icon names from the installed themes (SVG and PNG), with a neutral app glyph and a terminal glyph as fallbacks. Icons load in the background after the first scan.

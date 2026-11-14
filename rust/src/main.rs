@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Zwart04
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SweepDesk: see LICENSE for copying terms and warranty disclaimer.
-//! SweepDesk 0.6.1 — native software inventory and reviewed uninstall.
+//! SweepDesk 0.6.2 — native software inventory and reviewed uninstall.
 
 mod catalogue;
 mod i18n;
@@ -12,6 +12,7 @@ mod plan;
 mod prefs;
 mod sources;
 mod steam;
+mod update;
 
 #[cfg(test)]
 mod tests;
@@ -28,7 +29,7 @@ use model::App;
 use model::Plan;
 use prefs::Preferences;
 
-const VERSION: &str = "0.6.1";
+const VERSION: &str = "0.6.2";
 const LOGO: &[u8] = include_bytes!("../../assets/sweepdesk.png");
 const SUPPORT_URL: &str = "https://tako.id/Zwart04";
 const RELEASE_URL: &str = "https://github.com/Zwart04/sweepdesk/releases/latest";
@@ -84,6 +85,24 @@ enum Message {
     RemoveFolder(bool, String),
     DismissMessage,
     IconsReady,
+    CheckUpdates,
+    UpdateChecked(Result<Option<update::Release>, String>),
+    InstallUpdate,
+    UpdateDownloaded(Result<std::path::PathBuf, String>),
+    UpdateInstalled(Result<(), String>),
+    DismissUpdate,
+    Restart,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+enum UpdatePhase {
+    Checking,
+    Available,
+    Downloading,
+    Installing,
+    Done,
+    UpToDate,
+    Failed(String),
 }
 
 struct SweepDesk {
@@ -106,6 +125,8 @@ struct SweepDesk {
     draft: Option<Preferences>,
     python_input: String,
     manual_input: String,
+    update: Option<UpdatePhase>,
+    release: Option<update::Release>,
 }
 
 fn source_list(apps: &[App]) -> Vec<(String, usize)> {
@@ -662,6 +683,9 @@ impl SweepDesk {
                 .width(Length::Fill)
                 .style(header_bar),
         );
+        if let Some(banner) = self.update_banner() {
+            layout = layout.push(banner);
+        }
         if self.busy && self.plan.is_none() {
             layout = layout.push(
                 container(text(tr("Scanning installed software…")).size(11).style(muted))
@@ -720,7 +744,7 @@ impl SweepDesk {
                     .style(muted),
                     horizontal_space(),
                     button(text(tr("Check for Updates")).size(10))
-                        .on_press(Message::OpenReleases)
+                        .on_press(Message::CheckUpdates)
                         .padding([3, 8])
                         .style(ghost_button),
                     button(text(tr("Buy me a coffee")).size(10))
@@ -740,6 +764,98 @@ impl SweepDesk {
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
+    }
+
+    fn update_banner(&self) -> Option<Element<'_, Message>> {
+        let phase = self.update.as_ref()?;
+        let version = self
+            .release
+            .as_ref()
+            .map(|release| release.version.clone())
+            .unwrap_or_default();
+        let body: Element<'_, Message> = match phase {
+            UpdatePhase::Checking => row![text(tr("Checking for updates…")).size(11)]
+                .align_y(Alignment::Center)
+                .into(),
+            UpdatePhase::Available => row![
+                text(
+                    tr("SweepDesk {version} is available.")
+                        .replace("{version}", &version)
+                )
+                .size(11)
+                .width(Length::Fill),
+                button(text(tr("Install update")).size(11))
+                    .on_press(Message::InstallUpdate)
+                    .padding([5, 12])
+                    .style(primary_button),
+                button(text(tr("Later")).size(11))
+                    .on_press(Message::DismissUpdate)
+                    .padding([5, 12])
+                    .style(ghost_button),
+            ]
+            .spacing(8)
+            .align_y(Alignment::Center)
+            .into(),
+            UpdatePhase::Downloading => row![text(tr("Downloading update…")).size(11)]
+                .align_y(Alignment::Center)
+                .into(),
+            UpdatePhase::Installing => row![text(tr("Installing update…")).size(11)]
+                .align_y(Alignment::Center)
+                .into(),
+            UpdatePhase::Done => row![
+                text(
+                    tr("SweepDesk {version} installed. Restart to finish.")
+                        .replace("{version}", &version)
+                )
+                .size(11)
+                .width(Length::Fill),
+                button(text(tr("Restart")).size(11))
+                    .on_press(Message::Restart)
+                    .padding([5, 12])
+                    .style(primary_button),
+            ]
+            .spacing(8)
+            .align_y(Alignment::Center)
+            .into(),
+            UpdatePhase::UpToDate => row![
+                text(tr("SweepDesk is up to date.")).size(11).width(Length::Fill),
+                button(text(tr("Dismiss")).size(11))
+                    .on_press(Message::DismissUpdate)
+                    .padding([5, 12])
+                    .style(ghost_button),
+            ]
+            .spacing(8)
+            .align_y(Alignment::Center)
+            .into(),
+            UpdatePhase::Failed(error) => row![
+                text(format!("{}: {}", tr("Update failed"), error))
+                    .size(11)
+                    .width(Length::Fill),
+                button(text(tr("Open release page")).size(11))
+                    .on_press(Message::OpenReleases)
+                    .padding([5, 12])
+                    .style(ghost_button),
+                button(text(tr("Dismiss")).size(11))
+                    .on_press(Message::DismissUpdate)
+                    .padding([5, 12])
+                    .style(ghost_button),
+            ]
+            .spacing(8)
+            .align_y(Alignment::Center)
+            .into(),
+        };
+        let style = if matches!(phase, UpdatePhase::Failed(_)) {
+            warn_box
+        } else {
+            panel
+        };
+        Some(
+            container(body)
+                .padding([7, 18])
+                .width(Length::Fill)
+                .style(style)
+                .into(),
+        )
     }
 
     fn update(&mut self, message: Message) -> Task<Message> {
@@ -865,6 +981,69 @@ impl SweepDesk {
                 Task::none()
             }
             Message::Rescan => self.scan(),
+            Message::CheckUpdates => {
+                self.update = Some(UpdatePhase::Checking);
+                self.release = None;
+                Task::perform(async { update::check() }, Message::UpdateChecked)
+            }
+            Message::UpdateChecked(result) => {
+                match result {
+                    Ok(Some(release)) => {
+                        self.release = Some(release);
+                        self.update = Some(UpdatePhase::Available);
+                    }
+                    Ok(None) => {
+                        self.release = None;
+                        self.update = Some(UpdatePhase::UpToDate);
+                    }
+                    Err(error) => {
+                        self.release = None;
+                        self.update = Some(UpdatePhase::Failed(error));
+                    }
+                }
+                Task::none()
+            }
+            Message::InstallUpdate => {
+                let Some(release) = self.release.clone() else {
+                    return Task::none();
+                };
+                self.update = Some(UpdatePhase::Downloading);
+                Task::perform(
+                    async move { update::download(&release) },
+                    Message::UpdateDownloaded,
+                )
+            }
+            Message::UpdateDownloaded(result) => match result {
+                Ok(path) => {
+                    self.update = Some(UpdatePhase::Installing);
+                    Task::perform(
+                        async move { update::install(&path) },
+                        Message::UpdateInstalled,
+                    )
+                }
+                Err(error) => {
+                    self.update = Some(UpdatePhase::Failed(error));
+                    Task::none()
+                }
+            },
+            Message::UpdateInstalled(result) => {
+                self.update = Some(match result {
+                    Ok(()) => UpdatePhase::Done,
+                    Err(error) => UpdatePhase::Failed(error),
+                });
+                Task::none()
+            }
+            Message::DismissUpdate => {
+                self.update = None;
+                self.release = None;
+                Task::none()
+            }
+            Message::Restart => {
+                if let Ok(executable) = std::env::current_exe() {
+                    let _ = std::process::Command::new(executable).spawn();
+                }
+                std::process::exit(0);
+            }
             Message::OpenReleases => {
                 let _ = std::process::Command::new("xdg-open").arg(RELEASE_URL).spawn();
                 Task::none()
@@ -1109,6 +1288,8 @@ fn main() -> iced::Result {
         draft: None,
         python_input: String::new(),
         manual_input: String::new(),
+        update: None,
+        release: None,
     };
     iced::application("SweepDesk", SweepDesk::update, SweepDesk::view)
         .theme(|state: &SweepDesk| match state.draft.as_ref().unwrap_or(&state.prefs).theme.as_str() {
@@ -1119,6 +1300,10 @@ fn main() -> iced::Result {
             size: iced::Size::new(1080.0, 720.0),
             min_size: Some(iced::Size::new(820.0, 560.0)),
             icon: iced::window::icon::from_file_data(LOGO, None).ok(),
+            platform_specific: iced::window::settings::PlatformSpecific {
+                application_id: "io.github.Zwart04.SweepDesk".into(),
+                ..Default::default()
+            },
             ..Default::default()
         })
         .antialiasing(true)
