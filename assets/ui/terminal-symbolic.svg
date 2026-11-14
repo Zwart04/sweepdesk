@@ -1,0 +1,7 @@
+<!-- SPDX-FileCopyrightText: 2026 Zwart04 -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <rect x="6" y="10" width="52" height="44" rx="7" fill="none" stroke="#8d949c" stroke-width="4"/>
+  <path d="M18 24l8 8-8 8" fill="none" stroke="#8d949c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 42h14" fill="none" stroke="#8d949c" stroke-width="4" stroke-linecap="round"/>
+</svg>

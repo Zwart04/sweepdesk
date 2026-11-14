@@ -18,11 +18,11 @@ SweepDesk membutuhkan **glibc 2.28 atau lebih baru** dan sesi desktop Linux. `pk
 
 | Distro | Berkas yang dipilih | Perintah dari folder unduhan |
 |---|---|---|
-| Debian / Ubuntu / Mint | `sweepdesk_0.6.0_amd64.deb` | `sudo apt install ./sweepdesk_0.6.0_amd64.deb` |
-| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.6.0-1.fedora.x86_64.rpm` | `sudo dnf install ./sweepdesk-0.6.0-1.fedora.x86_64.rpm` |
-| openSUSE Leap / Tumbleweed | `sweepdesk-0.6.0-1.opensuse.x86_64.rpm` | `sudo zypper install ./sweepdesk-0.6.0-1.opensuse.x86_64.rpm` |
-| Arch / EndeavourOS / Manjaro | `sweepdesk-0.6.0-1-x86_64.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.6.0-1-x86_64.pkg.tar.zst` |
-| Distro Linux lain / immutable | `sweepdesk-0.6.0-x86_64.tar.gz` | Jalankan `./sweepdesk` dari folder hasil ekstrak |
+| Debian / Ubuntu / Mint | `sweepdesk_0.6.1_amd64.deb` | `sudo apt install ./sweepdesk_0.6.1_amd64.deb` |
+| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.6.1-1.fedora.x86_64.rpm` | `sudo dnf install ./sweepdesk-0.6.1-1.fedora.x86_64.rpm` |
+| openSUSE Leap / Tumbleweed | `sweepdesk-0.6.1-1.opensuse.x86_64.rpm` | `sudo zypper install ./sweepdesk-0.6.1-1.opensuse.x86_64.rpm` |
+| Arch / EndeavourOS / Manjaro | `sweepdesk-0.6.1-1-x86_64.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.6.1-1-x86_64.pkg.tar.zst` |
+| Distro Linux lain / immutable | `sweepdesk-0.6.1-x86_64.tar.gz` | Jalankan `./sweepdesk` dari folder hasil ekstrak |
 
 Paket RPM/Arch dari GitHub merupakan paket lokal tanpa tanda tangan; periksa checksum SHA-256 bila kebijakan Anda memintanya. SweepDesk tidak mematikan pemeriksaan tanda tangan atau dependensi. Buka **SweepDesk** dari menu aplikasi sebagai pengguna biasa; kata sandi admin hanya diminta saat menghapus paket sistem.
 
@@ -31,8 +31,8 @@ Untuk menghapus SweepDesk, gunakan pengelola distro: `sudo apt purge sweepdesk`,
 ## Menjalankan dari arsip portabel atau kode sumber
 
 ```bash
-tar xzf sweepdesk-0.6.0-x86_64.tar.gz
-cd sweepdesk-0.6.0
+tar xzf sweepdesk-0.6.1-x86_64.tar.gz
+cd sweepdesk-0.6.1
 ./sweepdesk
 ```
 

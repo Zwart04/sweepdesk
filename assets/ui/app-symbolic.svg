@@ -1,0 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Zwart04 -->
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <path fill="#8d949c" d="M32 8 8 19v26l24 11 24-11V19L32 8zm0 4.6 17.4 8-17.4 8-17.4-8 17.4-8zM12 22.9l18 8.3v18.6l-18-8.3V22.9zm40 0v18.6l-18 8.3V31.2l18-8.3z"/>
+</svg>

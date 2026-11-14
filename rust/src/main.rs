@@ -1,10 +1,11 @@
 // SPDX-FileCopyrightText: 2026 Zwart04
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SweepDesk: see LICENSE for copying terms and warranty disclaimer.
-//! SweepDesk 0.6.0 — native software inventory and reviewed uninstall.
+//! SweepDesk 0.6.1 — native software inventory and reviewed uninstall.
 
 mod catalogue;
 mod i18n;
+mod icons;
 mod manual;
 mod model;
 mod plan;
@@ -17,15 +18,17 @@ mod tests;
 
 use i18n::tr;
 use iced::widget::{
-    button, checkbox, column, container, horizontal_space, image, row, scrollable, text,
+    button, checkbox, column, container, horizontal_space, image, row, scrollable, svg, text,
     text_input, vertical_space, Column,
 };
-use iced::{Alignment, Border, Color, Element, Length, Shadow, Task, Theme};
+use iced::{
+    Alignment, Border, Color, ContentFit, Element, Length, Padding, Shadow, Task, Theme,
+};
 use model::App;
 use model::Plan;
 use prefs::Preferences;
 
-const VERSION: &str = "0.6.0";
+const VERSION: &str = "0.6.1";
 const LOGO: &[u8] = include_bytes!("../../assets/sweepdesk.png");
 const SUPPORT_URL: &str = "https://tako.id/Zwart04";
 const RELEASE_URL: &str = "https://github.com/Zwart04/sweepdesk/releases/latest";
@@ -80,6 +83,7 @@ enum Message {
     AddManualFolder,
     RemoveFolder(bool, String),
     DismissMessage,
+    IconsReady,
 }
 
 struct SweepDesk {
@@ -158,7 +162,7 @@ impl SweepDesk {
             .iter()
             .enumerate()
             .filter(|(_, app)| {
-                if app.support && !self.prefs.show_system {
+                if app.support && !self.prefs.show_system && self.category != Category::System {
                     return false;
                 }
                 match self.category {
@@ -197,154 +201,183 @@ impl SweepDesk {
         !self.busy && !app.essential && app.readonly_reason.is_empty()
     }
 
+    fn category_count(&self, category: Category) -> usize {
+        self.apps
+            .iter()
+            .filter(|app| {
+                if app.support && !self.prefs.show_system && category != Category::System {
+                    return false;
+                }
+                match category {
+                    Category::All => true,
+                    Category::Applications => !is_cli(app),
+                    Category::CommandLine => is_cli(app),
+                    Category::System => app.support,
+                }
+            })
+            .count()
+    }
+
     fn sidebar(&self) -> Element<'_, Message> {
-        let mut list = Column::new().spacing(2).padding(8);
+        let mut list = Column::new().spacing(2).padding(10);
         for category in [
             Category::All,
             Category::Applications,
             Category::CommandLine,
             Category::System,
         ] {
-            let active = self.category == category;
-            list = list.push(
-                button(text(category.label()).size(13))
-                    .on_press(Message::CategoryChanged(category))
-                    .width(Length::Fill)
-                    .padding([7, 10])
-                    .style(move |theme, status| nav_style(theme, status, active)),
-            );
+            list = list.push(nav_row(
+                category.label().to_string(),
+                self.category_count(category),
+                self.category == category,
+                Message::CategoryChanged(category),
+            ));
         }
-        list = list.push(vertical_space().height(10));
-        list = list.push(text(tr("SOURCES")).size(10).style(muted));
+        list = list.push(vertical_space().height(14));
         list = list.push(
-            button(text(format!("{} ({})", tr("All Software"), self.apps.len())).size(12))
-                .on_press(Message::SourceChanged(None))
-                .width(Length::Fill)
-                .padding([6, 10])
-                .style(move |theme, status| nav_style(theme, status, self.source.is_none())),
+            text(tr("SOURCES"))
+                .size(10)
+                .style(muted),
         );
+        list = list.push(nav_row(
+            tr("All Software").to_string(),
+            self.apps.len(),
+            self.source.is_none(),
+            Message::SourceChanged(None),
+        ));
         for (source, count) in source_list(&self.apps) {
             if count == 0 && !self.prefs.show_empty_sources {
                 continue;
             }
             let active = self.source.as_deref() == Some(source.as_str());
-            list = list.push(
-                button(text(format!("{source} ({count})")).size(12))
-                    .on_press(Message::SourceChanged(Some(source.clone())))
-                    .width(Length::Fill)
-                    .padding([5, 10])
-                    .style(move |theme, status| nav_style(theme, status, active)),
-            );
+            list = list.push(nav_row(
+                source.clone(),
+                count,
+                active,
+                Message::SourceChanged(Some(source)),
+            ));
         }
-        list = list.push(vertical_space().height(10));
+        list = list.push(vertical_space().height(14));
         list = list.push(
             checkbox(tr("Show system packages"), self.prefs.show_system)
                 .on_toggle(Message::ToggleSystem)
                 .size(15)
                 .text_size(11),
         );
-        container(scrollable(list))
-            .width(Length::Fixed(210.0))
+        container(scrollable(list).style(scroll_style))
+            .width(Length::Fixed(232.0))
             .height(Length::Fill)
-            .style(panel)
             .into()
     }
 
     fn list(&self) -> Element<'_, Message> {
         if self.apps.is_empty() {
-            return container(text(tr("Scanning installed software…")).size(13))
+            return container(text(tr("Scanning installed software…")).size(13).style(muted))
                 .padding(24)
                 .into();
         }
-        let mut rows = Column::new().spacing(1);
+        if self.filtered.is_empty() {
+            return container(text(tr("Try another search or choose a different source.")).size(13).style(muted))
+                .padding(24)
+                .into();
+        }
+        let mut rows = Column::new().spacing(2).padding(Padding { right: 8.0, ..Padding::ZERO });
         for index in &self.filtered {
             let Some(app) = self.apps.get(*index) else {
                 continue;
             };
             let active = self.selected == Some(*index);
-            let subtitle = if app.readonly_reason.is_empty() {
-                format!("{} · {}", app.package, app.source)
-            } else {
-                format!("{} · {} · {}", app.package, app.source, app.readonly_reason)
-            };
+            let subtitle = format!("{} · {}", app.package, app.source);
             let body = row![
+                app_icon(app, 26.0),
                 column![
                     text(&app.name).size(13),
                     text(subtitle).size(11).style(muted),
                 ]
-                .spacing(1)
+                .spacing(2)
                 .width(Length::Fill),
                 text(size_label(app.size)).size(11).style(muted),
             ]
             .align_y(Alignment::Center)
-            .spacing(8);
+            .spacing(10);
             rows = rows.push(
                 button(body)
                     .on_press(Message::Select(*index))
                     .width(Length::Fill)
-                    .padding([7, 10])
+                    .padding([6, 10])
                     .style(move |theme, status| row_style(theme, status, active)),
             );
         }
-        if self.filtered.is_empty() {
-            return container(text(tr("Try another search or choose a different source.")).size(13))
-                .padding(24)
-                .into();
-        }
-        scrollable(rows).height(Length::Fill).into()
+        scrollable(rows).height(Length::Fill).style(scroll_style).into()
     }
 
     fn details(&self) -> Element<'_, Message> {
         let Some(app) = self.selected_app() else {
             return container(text(tr("Select an item to see its details.")).size(12).style(muted))
-                .padding(16)
+                .padding(18)
                 .width(Length::Fill)
-                .style(panel)
+                .height(Length::Fill)
+                .center_y(Length::Fill)
                 .into();
         };
-        let mut card = Column::new().spacing(10).padding(16);
-        card = card.push(text(&app.name).size(18));
+        let mut card = Column::new().spacing(12).padding(18);
         card = card.push(
-            text(if app.description.is_empty() {
-                tr("Installed software")
-            } else {
-                &app.description
-            })
-            .size(12)
-            .style(muted),
+            row![
+                app_icon(app, 54.0),
+                column![
+                    text(&app.name).size(17),
+                    text(if app.description.is_empty() {
+                        tr("Installed software")
+                    } else {
+                        &app.description
+                    })
+                    .size(11)
+                    .style(muted),
+                ]
+                .spacing(3)
+                .width(Length::Fill),
+            ]
+            .spacing(12)
+            .align_y(Alignment::Center),
         );
+        card = card.push(container(text("")).width(Length::Fill).height(1).style(divider));
         for (label, value) in [
             (tr("Version"), app.version.clone()),
             (tr("Source"), app.source.clone()),
             (tr("Size"), size_label(app.size)),
             ("ID", app.package.clone()),
-            ("Scope", app.scope.clone()),
+            (tr("Scope"), app.scope.clone()),
         ] {
             if value.is_empty() {
                 continue;
             }
             card = card.push(
                 row![
-                    text(label).size(11).width(Length::Fixed(70.0)).style(muted),
-                    text(value).size(11),
+                    text(label).size(11).width(Length::Fixed(76.0)).style(muted),
+                    text(value).size(12).width(Length::Fill),
                 ]
-                .spacing(8),
+                .spacing(6),
             );
         }
         if !app.readonly_reason.is_empty() {
-            card = card.push(text(&app.readonly_reason).size(11).style(warn));
+            card = card.push(
+                container(text(&app.readonly_reason).size(11))
+                    .padding(10)
+                    .width(Length::Fill)
+                    .style(warn_box),
+            );
         }
-        card = card.push(vertical_space().height(6));
+        card = card.push(vertical_space());
         card = card.push(
             button(text(tr("Review Removal")).size(13))
                 .on_press_maybe(self.can_remove(app).then_some(Message::RequestRemoval))
-                .padding([8, 14])
+                .width(Length::Fill)
+                .padding([9, 14])
                 .style(danger_button),
         );
         container(card)
-            .width(Length::Fixed(300.0))
+            .width(Length::Fill)
             .height(Length::Fill)
-            .style(panel)
             .into()
     }
 
@@ -356,12 +389,18 @@ impl SweepDesk {
         let mut body = Column::new().spacing(12).padding(20);
         body = body.push(text(tr("Review Removal")).size(20));
         body = body.push(text(format!("{} · {}", app.name, app.package)).size(13).style(muted));
-        let mut summary = vec![format!("{} items to remove", plan.removed.len())];
+        let mut summary = vec![
+            tr("{count} items to remove").replace("{count}", &plan.removed.len().to_string()),
+        ];
         if !plan.extra.is_empty() {
-            summary.push(format!("{} extra dependencies", plan.extra.len()));
+            summary.push(
+                tr("{count} extra dependencies").replace("{count}", &plan.extra.len().to_string()),
+            );
         }
         if !plan.data.is_empty() {
-            summary.push(format!("{} data locations", plan.data.len()));
+            summary.push(
+                tr("{count} data locations").replace("{count}", &plan.data.len().to_string()),
+            );
         }
         body = body.push(text(summary.join(" · ")).size(12).style(muted));
         body = body.push(
@@ -466,17 +505,19 @@ impl SweepDesk {
             source_columns = source_columns.push(source_column);
         }
         body = body.push(text(tr("Sources")).size(12).style(muted));
-        body = body.push(container(source_columns).padding(8).style(panel));
+        body = body.push(container(source_columns).padding(10).width(Length::Fill).max_width(680.0).style(card));
         body = body.push(text(tr("Extra Python folders")).size(12).style(muted));
         body = body.push(
             row![
                 text_input(tr("Folder path"), &self.python_input)
                     .on_input(Message::PythonInput)
-                    .padding(7)
+                    .width(Length::Fixed(420.0))
+                    .padding([7, 10])
                     .size(12),
                 button(text(tr("Add")).size(12))
                     .on_press(Message::AddPythonFolder)
-                    .padding([7, 12]),
+                    .padding([7, 12])
+                    .style(ghost_button),
             ]
             .spacing(6),
         );
@@ -488,37 +529,47 @@ impl SweepDesk {
             row![
                 text_input(tr("Folder path"), &self.manual_input)
                     .on_input(Message::ManualInput)
-                    .padding(7)
+                    .width(Length::Fixed(420.0))
+                    .padding([7, 10])
                     .size(12),
                 button(text(tr("Add")).size(12))
                     .on_press(Message::AddManualFolder)
-                    .padding([7, 12]),
+                    .padding([7, 12])
+                    .style(ghost_button),
             ]
             .spacing(6),
         );
         for folder in &draft.manual_folders {
             body = body.push(self.folder_row(folder, false));
         }
-        body = body.push(horizontal_space().height(4));
-        body = body.push(
-            row![
-                button(text(tr("Cancel")).size(13))
-                    .on_press(Message::CloseSettings)
-                    .padding([8, 16]),
-                horizontal_space(),
-                button(text(tr("Save")).size(13))
-                    .on_press(Message::SaveSettings)
-                    .padding([8, 16])
-                    .style(danger_button),
+        let footer = row![
+            button(text(tr("Cancel")).size(13))
+                .on_press(Message::CloseSettings)
+                .padding([8, 18])
+                .style(ghost_button),
+            horizontal_space(),
+            button(text(tr("Save")).size(13))
+                .on_press(Message::SaveSettings)
+                .padding([8, 18])
+                .style(primary_button),
+        ]
+        .spacing(8)
+        .padding([12, 24]);
+
+        container(
+            column![
+                container(scrollable(container(body).max_width(760.0).center_x(Length::Fill)).style(scroll_style))
+                    .height(Length::Fill)
+                    .width(Length::Fill)
+                    .padding([8, 24]),
+                container(footer).width(Length::Fill).style(header_bar),
             ]
-            .spacing(8),
-        );
-        container(scrollable(body))
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(16)
-            .style(panel)
-            .into()
+            .height(Length::Fill),
+        )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .style(panel)
+        .into()
     }
 
     fn language_button<'a>(&self, draft: &Preferences, value: &'static str, label: &'a str) -> iced::widget::Button<'a, Message> {
@@ -550,54 +601,78 @@ impl SweepDesk {
     }
 
     fn view(&self) -> Element<'_, Message> {
+        let brand = row![
+            image(image::Handle::from_bytes(LOGO.to_vec()))
+                .width(Length::Fixed(26.0))
+                .height(Length::Fixed(26.0))
+                .content_fit(ContentFit::Contain),
+            column![
+                text("SweepDesk").size(16),
+                text(tr("Your software, in one place.")).size(10).style(muted),
+            ]
+            .spacing(0),
+        ]
+        .spacing(9)
+        .align_y(Alignment::Center);
+
         let header = row![
-            image(image::Handle::from_bytes(LOGO.to_vec())).width(Length::Fixed(22.0)).height(Length::Fixed(22.0)),
-            text("SweepDesk").size(18),
-            text(tr("Your software, in one place.")).size(11).style(muted),
+            brand,
             horizontal_space(),
             text_input(tr("Search software…"), &self.search)
                 .on_input(Message::SearchChanged)
-                .width(Length::Fixed(260.0))
-                .padding(7)
+                .width(Length::Fixed(280.0))
+                .padding([7, 10])
                 .size(12),
-            button(text(if self.busy { tr("Scanning…") } else { tr("Refresh") }).size(12))
-                .on_press_maybe((!self.busy).then_some(Message::Rescan))
-                .padding([7, 12]),
-            button(text(tr("Settings")).size(12))
-                .on_press(Message::OpenSettings)
-                .padding([7, 12]),
+            ghost(
+                if self.busy { tr("Scanning…") } else { tr("Refresh") },
+                Message::Rescan,
+            ),
+            ghost(tr("Settings"), Message::OpenSettings),
         ]
-        .spacing(10)
+        .spacing(8)
         .align_y(Alignment::Center)
-        .padding([8, 16]);
+        .padding([10, 18]);
 
         let body: Element<'_, Message> = if self.settings {
             self.settings_view()
         } else if self.plan.is_some() {
             self.plan_view()
         } else {
-            row![self.sidebar(), self.list(), self.details()]
-                .spacing(1)
-                .height(Length::Fill)
-                .into()
+            row![
+                self.sidebar(),
+                container(self.list())
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .padding([6, 4])
+                    .style(card),
+                container(self.details())
+                    .width(Length::Fixed(320.0))
+                    .height(Length::Fill)
+                    .padding([6, 4])
+                    .style(card),
+            ]
+            .spacing(10)
+            .padding(Padding { top: 10.0, right: 12.0, bottom: 0.0, left: 12.0 })
+            .height(Length::Fill)
+            .into()
         };
 
         let mut layout = Column::new().push(
             container(header)
                 .width(Length::Fill)
-                .style(panel),
+                .style(header_bar),
         );
         if self.busy && self.plan.is_none() {
             layout = layout.push(
-                container(text(tr("Scanning installed software…")).size(12).style(muted))
-                    .padding([6, 16])
+                container(text(tr("Scanning installed software…")).size(11).style(muted))
+                    .padding([6, 18])
                     .width(Length::Fill),
             );
         }
         for warning in &self.warning {
             layout = layout.push(
                 container(text(warning).size(11).style(warn))
-                    .padding([5, 16])
+                    .padding([4, 18])
                     .width(Length::Fill),
             );
         }
@@ -606,11 +681,13 @@ impl SweepDesk {
                 container(
                     row![
                         text(error).size(11).style(warn).width(Length::Fill),
-                        button(text("×").size(13)).on_press(Message::DismissMessage).padding([0, 6]),
+                        button(text("×").size(13))
+                            .on_press(Message::DismissMessage)
+                            .padding([0, 6]),
                     ]
                     .align_y(Alignment::Center),
                 )
-                .padding([5, 16])
+                .padding([6, 18])
                 .width(Length::Fill),
             );
         }
@@ -619,11 +696,13 @@ impl SweepDesk {
                 container(
                     row![
                         text(message).size(11).width(Length::Fill),
-                        button(text("×").size(13)).on_press(Message::DismissMessage).padding([0, 6]),
+                        button(text("×").size(13))
+                            .on_press(Message::DismissMessage)
+                            .padding([0, 6]),
                     ]
                     .align_y(Alignment::Center),
                 )
-                .padding([5, 16])
+                .padding([6, 18])
                 .width(Length::Fill),
             );
         }
@@ -632,22 +711,27 @@ impl SweepDesk {
             container(
                 row![
                     text(format!(
-                        "{} {} · {}", tr("Version"), VERSION, tr("Made by Zwart04")
+                        "{} {} · {}",
+                        tr("Version"),
+                        VERSION,
+                        tr("Made by Zwart04")
                     ))
                     .size(10)
                     .style(muted),
                     horizontal_space(),
                     button(text(tr("Check for Updates")).size(10))
                         .on_press(Message::OpenReleases)
-                        .padding([1, 6]),
+                        .padding([3, 8])
+                        .style(ghost_button),
                     button(text(tr("Buy me a coffee")).size(10))
                         .on_press(Message::OpenSupport)
-                        .padding([1, 6]),
-                    text(format!("{} items", self.filtered.len())).size(10).style(muted),
+                        .padding([3, 8])
+                        .style(ghost_button),
+                    text(items_label(self.filtered.len())).size(10).style(muted),
                 ]
                 .spacing(10)
                 .align_y(Alignment::Center)
-                .padding([5, 16]),
+                .padding([6, 18]),
             )
             .width(Length::Fill)
             .style(panel),
@@ -670,8 +754,13 @@ impl SweepDesk {
                         self.selected = None;
                     }
                 }
-                Task::none()
+                let names = icon_names(&self.apps);
+                Task::perform(
+                    async move { icons::preload(names) },
+                    |_| Message::IconsReady,
+                )
             }
+            Message::IconsReady => Task::none(),
             Message::ToggleSystem(value) => {
                 if let Some(draft) = self.draft.as_mut() {
                     draft.show_system = value;
@@ -915,6 +1004,69 @@ impl SweepDesk {
     }
 }
 
+fn app_icon(app: &App, size: f32) -> Element<'_, Message> {
+    let kind = if is_cli(app) {
+        icons::Glyph::Terminal
+    } else {
+        icons::Glyph::Application
+    };
+    match icons::cached(&app.icon, kind) {
+        icons::Icon::Svg(handle) => svg(handle)
+            .width(Length::Fixed(size))
+            .height(Length::Fixed(size))
+            .content_fit(ContentFit::Contain)
+            .into(),
+        icons::Icon::Raster(handle) => image(handle)
+            .width(Length::Fixed(size))
+            .height(Length::Fixed(size))
+            .content_fit(ContentFit::Contain)
+            .into(),
+    }
+}
+
+fn items_label(count: usize) -> String {
+    tr("{count} items").replace("{count}", &count.to_string())
+}
+
+fn icon_names(apps: &[App]) -> Vec<String> {
+    let mut names: Vec<String> = Vec::new();
+    for app in apps {
+        if !app.icon.is_empty() && !names.contains(&app.icon) {
+            names.push(app.icon.clone());
+        }
+    }
+    names
+}
+
+fn nav_row<'a>(
+    label: String,
+    count: usize,
+    active: bool,
+    message: Message,
+) -> Element<'a, Message> {
+    button(
+        row![
+            text(label).size(12).width(Length::Fill),
+            text(count.to_string()).size(11).width(Length::Shrink).style(muted),
+        ]
+        .spacing(8)
+        .align_y(Alignment::Center),
+    )
+    .on_press(message)
+    .width(Length::Fill)
+    .padding([7, 10])
+    .style(move |theme, status| nav_style(theme, status, active))
+    .into()
+}
+
+fn ghost<'a>(label: &'a str, message: Message) -> Element<'a, Message> {
+    button(text(label).size(12))
+        .on_press(message)
+        .padding([7, 12])
+        .style(ghost_button)
+        .into()
+}
+
 fn main() -> iced::Result {
     let prefs = prefs::load();
     if std::env::args().any(|arg| arg == "--scan") {
@@ -980,6 +1132,39 @@ fn main() -> iced::Result {
         })
 }
 
+fn blend(base: Color, other: Color, amount: f32) -> Color {
+    Color {
+        r: base.r + (other.r - base.r) * amount,
+        g: base.g + (other.g - base.g) * amount,
+        b: base.b + (other.b - base.b) * amount,
+        a: 1.0,
+    }
+}
+
+fn surface(theme: &Theme) -> Color {
+    blend(
+        theme.extended_palette().background.base.color,
+        theme.palette().text,
+        0.055,
+    )
+}
+
+fn line(theme: &Theme) -> Color {
+    blend(
+        theme.extended_palette().background.base.color,
+        theme.palette().text,
+        0.11,
+    )
+}
+
+fn accent_fill(theme: &Theme) -> Color {
+    blend(
+        theme.extended_palette().background.base.color,
+        theme.extended_palette().primary.base.color,
+        0.24,
+    )
+}
+
 fn muted(theme: &Theme) -> iced::widget::text::Style {
     let palette = theme.palette();
     iced::widget::text::Style {
@@ -998,18 +1183,120 @@ fn warn(_theme: &Theme) -> iced::widget::text::Style {
 fn panel(theme: &Theme) -> iced::widget::container::Style {
     let palette = theme.palette();
     iced::widget::container::Style {
-        background: Some(palette.background.scale_alpha(0.75).into()),
+        background: Some(theme.extended_palette().background.base.color.into()),
         text_color: Some(palette.text),
         border: Border::default(),
         ..Default::default()
     }
 }
 
-fn code_box(theme: &Theme) -> iced::widget::container::Style {
+fn header_bar(theme: &Theme) -> iced::widget::container::Style {
     let palette = theme.palette();
     iced::widget::container::Style {
-        background: Some(palette.background.scale_alpha(0.4).into()),
-        border: Border::default().rounded(6).color(palette.text.scale_alpha(0.12)),
+        background: Some(theme.extended_palette().background.base.color.into()),
+        text_color: Some(palette.text),
+        border: Border {
+            color: palette.text.scale_alpha(0.10),
+            width: 0.0,
+            radius: 0.0.into(),
+        },
+        ..Default::default()
+    }
+}
+
+fn card(theme: &Theme) -> iced::widget::container::Style {
+    let palette = theme.palette();
+    iced::widget::container::Style {
+        background: Some(surface(theme).into()),
+        text_color: Some(palette.text),
+        border: Border::default().rounded(10).width(1).color(line(theme)),
+        ..Default::default()
+    }
+}
+
+fn divider(theme: &Theme) -> iced::widget::container::Style {
+    let palette = theme.palette();
+    iced::widget::container::Style {
+        background: Some(palette.text.scale_alpha(0.10).into()),
+        ..Default::default()
+    }
+}
+
+fn scroll_style(theme: &Theme, _status: scrollable::Status) -> scrollable::Style {
+    let palette = theme.palette();
+    let rail = scrollable::Rail {
+        background: None,
+        border: Border::default(),
+        scroller: scrollable::Scroller {
+            color: palette.text.scale_alpha(0.20),
+            border: Border::default().rounded(3),
+        },
+    };
+    scrollable::Style {
+        container: iced::widget::container::Style::default(),
+        vertical_rail: rail,
+        horizontal_rail: rail,
+        gap: None,
+    }
+}
+
+fn warn_box(theme: &Theme) -> iced::widget::container::Style {
+    let palette = theme.palette();
+    iced::widget::container::Style {
+        background: Some(Color::from_rgb(0.95, 0.62, 0.30).scale_alpha(0.12).into()),
+        text_color: Some(palette.text),
+        border: Border::default()
+            .rounded(6)
+            .color(Color::from_rgb(0.95, 0.62, 0.30).scale_alpha(0.35)),
+        ..Default::default()
+    }
+}
+
+fn primary_button(theme: &Theme, status: button::Status) -> button::Style {
+    let extended = theme.extended_palette();
+    let hovered = matches!(status, button::Status::Hovered | button::Status::Pressed);
+    button::Style {
+        background: Some(
+            if hovered {
+                extended.primary.strong.color
+            } else {
+                extended.primary.base.color
+            }
+            .into(),
+        ),
+        text_color: extended.primary.base.text,
+        border: Border::default().rounded(6),
+        shadow: Shadow::default(),
+    }
+}
+
+fn ghost_button(theme: &Theme, status: button::Status) -> button::Style {
+    let palette = theme.palette();
+    let hovered = matches!(status, button::Status::Hovered | button::Status::Pressed);
+    button::Style {
+        background: Some(
+            if hovered {
+                surface(theme)
+            } else {
+                Color::TRANSPARENT
+            }
+            .into(),
+        ),
+        text_color: palette.text,
+        border: Border::default().rounded(6).width(1).color(line(theme)),
+        shadow: Shadow::default(),
+    }
+}
+
+fn code_box(theme: &Theme) -> iced::widget::container::Style {
+    let palette = theme.palette();
+    let extended = theme.extended_palette();
+    iced::widget::container::Style {
+        background: Some(extended.background.base.color.into()),
+        border: Border::default()
+            .rounded(6)
+            .width(1)
+            .color(extended.background.strong.color),
         text_color: Some(palette.text),
         ..Default::default()
     }
@@ -1020,14 +1307,14 @@ fn nav_style(theme: &Theme, status: button::Status, active: bool) -> button::Sty
     let hovered = matches!(status, button::Status::Hovered | button::Status::Pressed);
     button::Style {
         background: if active {
-            Some(palette.primary.scale_alpha(0.22).into())
+            Some(accent_fill(theme).into())
         } else if hovered {
-            Some(palette.text.scale_alpha(0.08).into())
+            Some(surface(theme).into())
         } else {
             Some(Color::TRANSPARENT.into())
         },
-        text_color: if active { palette.primary } else { palette.text },
-        border: Border::default().rounded(5),
+        text_color: palette.text,
+        border: Border::default().rounded(6),
         shadow: Shadow::default(),
     }
 }
@@ -1037,14 +1324,14 @@ fn row_style(theme: &Theme, status: button::Status, active: bool) -> button::Sty
     let hovered = matches!(status, button::Status::Hovered | button::Status::Pressed);
     button::Style {
         background: if active {
-            Some(palette.primary.scale_alpha(0.20).into())
+            Some(accent_fill(theme).into())
         } else if hovered {
-            Some(palette.text.scale_alpha(0.07).into())
+            Some(surface(theme).into())
         } else {
             Some(Color::TRANSPARENT.into())
         },
         text_color: palette.text,
-        border: Border::default().rounded(5),
+        border: Border::default().rounded(6),
         shadow: Shadow::default(),
     }
 }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.1
+
+- Draw real per-application icons in the list and the details panel by resolving freedesktop icon names from the installed themes (SVG and PNG), with a neutral app glyph and a terminal glyph as fallbacks. Icons load in the background after the first scan.
+- Redesign the main window: header with brand, search, Refresh, and Settings; 232 px sidebar with live counts per category and source; card-based list and details panels; details pinned **Review Removal** action; fixed footer with the item count.
+- Rebuild the settings screen with a scrollable centred form and a fixed Cancel/Save footer, and make Save a primary action instead of a destructive one.
+- Style every surface from the theme's extended palette so dark and light themes stay consistent, including the scrollbar rail.
+- Localise the remaining strings: scope, refresh, inventory headings, add/remove buttons, plan summary counts, and the footer links.
+- Keep the System category count visible even when system packages are hidden from the other views.
+
 ## 0.6.0
 
 - Rewrite the application in Rust with the iced toolkit. The release binary is a single ~7 MB executable that links only against glibc, and measured resident memory drops from roughly 118 MB to 24 MB; GTK, PyGObject, and librsvg are no longer runtime dependencies.

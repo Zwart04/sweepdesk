@@ -5,6 +5,7 @@
 
 use crate::catalogue::ID;
 use crate::i18n;
+use crate::icons;
 use crate::manual;
 use crate::model::safe_user_path;
 use crate::prefs::Preferences;
@@ -49,6 +50,18 @@ fn catalogue_keeps_every_format_field() {
     assert_eq!(i18n::resolve_language("en"), "en");
     assert!(matches!(i18n::resolve_language("system").as_str(), "id" | "en"));
     assert!(i18n::language() == "en" || i18n::language() == "id");
+}
+
+#[test]
+fn unknown_icons_fall_back_to_a_glyph() {
+    assert!(matches!(
+        icons::cached("__sweepdesk_missing_icon__", icons::Glyph::Application),
+        icons::Icon::Svg(_)
+    ));
+    assert!(matches!(
+        icons::cached("__sweepdesk_missing_icon__", icons::Glyph::Terminal),
+        icons::Icon::Svg(_)
+    ));
 }
 
 #[test]
