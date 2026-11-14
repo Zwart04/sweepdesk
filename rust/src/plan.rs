@@ -380,7 +380,8 @@ pub fn make_plan(app: &App, cleanup: bool, dependencies: bool, family: bool) -> 
 }
 
 fn apt_plan(output: &str) -> Result<Vec<String>, String> {
-    let pattern = regex::Regex::new(r"^Remv (\S+)").unwrap();
+    // `apt-get -s purge` prints "Purg", a plain remove prints "Remv".
+    let pattern = regex::Regex::new(r"^(?:Remv|Purg) (\S+)").unwrap();
     let removed: Vec<String> = output
         .lines()
         .filter_map(|line| pattern.captures(line))
@@ -396,6 +397,10 @@ fn apt_plan(output: &str) -> Result<Vec<String>, String> {
 fn move_to_trash(path: &Path) -> Result<(), String> {
     trash::delete(path).map_err(|error| format!("{}: {error}", path.display()))
 }
+
+/// Prefix of the progress line emitted per Trashed path. The UI counts these to
+/// show how far the Trash move got.
+pub const TRASH_PREFIX: &str = "Moving to Trash: ";
 
 pub fn execute(plan: &Plan, emit: &mut dyn FnMut(&str)) -> Result<(), String> {
     let app = &plan.app;
@@ -484,7 +489,7 @@ pub fn execute(plan: &Plan, emit: &mut dyn FnMut(&str)) -> Result<(), String> {
         if !allowed {
             return Err(format!("Path changed or is not safe to clean: {path}"));
         }
-        emit(&format!("Moving to Trash: {path}\n"));
+        emit(&format!("{TRASH_PREFIX}{path}\n"));
         move_to_trash(item)?;
     }
     if app.source == "ArtCraft" && !plan.files.is_empty() {
@@ -530,4 +535,20 @@ pub fn describe(plan: &Plan) -> String {
     }
     let _ = fs::metadata(home());
     lines.join("\n")
+}
+
+#[cfg(test)]
+mod plan_tests {
+    use super::apt_plan;
+
+    #[test]
+    fn purge_output_lists_the_targets() {
+        let output = "The following packages will be REMOVED:\n  7zip* file-roller*\n0 upgraded, 0 newly installed, 2 to remove.\nPurg file-roller [44.5-1]\nPurg 7zip [25.01+dfsg-1~deb13u2]\n";
+        assert_eq!(apt_plan(output).unwrap(), vec!["file-roller", "7zip"]);
+    }
+
+    #[test]
+    fn remove_output_still_parses() {
+        assert_eq!(apt_plan("Remv qbittorrent [1.0]\n").unwrap(), vec!["qbittorrent"]);
+    }
 }

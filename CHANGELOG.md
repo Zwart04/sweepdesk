@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.5
+
+- Redesigned the removal screen for people who are new to Linux. Instead of dropping a `pkexec apt-get` command and its raw output on the page, the review now says what will happen in plain words, names the packages that will be removed, and keeps the commands and raw log behind a collapsed **Technical details** button.
+- Fixed the review listing no packages for APT removals: the planner only understood `Remv` lines, but `apt-get -s purge` prints `Purg`. Every package in the plan is now named before you confirm.
+- Added real progress feedback. Pressing review shows an animated bar and "Preparing a removal preview…", the removal shows the current phase ("Waiting for administrator permission…", "Moving files to Trash (3 of 12)…") with a moving bar and a live output tail, and the cleanup checkbox now shows an animated "Updating the preview…" while it rebuilds.
+- After a removal, the result stays on screen as a card with a success or failure heading and an expandable log instead of returning to the list without explanation.
+- Removal output is streamed line by line off the UI thread, so the window keeps repainting during long package operations.
+
 ## 0.6.4
 
 - Draw the interface with the GPU (`wgpu`) instead of the software rasterizer, and keep the software renderer as an automatic fallback when no usable graphics driver is present. Scrolling the inventory list no longer burns a full CPU core: the same scroll burst costs roughly four times less CPU here even with a software Vulkan driver, and far less on real hardware. The binary grows from 9.8 MB to 12.1 MB.

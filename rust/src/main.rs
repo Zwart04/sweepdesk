@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Zwart04
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SweepDesk: see LICENSE for copying terms and warranty disclaimer.
-//! SweepDesk 0.6.4 — native software inventory and reviewed uninstall.
+//! SweepDesk 0.6.5 — native software inventory and reviewed uninstall.
 
 mod catalogue;
 mod i18n;
@@ -23,6 +23,7 @@ use iced::widget::{
     button, checkbox, column, container, horizontal_space, image, row, scrollable, svg, text,
     text_input, vertical_space, Column,
 };
+use iced::futures::{SinkExt, StreamExt};
 use iced::{
     Alignment, Border, Color, ContentFit, Element, Length, Padding, Shadow, Task, Theme,
 };
@@ -31,7 +32,7 @@ use model::Plan;
 use prefs::Preferences;
 use std::rc::Rc;
 
-const VERSION: &str = "0.6.4";
+const VERSION: &str = "0.6.5";
 const LOGO: &[u8] = include_bytes!("../../assets/sweepdesk.png");
 const SUPPORT_URL: &str = "https://tako.id/Zwart04";
 const RELEASE_URL: &str = "https://github.com/Zwart04/sweepdesk/releases/latest";
@@ -94,6 +95,10 @@ enum Message {
     UpdateInstalled(Result<(), String>),
     DismissUpdate,
     Restart,
+    Progress(String),
+    Tick,
+    ToggleLog,
+    DismissOutcome,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -105,6 +110,25 @@ enum UpdatePhase {
     Done,
     UpToDate,
     Failed(String),
+}
+
+/// Result of a finished removal, kept on screen until dismissed so the user is
+/// not dropped back into the list without knowing what happened.
+#[derive(Debug, Clone)]
+struct Outcome {
+    ok: bool,
+    log: String,
+}
+
+impl Outcome {
+    fn summary(&self) -> String {
+        self.log
+            .lines()
+            .map(str::trim)
+            .find(|line| !line.is_empty())
+            .unwrap_or("")
+            .to_string()
+    }
 }
 
 /// One inventory row, materialized once per filter change so the list widget
@@ -133,6 +157,12 @@ struct SweepDesk {
     plan_text: String,
     cleanup: bool,
     acknowledged: bool,
+    previewing: bool,
+    removal: bool,
+    progress: Vec<String>,
+    show_log: bool,
+    tick: u64,
+    outcome: Option<Outcome>,
     message: Option<String>,
     error: Option<String>,
     settings: bool,
@@ -407,38 +437,101 @@ impl SweepDesk {
             .into()
     }
 
-    fn plan_view(&self) -> Element<'_, Message> {
-        let Some(plan) = &self.plan else {
-            return container(text("")).into();
-        };
+    /// Shown right after "Review removal" is pressed, so the click never looks
+    /// like it was ignored while the package list is being read.
+    fn preparing_view(&self) -> Element<'_, Message> {
+        let content = column![
+            text(tr("Preparing a removal preview…")).size(16),
+            self.activity_bar(),
+            text(tr(
+                "Reading installed packages and known data locations. Nothing is changed yet."
+            ))
+            .size(12)
+            .style(muted),
+        ]
+        .spacing(12);
+
+        container(
+            container(content)
+                .padding(20)
+                .width(Length::Fill)
+                .max_width(560.0)
+                .style(card),
+        )
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .center_x(Length::Fill)
+        .center_y(Length::Fill)
+        .into()
+    }
+
+    fn review_view(&self, plan: &Plan) -> Element<'_, Message> {
         let app = &plan.app;
-        let mut body = Column::new().spacing(12).padding(20);
-        body = body.push(text(tr("Review Removal")).size(20));
-        body = body.push(text(format!("{} · {}", app.name, app.package)).size(13).style(muted));
-        let mut summary = vec![
-            tr("{count} items to remove").replace("{count}", &plan.removed.len().to_string()),
-        ];
+        let mut body = Column::new().spacing(14).padding(22);
+        body = body.push(text(tr("Remove {name}").replace("{name}", &app.name)).size(20));
+        body = body.push(text(format!("{} · {}", app.package, app.source)).size(12).style(muted));
+
+        let mut steps = Column::new().spacing(7);
+        if !plan.removed.is_empty() {
+            steps = steps.push(text(tr("These packages will be removed:")).size(12));
+            steps = steps.push(text(preview_list(&plan.removed)).size(12).style(muted));
+        }
         if !plan.extra.is_empty() {
-            summary.push(
-                tr("{count} extra dependencies").replace("{count}", &plan.extra.len().to_string()),
+            steps = steps.push(
+                text(
+                    tr("{count} extra dependencies will be removed too")
+                        .replace("{count}", &plan.extra.len().to_string()),
+                )
+                .size(12)
+                .style(muted),
             );
         }
-        if !plan.data.is_empty() {
-            summary.push(
-                tr("{count} data locations").replace("{count}", &plan.data.len().to_string()),
+        let trash = plan.files.len() + plan.data.len();
+        if trash > 0 {
+            steps = steps.push(
+                text(
+                    tr("{count} files and folders are moved to Trash, not deleted permanently.")
+                        .replace("{count}", &trash.to_string()),
+                )
+                .size(12)
+                .style(muted),
+            );
+        } else if self.cleanup {
+            steps = steps.push(
+                text(tr("No known user data was found for this app, so only the installed files are removed."))
+                    .size(12)
+                    .style(muted),
             );
         }
-        body = body.push(text(summary.join(" · ")).size(12).style(muted));
         body = body.push(
-            container(scrollable(text(&self.plan_text).size(11).font(iced::Font::MONOSPACE)))
-                .height(Length::Fill)
-                .padding(10)
-                .style(code_box),
+            container(column![text(tr("What will happen")).size(13), steps].spacing(8))
+                .padding(14)
+                .width(Length::Fill)
+                .style(card),
         );
+
+        let needs_admin = plan
+            .commands
+            .iter()
+            .flatten()
+            .any(|argument| argument.contains("pkexec"));
+        if needs_admin {
+            body = body.push(
+                container(
+                    text(tr(
+                        "Administrator permission is required. Enter your password in the system window that opens. Nothing changes until you press the button below."
+                    ))
+                    .size(12),
+                )
+                .padding(12)
+                .width(Length::Fill)
+                .style(warn_box),
+            );
+        }
+
         body = body.push(
             container(
                 column![
-                    text(tr("Confirm before removing")).size(13),
                     checkbox(tr("Also move known user data to Trash"), self.cleanup)
                         .on_toggle(Message::CleanupToggled)
                         .size(16)
@@ -447,35 +540,302 @@ impl SweepDesk {
                         tr("I have checked the list and agree to remove these items"),
                         self.acknowledged,
                     )
-                        .on_toggle(Message::AcknowledgedToggled)
-                        .size(16)
-                        .text_size(12),
+                    .on_toggle(Message::AcknowledgedToggled)
+                    .size(16)
+                    .text_size(12),
                 ]
                 .spacing(8),
             )
-            .padding(12)
-            .style(panel),
+            .padding(14)
+            .width(Length::Fill)
+            .style(card),
         );
-        let can_confirm = self.acknowledged && !self.busy;
+        if self.previewing {
+            body = body.push(
+                column![
+                    self.activity_bar(),
+                    text(tr("Updating the preview…")).size(11).style(muted),
+                ]
+                .spacing(6),
+            );
+        }
+        body = body.push(
+            text(tr(
+                "Packages can be reinstalled later. Files moved to Trash can be restored from there."
+            ))
+            .size(11)
+            .style(muted),
+        );
+
+        body = body.push(
+            button(
+                text(if self.show_log {
+                    tr("Hide technical details")
+                } else {
+                    tr("Technical details (commands and raw output)")
+                })
+                .size(11),
+            )
+            .on_press(Message::ToggleLog)
+            .padding([4, 10])
+            .style(ghost_button),
+        );
+        if self.show_log {
+            body = body.push(
+                container(
+                    scrollable(text(plan_details(plan, &self.plan_text)).size(10).font(iced::Font::MONOSPACE))
+                        .height(Length::Fixed(200.0)),
+                )
+                .padding(10)
+                .width(Length::Fill)
+                .style(code_box),
+            );
+        }
+
+        let can_confirm = self.acknowledged && !self.previewing;
         body = body.push(
             row![
                 button(text(tr("Cancel")).size(13))
                     .on_press(Message::CancelPlan)
-                    .padding([8, 16]),
+                    .padding([8, 16])
+                    .style(ghost_button),
                 horizontal_space(),
-                button(text(if self.busy { tr("Removing…") } else { tr("Remove") }).size(13))
+                button(text(tr("Remove")).size(13))
                     .on_press_maybe(can_confirm.then_some(Message::Confirmed))
                     .padding([8, 16])
                     .style(danger_button),
             ]
             .spacing(8),
         );
-        container(body)
+        container(scrollable(
+            container(container(body).max_width(760.0))
+                .center_x(Length::Fill)
+                .width(Length::Fill),
+        ))
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .style(panel)
+        .into()
+    }
+
+    fn running_view(&self) -> Element<'_, Message> {
+        let name = self
+            .plan
+            .as_ref()
+            .map(|plan| plan.app.name.clone())
+            .unwrap_or_default();
+        let (phase, hint) = self.removal_phase();
+        let mut body = column![
+            text(tr("Uninstalling {name}…").replace("{name}", &name)).size(18),
+            self.activity_bar(),
+            text(phase).size(12),
+            text(hint).size(11).style(muted),
+            text(tr(
+                "Keep this window open until the removal finishes. This usually takes a few seconds."
+            ))
+            .size(11)
+            .style(muted),
+        ]
+        .spacing(10);
+
+        let tail = self.tail(8);
+        if !tail.is_empty() {
+            body = body.push(text(tr("Live output")).size(11).style(muted));
+            body = body.push(
+                container(text(tail).size(10).font(iced::Font::MONOSPACE))
+                    .padding(10)
+                    .width(Length::Fill)
+                    .style(code_box),
+            );
+        }
+        body = body.push(self.log_toggle());
+        if self.show_log {
+            body = body.push(self.log_box(240.0));
+        }
+        container(container(body).padding(22).max_width(760.0))
             .width(Length::Fill)
             .height(Length::Fill)
-            .padding(16)
+            .center_x(Length::Fill)
             .style(panel)
             .into()
+    }
+
+    fn outcome_view<'a>(&'a self, outcome: &'a Outcome) -> Element<'a, Message> {
+        let name = self
+            .plan
+            .as_ref()
+            .map(|plan| plan.app.name.clone())
+            .unwrap_or_default();
+        let mut body = Column::new().spacing(12).padding(22);
+        if outcome.ok {
+            body = body.push(text(tr("Removal finished.")).size(18).style(success));
+            body = body.push(
+                text(tr("{name} is no longer on this computer.").replace("{name}", &name))
+                    .size(12)
+                    .style(muted),
+            );
+        } else {
+            body = body.push(text(tr("Removal failed")).size(18).style(warn));
+            body = body.push(text(outcome.summary()).size(12));
+            body = body.push(
+                text(tr("Nothing else was changed. Close this message to try again."))
+                    .size(11)
+                    .style(muted),
+            );
+        }
+        body = body.push(self.log_toggle());
+        if self.show_log {
+            body = body.push(
+                container(
+                    scrollable(text(&outcome.log).size(10).font(iced::Font::MONOSPACE))
+                        .height(Length::Fixed(260.0)),
+                )
+                .padding(10)
+                .width(Length::Fill)
+                .style(code_box),
+            );
+        }
+        body = body.push(
+            row![
+                horizontal_space(),
+                button(text(tr("Close")).size(13))
+                    .on_press(Message::DismissOutcome)
+                    .padding([8, 16])
+                    .style(primary_button),
+            ]
+            .align_y(Alignment::Center),
+        );
+        container(container(body).max_width(760.0).center_x(Length::Fill))
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .style(panel)
+            .into()
+    }
+
+    fn plan_view(&self) -> Element<'_, Message> {
+        if let Some(outcome) = &self.outcome {
+            return self.outcome_view(outcome);
+        }
+        if self.removal {
+            return self.running_view();
+        }
+        match &self.plan {
+            Some(plan) => self.review_view(plan),
+            None => self.preparing_view(),
+        }
+    }
+
+    /// An indeterminate bar. It exists so every wait has something visibly
+    /// moving; it carries no real percentage on purpose.
+    fn activity_bar(&self) -> Element<'_, Message> {
+        const SLOTS: u64 = 48;
+        const CHUNK: u64 = 7;
+        let cycle = SLOTS - CHUNK;
+        let step = self.tick % (cycle * 2);
+        let head = if step <= cycle { step } else { cycle * 2 - step };
+        let tail = SLOTS - head - CHUNK;
+        container(
+            row![
+                horizontal_space().width(Length::FillPortion(head.max(1) as u16)),
+                container(horizontal_space())
+                    .height(Length::Fixed(5.0))
+                    .width(Length::FillPortion(CHUNK as u16))
+                    .style(activity_chunk),
+                horizontal_space().width(Length::FillPortion(tail.max(1) as u16)),
+            ]
+            .height(Length::Fixed(5.0)),
+        )
+        .width(Length::Fill)
+        .height(Length::Fixed(5.0))
+        .style(activity_track)
+        .into()
+    }
+
+    fn removal_phase(&self) -> (String, String) {
+        let (trash_expected, needs_admin) = match &self.plan {
+            Some(plan) => (
+                plan.files.len() + plan.data.len(),
+                plan.commands
+                    .iter()
+                    .flatten()
+                    .any(|argument| argument.contains("pkexec")),
+            ),
+            None => (0, false),
+        };
+        let moved = self
+            .progress
+            .iter()
+            .filter(|line| line.starts_with(plan::TRASH_PREFIX))
+            .count();
+        if moved > 0 {
+            return (
+                tr("Moving files to Trash ({done} of {total})…")
+                    .replace("{done}", &moved.to_string())
+                    .replace("{total}", &trash_expected.max(moved).to_string()),
+                tr("Your files and folders stay recoverable from the Trash.").into(),
+            );
+        }
+        if needs_admin && !self.progress.iter().any(|line| line.starts_with("$ ")) {
+            return (
+                tr("Waiting for administrator permission…").into(),
+                tr("If a password window appears, enter your administrator password there.").into(),
+            );
+        }
+        (
+            tr("Removing packages…").into(),
+            tr("This can take a moment. The text below updates while it works.").into(),
+        )
+    }
+
+    fn log_text(&self) -> String {
+        self.progress.join("")
+    }
+
+    /// The last few lines only, so the newest activity is always on screen.
+    fn tail(&self, limit: usize) -> String {
+        let mut lines: Vec<String> = Vec::new();
+        for chunk in &self.progress {
+            for line in chunk.lines() {
+                let line = line.trim_end();
+                if line.is_empty() {
+                    continue;
+                }
+                let short: String = line.chars().take(160).collect();
+                if short.chars().count() < line.chars().count() {
+                    lines.push(format!("{short}…"));
+                } else {
+                    lines.push(short);
+                }
+            }
+        }
+        let start = lines.len().saturating_sub(limit);
+        lines[start..].join("\n")
+    }
+
+    fn log_toggle(&self) -> Element<'_, Message> {
+        button(
+            text(if self.show_log {
+                tr("Hide log")
+            } else {
+                tr("Show log")
+            })
+            .size(11),
+        )
+        .on_press(Message::ToggleLog)
+        .padding([4, 10])
+        .style(ghost_button)
+        .into()
+    }
+
+    fn log_box(&self, height: f32) -> Element<'_, Message> {
+        container(
+            scrollable(text(self.log_text()).size(10).font(iced::Font::MONOSPACE))
+                .height(Length::Fixed(height)),
+        )
+        .padding(10)
+        .width(Length::Fill)
+        .style(code_box)
+        .into()
     }
 
     fn settings_view(&self) -> Element<'_, Message> {
@@ -650,7 +1010,11 @@ impl SweepDesk {
                 .padding([7, 10])
                 .size(12),
             ghost(
-                if self.busy { tr("Scanning…") } else { tr("Refresh") },
+                if self.busy && self.plan.is_none() && !self.previewing {
+                    tr("Scanning…")
+                } else {
+                    tr("Refresh")
+                },
                 Message::Rescan,
             ),
             ghost(tr("Settings"), Message::OpenSettings),
@@ -661,7 +1025,7 @@ impl SweepDesk {
 
         let body: Element<'_, Message> = if self.settings {
             self.settings_view()
-        } else if self.plan.is_some() {
+        } else if self.previewing || self.plan.is_some() {
             self.plan_view()
         } else {
             row![
@@ -691,7 +1055,7 @@ impl SweepDesk {
         if let Some(banner) = self.update_banner() {
             layout = layout.push(banner);
         }
-        if self.busy && self.plan.is_none() {
+        if self.busy && self.plan.is_none() && !self.previewing {
             layout = layout.push(
                 container(text(tr("Scanning installed software…")).size(11).style(muted))
                     .padding([6, 18])
@@ -917,6 +1281,10 @@ impl SweepDesk {
                 };
                 self.busy = true;
                 self.error = None;
+                self.previewing = true;
+                self.outcome = None;
+                self.progress.clear();
+                self.show_log = false;
                 Task::perform(
                     async move { plan::make_plan(&app, false, false, false) },
                     |result| match result {
@@ -938,48 +1306,87 @@ impl SweepDesk {
                     return Task::none();
                 };
                 self.busy = true;
-                Task::perform(
-                    async move {
-                        let mut log = String::new();
-                        let result = plan::execute(&plan, &mut |line| log.push_str(line));
-                        match result {
-                            Ok(()) => Ok(log),
-                            Err(error) => Err(format!("{error}\n\n{log}")),
-                        }
-                    },
-                    Message::Finished,
-                )
+                self.removal = true;
+                self.progress.clear();
+                self.outcome = None;
+                self.show_log = false;
+                self.tick = 0;
+                Task::stream(execute_stream(plan))
+            }
+            Message::Progress(line) => {
+                self.progress.push(line);
+                if self.progress.len() > 80 {
+                    self.progress.drain(..20);
+                }
+                Task::none()
+            }
+            Message::Tick => {
+                self.tick = self.tick.wrapping_add(1);
+                Task::none()
+            }
+            Message::ToggleLog => {
+                self.show_log = !self.show_log;
+                Task::none()
+            }
+            Message::DismissOutcome => {
+                self.outcome = None;
+                self.plan = None;
+                self.plan_text.clear();
+                self.progress.clear();
+                self.removal = false;
+                self.previewing = false;
+                Task::none()
             }
             Message::CancelPlan => {
                 self.plan = None;
+                self.plan_text.clear();
                 self.cleanup = false;
                 self.acknowledged = false;
                 self.busy = false;
+                self.previewing = false;
+                self.removal = false;
+                self.progress.clear();
+                self.show_log = false;
+                self.outcome = None;
                 Task::none()
             }
             Message::Finished(result) => {
                 self.busy = false;
+                self.previewing = false;
                 match result {
                     Ok(log) => {
-                        self.plan = None;
-                        self.cleanup = false;
-                        self.acknowledged = false;
-                        self.message = Some(if log.trim().is_empty() {
-                            tr("Removal finished.").into()
+                        let log = if log.trim().is_empty() {
+                            self.log_text()
                         } else {
                             log
-                        });
+                        };
+                        self.removal = false;
+                        self.cleanup = false;
+                        self.acknowledged = false;
+                        self.show_log = false;
+                        self.outcome = Some(Outcome { ok: true, log });
                         self.selected = None;
                         self.scan()
                     }
                     Err(error) => {
-                        self.error = Some(error);
-                        Task::none()
+                        if self.removal {
+                            self.removal = false;
+                            self.show_log = false;
+                            self.outcome = Some(Outcome {
+                                ok: false,
+                                log: error,
+                            });
+                            Task::none()
+                        } else {
+                            self.error = Some(error);
+                            Task::none()
+                        }
                     }
                 }
             }
             Message::PlanReady(plan) => {
                 self.busy = false;
+                self.previewing = false;
                 self.plan_text = plan::describe(&plan);
                 self.plan = Some(*plan);
                 self.acknowledged = false;
@@ -1165,6 +1572,7 @@ impl SweepDesk {
         };
         let cleanup = self.cleanup;
         self.busy = true;
+        self.previewing = true;
         Task::perform(
             async move { plan::make_plan(&app, cleanup, false, false) },
             |result| match result {
@@ -1255,6 +1663,64 @@ fn logo() -> image::Handle {
         .clone()
 }
 
+/// Runs the removal off the UI thread and forwards every output line, so the
+/// running screen animates and shows progress instead of appearing to hang on
+/// the administrator prompt or the Trash moves.
+fn execute_stream(plan: Plan) -> impl iced::futures::Stream<Item = Message> {
+    iced::stream::channel(
+        64,
+        move |mut sender: iced::futures::channel::mpsc::Sender<Message>| async move {
+            let (tx, mut rx) = iced::futures::channel::mpsc::unbounded::<Message>();
+            std::thread::spawn(move || {
+                let result = plan::execute(&plan, &mut |line| {
+                    let _ = tx.unbounded_send(Message::Progress(line.to_string()));
+                });
+                let message = match result {
+                    Ok(()) => Message::Finished(Ok(String::new())),
+                    Err(error) => Message::Finished(Err(error)),
+                };
+                let _ = tx.unbounded_send(message);
+            });
+            while let Some(message) = rx.next().await {
+                if sender.send(message).await.is_err() {
+                    break;
+                }
+            }
+        },
+    )
+}
+
+/// Raw plan text plus the planner's notes, shown only behind the technical
+/// details toggle.
+fn plan_details(plan: &Plan, text: &str) -> String {
+    let mut body = text.to_string();
+    for note in &plan.notes {
+        body.push_str("\n• ");
+        body.push_str(note);
+    }
+    body
+}
+
+/// First few names, so the review never turns into a wall of package names.
+fn preview_list(items: &[String]) -> String {
+    const LIMIT: usize = 8;
+    let joined = items
+        .iter()
+        .take(LIMIT)
+        .cloned()
+        .collect::<Vec<String>>()
+        .join(", ");
+    let extra = items.len().saturating_sub(LIMIT);
+    if extra == 0 {
+        joined
+    } else {
+        format!(
+            "{joined}, {}",
+            tr("and {count} more").replace("{count}", &extra.to_string())
+        )
+    }
+}
+
 fn items_label(count: usize) -> String {
     tr("{count} items").replace("{count}", &count.to_string())
 }
@@ -1334,6 +1800,12 @@ fn main() -> iced::Result {
         plan_text: String::new(),
         cleanup: false,
         acknowledged: false,
+        previewing: false,
+        removal: false,
+        progress: Vec::new(),
+        show_log: false,
+        tick: 0,
+        outcome: None,
         message: None,
         error: None,
         settings: false,
@@ -1359,6 +1831,13 @@ fn main() -> iced::Result {
             ..Default::default()
         })
         .antialiasing(true)
+        .subscription(|state: &SweepDesk| {
+            if state.busy {
+                iced::time::every(iced::time::Duration::from_millis(90)).map(|_| Message::Tick)
+            } else {
+                iced::Subscription::none()
+            }
+        })
         .run_with(move || {
             let task = if state.prefs.scan_on_start {
                 state.scan()
@@ -1407,6 +1886,12 @@ fn muted(theme: &Theme) -> iced::widget::text::Style {
     iced::widget::text::Style {
         color: Some(palette.text.scale_alpha(0.62)),
         ..Default::default()
+    }
+}
+
+fn success(_theme: &Theme) -> iced::widget::text::Style {
+    iced::widget::text::Style {
+        color: Some(Color::from_rgb(0.45, 0.80, 0.55)),
     }
 }
 
@@ -1535,6 +2020,22 @@ fn code_box(theme: &Theme) -> iced::widget::container::Style {
             .width(1)
             .color(extended.background.strong.color),
         text_color: Some(palette.text),
+        ..Default::default()
+    }
+}
+
+fn activity_track(theme: &Theme) -> iced::widget::container::Style {
+    iced::widget::container::Style {
+        background: Some(line(theme).into()),
+        border: Border::default().rounded(3),
+        ..Default::default()
+    }
+}
+
+fn activity_chunk(theme: &Theme) -> iced::widget::container::Style {
+    iced::widget::container::Style {
+        background: Some(theme.extended_palette().primary.base.color.into()),
+        border: Border::default().rounded(3),
         ..Default::default()
     }
 }
