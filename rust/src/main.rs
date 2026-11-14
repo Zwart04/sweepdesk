@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Zwart04
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SweepDesk: see LICENSE for copying terms and warranty disclaimer.
-//! SweepDesk 0.6.2 — native software inventory and reviewed uninstall.
+//! SweepDesk 0.6.3 — native software inventory and reviewed uninstall.
 
 mod catalogue;
 mod i18n;
@@ -29,7 +29,7 @@ use model::App;
 use model::Plan;
 use prefs::Preferences;
 
-const VERSION: &str = "0.6.2";
+const VERSION: &str = "0.6.3";
 const LOGO: &[u8] = include_bytes!("../../assets/sweepdesk.png");
 const SUPPORT_URL: &str = "https://tako.id/Zwart04";
 const RELEASE_URL: &str = "https://github.com/Zwart04/sweepdesk/releases/latest";

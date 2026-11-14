@@ -39,7 +39,7 @@ document.querySelector('#copy-command').addEventListener('click', async event =>
   }
 });
 
-let latestVersion = '0.6.2';
+let latestVersion = '0.6.3';
 const downloadURLs = {};
 const systemPicker = document.querySelector('#download-system');
 const packageFile = system => ({deb:`sweepdesk_${latestVersion}_amd64.deb`,rpm:`sweepdesk-${latestVersion}-1.fedora.x86_64.rpm`,suse:`sweepdesk-${latestVersion}-1.opensuse.x86_64.rpm`,arch:`sweepdesk-${latestVersion}-1-x86_64.pkg.tar.zst`,portable:`sweepdesk-${latestVersion}-x86_64.tar.gz`})[system];

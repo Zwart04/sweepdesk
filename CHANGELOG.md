@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.3
+
+- Draw application icons in the right place at fractional display scales (125%, 150%, 175%, 200% on HiDPI screens). The bundled SVG renderer scaled every icon twice and offset it by the scaled position, so logos drifted right and down and overlapped the text. Icons are now rasterized at the physical pixel size and blitted unscaled, which is also cheaper to draw.
+- Keep the fix in `rust/vendor/iced_tiny_skia` (patched through `[patch.crates-io]`) until the upstream crates.io release behaves the same.
+
 ## 0.6.2
 
 - Update from inside the app. **Check for Updates** asks the GitHub releases API for the newest version, offers to install it, downloads the package that matches your distribution, verifies it against the published `SHA256SUMS`, and installs it through `pkexec` so your package manager stays the source of truth. A **Restart** button relaunches the app when the install finishes.
