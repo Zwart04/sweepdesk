@@ -9,3 +9,4 @@ docs/local-preview.png
 *-inventory.json
 .DS_Store
 SweepDesk.desktop
+rust/target/

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.6.0
+
+- Rewrite the application in Rust with the iced toolkit. The release binary is a single ~7 MB executable that links only against glibc, and measured resident memory drops from roughly 118 MB to 24 MB; GTK, PyGObject, and librsvg are no longer runtime dependencies.
+- Keep the same inventory sources: APT, RPM, Pacman, APK, Flatpak, npm, pip, pipx, uv, Cargo, Snap, Bun, Homebrew, Steam, ArtCraft, manual installs, and user desktop launchers.
+- Keep reviewed removal plans, simulated APT runs, Trash-only handling of user files, path ownership and symlink checks, Steam fingerprint revalidation, Horizon sign-out, ArtCraft registry rewrite, and the Indonesian/English interface.
+- Read pip inventories from `*.dist-info` metadata without executing an interpreter.
+- Move libraries, release/update, and packaging commands to Cargo and `scripts/build.py`. Packages are now `amd64`, `x86_64`, and `x86_64` instead of `all/noarch/any`.
+- Replace the in-app update installer with a **Check for Updates** button that opens the releases page.
+- Refresh both preview screenshots from the Rust interface and remove the obsolete update-dialog screenshots.
+
 ## 0.5.8
 
 - Replace the app icon with the new penguin-in-a-bin artwork across the window, desktop entry, hicolor PNG sizes, website, and README.

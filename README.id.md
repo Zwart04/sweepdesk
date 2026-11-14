@@ -4,7 +4,7 @@
 
 **[Website Bahasa Indonesia](https://zwart04.github.io/sweepdesk/id.html)** · [Unduh versi terbaru](https://github.com/Zwart04/sweepdesk/releases/latest) · [English](README.md)
 
-Pengelola aplikasi GUI dan CLI untuk **Debian, Ubuntu, Fedora, openSUSE, Arch Linux, Alpine, dan distro turunan yang kompatibel**. Tema gelap memakai palet abu-abu netral dan aksen biru ala macOS.
+Pengelola aplikasi GUI dan CLI untuk **Debian, Ubuntu, Fedora, openSUSE, Arch Linux, Alpine, dan distro turunan yang kompatibel**. Satu biner Rust yang hanya bergantung pada glibc, jadi tidak perlu Python, GTK, atau runtime tambahan.
 
 [![Traktir kopi untuk Zwart04](assets/support-tako-id.svg)](https://tako.id/Zwart04)
 
@@ -14,164 +14,118 @@ Pengelola aplikasi GUI dan CLI untuk **Debian, Ubuntu, Fedora, openSUSE, Arch Li
 
 ## Memasang dengan mudah
 
-Pilih distro melalui **[halaman unduh](https://zwart04.github.io/sweepdesk/id.html#install)** atau [Releases](https://github.com/Zwart04/sweepdesk/releases/latest). `.deb` dipakai Ubuntu/Mint, bukan Fedora atau Arch.
+SweepDesk membutuhkan **glibc 2.28 atau lebih baru** dan sesi desktop Linux. `pkexec` (polkit) hanya dipakai saat menghapus paket sistem. Pilih distro melalui **[halaman unduh](https://zwart04.github.io/sweepdesk/id.html#install)** atau [Releases](https://github.com/Zwart04/sweepdesk/releases/latest). `.deb` dipakai Ubuntu/Mint, bukan Fedora atau Arch.
 
 | Distro | Berkas yang dipilih | Perintah dari folder unduhan |
 |---|---|---|
-| Debian / Ubuntu / Mint | `sweepdesk_0.5.8_all.deb` | `sudo apt install ./sweepdesk_0.5.8_all.deb` |
-| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.5.8-1.fedora.noarch.rpm` | `sudo dnf install ./sweepdesk-0.5.8-1.fedora.noarch.rpm` |
-| openSUSE Leap / Tumbleweed | `sweepdesk-0.5.8-1.opensuse.noarch.rpm` | `sudo zypper install ./sweepdesk-0.5.8-1.opensuse.noarch.rpm` |
-| Arch / EndeavourOS / Manjaro | `sweepdesk-0.5.8-1-any.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.5.8-1-any.pkg.tar.zst` |
-| Alpine / Linux lain dengan GTK 3 | `sweepdesk-0.5.8.tar.gz` | Ikuti bagian kode sumber di bawah |
+| Debian / Ubuntu / Mint | `sweepdesk_0.6.0_amd64.deb` | `sudo apt install ./sweepdesk_0.6.0_amd64.deb` |
+| Fedora / Rocky / AlmaLinux / keluarga RHEL | `sweepdesk-0.6.0-1.fedora.x86_64.rpm` | `sudo dnf install ./sweepdesk-0.6.0-1.fedora.x86_64.rpm` |
+| openSUSE Leap / Tumbleweed | `sweepdesk-0.6.0-1.opensuse.x86_64.rpm` | `sudo zypper install ./sweepdesk-0.6.0-1.opensuse.x86_64.rpm` |
+| Arch / EndeavourOS / Manjaro | `sweepdesk-0.6.0-1-x86_64.pkg.tar.zst` | `sudo pacman -U ./sweepdesk-0.6.0-1-x86_64.pkg.tar.zst` |
+| Distro Linux lain / immutable | `sweepdesk-0.6.0-x86_64.tar.gz` | Jalankan `./sweepdesk` dari folder hasil ekstrak |
 
-Jika desktop menyediakan pemasang grafis yang sesuai, berkas paket juga dapat dibuka dengan klik dua kali. Tidak semua distro menyediakannya secara bawaan. Pengelola paket memasang komponen yang dibutuhkan. Paket RPM/Arch dari GitHub merupakan paket lokal tanpa tanda tangan; periksa checksum dan ikuti kebijakan/tanya jawab keamanan pengelola paket. SweepDesk tidak mematikan pemeriksaan keamanan secara global.
-
-Buka **SweepDesk** dari menu aplikasi sebagai pengguna biasa. Kata sandi admin hanya diminta saat diperlukan. Untuk memperbarui secara manual, pasang paket versi baru dengan cara yang sama.
-
-**Membangun paket Arch:** unduh `PKGBUILD` dari rilis yang sama ke folder kosong, pasang `base-devel` dan `git`, lalu jalankan `makepkg -si` sebagai pengguna biasa. Resep tersebut memeriksa SHA-256 arsip sumber. Ini bukan paket AUR dan tidak membutuhkan repositori pihak ketiga.
+Paket RPM/Arch dari GitHub merupakan paket lokal tanpa tanda tangan; periksa checksum SHA-256 bila kebijakan Anda memintanya. SweepDesk tidak mematikan pemeriksaan tanda tangan atau dependensi. Buka **SweepDesk** dari menu aplikasi sebagai pengguna biasa; kata sandi admin hanya diminta saat menghapus paket sistem.
 
 Untuk menghapus SweepDesk, gunakan pengelola distro: `sudo apt purge sweepdesk`, `sudo dnf remove sweepdesk`, `sudo zypper remove sweepdesk`, atau `sudo pacman -R sweepdesk`.
 
-## Menjalankan dari kode sumber
-
-Pasang komponen desktop sesuai distro:
+## Menjalankan dari arsip portabel atau kode sumber
 
 ```bash
-# Debian / Ubuntu
-sudo apt install python3 python3-gi gir1.2-gtk-3.0 librsvg2-common policykit-1
-# Fedora / keluarga RHEL
-sudo dnf install python3 python3-gobject gtk3 librsvg2 polkit
-# openSUSE
-sudo zypper install python3 python3-gobject gtk3 typelib-1_0-Gtk-3_0 librsvg-2-2 polkit
-# Arch
-sudo pacman -S python python-gobject gtk3 librsvg polkit
-# Alpine desktop
-sudo apk add python3 py3-gobject3 gtk+3.0 librsvg polkit
+tar xzf sweepdesk-0.6.0-x86_64.tar.gz
+cd sweepdesk-0.6.0
+./sweepdesk
 ```
 
-Ekstrak arsip portabel atau ambil kode sumber:
+Atau bangun sendiri (butuh Rust 1.80 atau lebih baru):
 
 ```bash
 git clone https://github.com/Zwart04/sweepdesk.git
 cd sweepdesk
-./run.sh
+./install.sh      # membangun dengan cargo, memasang ke ~/.local
 ```
 
-Jika distro Debian tidak menyediakan `policykit-1`, gunakan `pkexec`. Jalankan dengan Python yang dapat membaca modul `gi` dan GTK 3. Untuk pintasan khusus pengguna, jalankan `./install.sh` tanpa sudo; hapus instalasi khusus pengguna dengan `./install.sh --uninstall`. Instalasi ini memakai interpreter Python saat pemasangan, sehingga tidak mengharuskan semua distro mempunyai `/usr/bin/python3`.
+`./install.py --uninstall` menghapus instalasi khusus pengguna dan membiarkan folder sumber. SweepDesk tidak memakai layanan latar belakang, telemetri, atau server web; daftar aplikasi dan log operasi tidak pernah dikirim ke mana pun.
 
-## Cakupan
+## Cakupan pembersihan
 
-Sumber yang didukung: **APT/DEB, RPM, Pacman, APK, npm global, pip, Cargo, Flatpak, Snap, pipx, uv tools, Bun global, Homebrew, game Steam, AppImage ArtCraft, executable manual, dan aplikasi dari pintasan desktop pengguna**. Manager yang belum terpasang tidak dipaksakan dipasang. Python sistem yang dilindungi PEP 668 tidak diubah paksa.
+Pilih aplikasi, tekan **Tinjau Penghapusan**, lalu baca rencananya. Tombol konfirmasi baru aktif setelah kotak persetujuan dicentang, dan SweepDesk selalu memeriksa ulang keadaan paket atau berkas sebelum bertindak.
 
-| Keluarga | Cakupan pengujian / kompatibilitas |
-|---|---|
-| Debian / Ubuntu | CI: Debian 11/12/13, Ubuntu 22.04/24.04/26.04 |
-| Mint, LMDE, Pop!_OS, Zorin, elementary OS, Kali, Raspberry Pi OS | Diharapkan kompatibel dengan keluarga Debian/Ubuntu; belum diuji satu per satu |
-| Fedora / RHEL | CI: Fedora terbaru dan Rocky 9. AlmaLinux, CentOS Stream, dan turunan lain memerlukan komponen yang sama |
-| openSUSE | CI: Leap terbaru dan Tumbleweed terbaru |
-| Arch | CI: Arch base. EndeavourOS, Manjaro, Garuda, CachyOS diharapkan kompatibel; belum diuji satu per satu |
-| Alpine desktop | CI: Alpine terbaru, termasuk pemasangan khusus pengguna dan penghapusan APK |
-| Linux lain | Antarmuka portabel dapat digunakan jika Python 3.9+, PyGObject, GTK 3.24+, librsvg, dan polkit tersedia. Penghapusan paket sistem belum tersedia untuk setiap pengelola |
+| Sumber | Inventaris | Penghapusan |
+|---|---|---|
+| **APT / dpkg** | Basis data `dpkg-query` | `apt-get purge` lewat polkit setelah simulasi dibandingkan ulang |
+| **RPM** | `rpm -qa` | `pkexec rpm -e` |
+| **Pacman** | `/var/lib/pacman/local` | `pkexec pacman -Rns`, dependensi ditampilkan lebih dulu |
+| **APK** | `/lib/apk/db/installed` | `pkexec apk del` |
+| **Flatpak** | Daftar aplikasi user dan sistem | `flatpak uninstall` untuk aplikasi itu saja |
+| **npm** | Prefix global di PATH, nvm, fnm | `npm uninstall -g --ignore-scripts` di dalam home Anda |
+| **pip** | Metadata `*.dist-info` dibaca langsung; sistem, venv, Conda, pyenv, folder tambahan | `pip uninstall` milik interpreter, hanya untuk lingkungan milik pengguna |
+| **pipx / uv tools** | Daftar tool masing-masing | Perintah uninstall milik tool tersebut |
+| **Cargo** | `cargo install --list` | `cargo uninstall` |
+| **Snap** | `snap list` | `pkexec snap remove` tanpa `--purge` |
+| **Bun** | Manifest paket global | `bun remove --global --ignore-scripts` |
+| **Homebrew** | `brew info --json=v2 --installed` | `brew uninstall --formula` |
+| **Steam** | Manifest game dan folder library | Folder game beserta manifest dipindahkan ke Trash; folder tanpa manifest ditampilkan terpisah |
+| **ArtCraft** | Registry launcher dan pintasan AppImage pengguna | Berkas dipindahkan ke Trash, entri registry ditulis ulang |
+| **Manual** | Executable di `~/.local/bin`, `~/bin`, `~/.opencode/bin`, `/usr/local/bin`, folder tambahan; launcher Horizon yang terverifikasi | Hanya berkas milik pengguna yang dipindahkan ke Trash |
 
-Paket all/noarch/any tidak berisi biner SweepDesk khusus CPU. Komponen pendukung tetap harus tersedia untuk arsitektur Anda. CI memakai x86_64 dan bukan pengujian setiap versi desktop/arsitektur. Versi image terbaru/rolling dapat berubah; lihat [hasil Actions](https://github.com/Zwart04/sweepdesk/actions).
+### Aturan keamanan
 
-**Distro dengan sistem yang dikelola khusus** seperti Fedora Atomic/Silverblue, Bazzite, MicroOS, SteamOS, dan NixOS tetap memakai pembaruan sistem bawaannya. SweepDesk tidak memaksa menghapus atau mengganti paket dasar sistem tersebut. Paket sistem hanya ditampilkan jika basis datanya didukung. Windows dan macOS belum didukung.
+- Berkas paket tidak pernah dihapus manual; pengelola paket pemiliknya yang menghapus.
+- Data pengguna dan berkas tanpa pemilik hanya **dipindahkan ke Trash**, tidak pernah dihapus permanen.
+- Path harus milik pengguna, tanpa symlink induk, dan bukan direktori sistem. Direktori luas seperti `$HOME` ditolak.
+- Berkas game Steam diberi sidik jari saat rencana dibuat dan dibandingkan lagi saat eksekusi; penghapusan ditolak bila Steam atau game sedang berjalan.
+- Launcher Horizon hanya dihapus setelah biner, pintasan, dan ikonnya terbukti milik Horizon; akun yang tersimpan dikeluarkan lebih dulu.
+- Item yang tidak bisa dihapus tetap tampil beserta alasannya. Paket inti, pustaka bersama, dan lokasi sistem hanya untuk inventaris.
+- Pilihan **Ikut pindahkan data pengguna ke Trash** bersifat opsional per penghapusan. Profil LibreOffice, OpenCode, Claude Code, Codex, curl, aplikasi Flatpak, game Steam, dan launcher Horizon dikenali.
+- Cache dan runtime bersama dipertahankan. Flatpak menentukan ekstensi terkait saat eksekusi; tidak ada pembersihan runtime global.
 
-## Bahasa aplikasi
+## Menggunakan SweepDesk
 
-Buka **Pengaturan → Tampilan → Bahasa**, pilih **Bahasa Indonesia**, **English**, atau **Ikuti sistem**, lalu tekan **Simpan**. Tampilan langsung berubah tanpa menutup aplikasi. Daftar, pencarian, dan Aktivitas sesi tetap tersedia. Pilihan bahasa nonaktif selama operasi masih berjalan.
-
-**Ikuti sistem** membaca bahasa sesi desktop; jika bahasa tersebut belum didukung, aplikasi memakai English. Nama/ID paket, lokasi file, deskripsi dari pengelola paket, dan keluaran perintah eksternal tetap dalam bahasa aslinya. SweepDesk tidak mengirim data untuk diterjemahkan secara daring.
-
-Website menyediakan tautan **Bahasa Indonesia / English** pada navigasi. Halaman Indonesia dapat dibuka langsung di **[zwart04.github.io/sweepdesk/id.html](https://zwart04.github.io/sweepdesk/id.html)**.
-
-## Antarmuka lebih ringan
-
-Pencarian dan pengurutan berlangsung langsung di perangkat. Ikon yang sama cukup dibaca sekali, dan beberapa sumber instalasi diperiksa bersamaan dengan batas empat proses pekerja. Saat memindai ulang, daftar sebelumnya tetap terlihat sampai hasil terbaru siap. Daftar aplikasi tidak disimpan ke disk; sebelum penghapusan, SweepDesk tetap membuat pratinjau baru dan memeriksa ulang kondisi paket.
-
-## Tombol pembaruan dari GitHub
-
-SweepDesk memeriksa versi stabil terbaru saat dibuka dan selama tetap berjalan, paling sering sekali sehari. Jika tersedia, muncul tombol **Perbarui sekarang** dan nomor versinya di atas daftar perangkat lunak. Untuk memeriksa kapan saja, buka **Tindakan lainnya → Periksa Pembaruan** atau **Pengaturan → Pembaruan**. Pemeriksaan otomatis bisa dinonaktifkan. Saat memeriksa secara manual, satu jendela menampilkan tombol **Perbarui sekarang**, proses pemasangan, tombol coba lagi jika gagal, dan **Buka ulang SweepDesk** setelah berhasil. Anda tidak perlu kembali ke tombol di halaman utama.
-
-Pada instalasi paket DEB/RPM/Arch, jendela pembaruan menjelaskan prosesnya sebelum Anda menekan **Perbarui sekarang**. Aplikasi kemudian mengunduh paket yang sesuai dari `Zwart04/sweepdesk`, lalu memeriksa ukuran dan SHA-256 terhadap `SHA256SUMS` serta digest GitHub jika tersedia. Pengelola paket distro memasangnya melalui autentikasi desktop. Setelah versi terpasang berhasil diperiksa, tersedia tombol **Buka ulang SweepDesk**. Jika pemasang atau kebijakan tanda tangan paket menolak, aplikasi melaporkan kegagalan.
-
-**Menemukan pembaruan tidak langsung memasangnya.** Anda tetap menekan tombol pembaruan. Instalasi dari kode sumber/arsip portabel, Alpine dari sumber, dan sistem yang dikelola khusus membuka halaman rilis untuk pembaruan manual. Kode sumber yang sedang Anda edit tidak ditimpa. Daftar aplikasi dan log tidak dikirim; pemeriksaan hanya menghubungi API rilis publik GitHub tanpa token akun.
-
-![Pengaturan pembaruan SweepDesk](docs/updates-id.png)
-
-## Memakai aplikasi
-
-1. Pilih kategori atau sumber instalasi pada **sidebar**. Cari nama aplikasi, ID paket, atau deskripsi. Deskripsi singkat tampil di bawah nama agar alasan kecocokan terlihat; misalnya kata `fire` juga cocok dengan **FireWire** pada deskripsi `libraw1394-11`. Deskripsi asli dari pengelola paket dipertahankan.
-2. Gunakan **Paket Sistem** untuk melihat paket pendukung. Tombol **Opsi tampilan** mengatur visibilitas paket sistem, kerapatan baris, dan panel detail.
-3. Klik dua kali untuk detail lengkap. **Klik kanan** menyediakan detail, daftar file APT, buka folder instalasi, salin ID/nama, dan pratinjau uninstall. Aksi yang tidak tersedia dibuat nonaktif.
-4. Klik **Tinjau Penghapusan…**, pilih opsi pembersihan, lalu **Pratinjau Penghapusan**. Periksa daftar paket dan lokasi data sebelum mencentang persetujuan dan menekan **Hapus**.
-5. Setelah proses selesai, panel hijau dengan tanda centang dan tulisan **Berhasil dihapus** menunjukkan keberhasilan. Jika ada langkah yang gagal, tampil panel **Penghapusan belum selesai** beserta log; sebagian perubahan mungkin telah berjalan.
-6. **Tindakan lainnya (•••) → Aktivitas** menyimpan log operasi hanya untuk sesi berjalan. Menu ini juga menyediakan ekspor inventaris, status pemindaian, dan bantuan.
-
-Tombol **Pengaturan** pada toolbar ringkas membuka pilihan bahasa, tema Gelap/Terang/Sistem, baris Ringkas/Longgar, panel detail, paket sistem, sumber pemindaian, dan folder tambahan. Pengaturan tersimpan di `~/.config/sweepdesk/preferences.json` atau lokasi `XDG_CONFIG_HOME`. Inventaris dan log operasi tidak disimpan otomatis.
+- **Sidebar:** filter kategori (semua perangkat lunak, aplikasi, baris perintah, paket sistem) dan sumber dengan jumlah langsung.
+- **Pencarian:** mencocokkan nama, ID paket, sumber, dan deskripsi.
+- **Detail:** versi, sumber, ukuran, ID paket, cakupan, serta alasan bila penghapusan tidak tersedia.
+- **Rencana penghapusan:** menampilkan perintah, paket, berkas, dan folder data pengguna sebelum apa pun dijalankan.
 
 ![Pengaturan SweepDesk](docs/settings-id.png)
 
-Tambahkan virtualenv atau folder instalasi melalui **Pengaturan → Pemindaian** atau menu **Tindakan lainnya**. Folder bisa diingat untuk sesi berikutnya. Alternatif:
+### Pengaturan
+
+- **Bahasa:** Indonesia, English, atau mengikuti locale sistem. Perubahan berlaku langsung setelah **Simpan**.
+- **Tampilan:** tema gelap, terang, atau mengikuti sistem.
+- **Inventaris:** tampilkan paket sistem, pindai saat SweepDesk dibuka, aktifkan/nonaktifkan sumber, serta tambah folder Python atau folder manual.
+
+Preferensi disimpan di `$XDG_CONFIG_HOME/sweepdesk/preferences.json` (biasanya `~/.config/sweepdesk/preferences.json`) dengan izin khusus pemilik. Inventaris tidak pernah ditulis ke disk.
+
+### Pembaruan
+
+**Check for Updates** membuka halaman rilis di browser. SweepDesk tidak mengunduh atau memasang pembaruan sendiri dan tidak mengubah paket sistem secara otomatis.
+
+## Jika ada masalah
+
+- **Tidak ada permintaan kata sandi:** gunakan sesi desktop normal dengan agen polkit, dan jangan jalankan seluruh aplikasi sebagai root.
+- **Sumber tidak muncul:** pasang atau aktifkan pengelolanya, pastikan tersedia di `PATH`, lalu tekan Refresh. Lokasi nvm/fnm npm, Cargo standar, Bun, uv, dan Linuxbrew juga diperiksa.
+- **Paket Python tidak muncul:** tambahkan folder lingkungannya di **Pengaturan → Folder Python tambahan**. Paket dpkg biasanya muncul di APT, bukan dua kali di pip.
+- **Instalasi manual tidak muncul:** tambahkan foldernya di **Pengaturan → Folder manual tambahan**. Hanya executable langsung di dalam folder itu yang dipindai.
+- **Item tidak bisa dihapus:** baca panel detailnya. Kepemilikan sistem, proteksi PEP 668, `RECORD` yang hilang, atau instalasi yang tidak bisa diverifikasi semuanya mencegah penghapusan aman.
+- **Operasi gagal:** simpan pesan galat, sumber, nama paket, dan distro. Laporkan melalui [Issues](https://github.com/Zwart04/sweepdesk/issues). Jangan memposting token atau daftar aplikasi pribadi.
+
+## Pengembangan dan pengujian
 
 ```bash
-./run.sh --python "$HOME/proyek/demo/.venv/bin/python" --manual-dir "$HOME/Applications"
+cargo test --manifest-path rust/Cargo.toml
+cargo build --release --manifest-path rust/Cargo.toml
+python3 scripts/build.py            # arsip portabel + .deb
+python3 scripts/build.py --format rpm --rpm-flavor fedora
+python3 scripts/build.py --format rpm --rpm-flavor opensuse
+python3 scripts/build.py --format arch
 ```
 
-Pintasan: **Ctrl+F** mencari, **Ctrl+R** memindai ulang, **Ctrl+,** membuka Pengaturan, **Ctrl+I / Enter** membuka detail, **Ctrl+E** mengekspor, dan **Shift+F10** membuka menu klik kanan. **Delete** hanya memulai alur pratinjau, bukan langsung menghapus. Kontrol jendela tetap mengikuti desktop Linux.
+Hasil build ditulis ke `dist/`: arsip portabel, paket native, dan `SHA256SUMS`. Build RPM membutuhkan `rpmbuild`; build Arch membutuhkan `makepkg` dan pengguna non-root. Verifikasi dengan `sha256sum -c SHA256SUMS` di folder tersebut.
 
-Logo aplikasi tersedia sebagai SVG dan PNG 16–512 piksel serta dipasang melalui paket `.deb` agar dipakai di menu aplikasi dan integrasi jendela/dock. Tombol **Traktir kopi** berbentuk pill membuka [Tako Zwart04](https://tako.id/Zwart04).
+Uji Rust mencakup katalog bahasa, migrasi preferensi, keamanan path, penyaringan manifest Steam, serta inventaris ArtCraft/launcher memakai fixture sementara. CI membangun dan memasang paket nyata pada setiap keluarga yang terdaftar, lalu menjalankan `sweepdesk --scan` sebagai pengguna biasa di dalam kontainer sekali pakai. Pengujian tidak pernah menyentuh aplikasi terpasang di host. Tangkapan layar README memakai daftar contoh berlabel, bukan daftar perangkat lunak pribadi.
 
-## Seberapa bersih penghapusannya?
+## Traktir kopi
 
-SweepDesk memakai uninstaller asli tiap manager dan hanya membersihkan data yang lokasinya dikenali. Dependensi bersama, cache bersama, snapshot Snap, runtime Flatpak, dan paket orphan lama yang tidak terkait tidak dihapus sembarangan. Rinciannya:
+**[Traktir kopi → tako.id/Zwart04](https://tako.id/Zwart04)** membantu pemeliharaan kompatibilitas, pengujian, dan profil pembersihan baru. Traktiran bersifat sukarela; semua fitur tetap tersedia.
 
-| Sumber | Yang dapat dihapus dan batasannya |
-|---|---|
-| **APT / DEB** | Menghapus paket dan konfigurasi milik paket melalui purge. Pratinjau memeriksa dampak dependensi. Opsi paket pendukung hanya mencakup yang tidak lagi dibutuhkan setelah aplikasi ini dihapus; paket lain yang sudah tidak terpakai sebelumnya tetap disimpan. |
-| **RPM (Fedora/openSUSE)** | Hanya menghapus paket pilihan dengan pemeriksaan dependensi RPM tetap aktif. Jika masih dibutuhkan paket lain, penghapusan ditolak. Paket pendukung dan cadangan pengaturan `.rpmsave` disimpan. Riwayat transaksi DNF/Zypper tidak diperbarui oleh penghapusan RPM langsung. |
-| **Pacman (Arch)** | Memakai pratinjau bawaan yang diperiksa kembali. Opsi paket pendukung memakai `-Rs`, tanpa penghapusan berantai atau pemaksaan dependensi. Pengaturan yang berubah dapat tersimpan sebagai `.pacsave`. Paket AUR yang terpasang lewat Pacman ikut terlihat. |
-| **APK (Alpine)** | Memakai simulasi penghapusan yang diperiksa kembali. Paket pendukung yang baru tidak diperlukan dapat ikut dihapus sesuai daftar. Tidak memaksa menghapus aplikasi lain atau pengaturan yang diubah. |
-| **npm global** | Memakai prefix global yang terdeteksi secara tepat. Pohon paket dikelola npm; skrip siklus hidup dinonaktifkan. Prefix sistem di luar beranda hanya ditampilkan. |
-| **pip** | Memakai interpreter dan catatan RECORD lingkungan yang dipilih. Dependensi bersama, paket yang diminta secara eksplisit, alat pengelola, dan metadata yang belum pasti dipertahankan. Python sistem yang dilindungi PEP 668 tidak diubah paksa. |
-| **Cargo** | Memakai cargo uninstall. Cache registri, unduhan sumber, dan cache kompilasi bersama dipertahankan. |
-| **Flatpak** | Menghapus aplikasi dari instalasi pengguna atau sistem. Data aplikasi yang dipilih dipindahkan ke Sampah; runtime bersama/tidak terpakai tidak dibersihkan global. |
-| **Snap** | Memakai penghapusan bawaan Snap. Kebijakan snapshot normal tetap berlaku; snapshot tidak dipurge paksa. |
-| **pipx / uv tools** | Memakai uninstaller masing-masing untuk lingkungan alat dan program yang dikelolanya. |
-| **Bun global** | Memakai penghapusan global dan hubungan dependensi Bun. Cache bersama dipertahankan. |
-| **Homebrew** | Memakai brew uninstall dengan perlindungan formula yang masih dibutuhkan. Tidak mengabaikan dependensi atau membersihkan cache global. |
-| **Steam** | Game terpasang dari manifes aplikasi dan folder tanpa manifes di pustaka native, Flatpak, serta `libraryfolders.vdf` tambahan. Folder game dan manifesnya dipindahkan ke Sampah; prefix Proton dan cache shader opsional. Steam dan game harus ditutup; runtime bersama, Steam Cloud, dan game lain tidak diubah. |
-| **ArtCraft AppImage** | File executable, ikon, dan pintasan yang tercatat dipindahkan ke Sampah; catatan diperbarui setelah berhasil. Tutup ArtCraft Launcher dahulu. |
-| **Manual / skrip / curl** | Program/lokasi instalasi pengguna yang dikenali dapat dipindahkan ke Sampah. Pintasan desktop saja tetap hanya-baca, kecuali launcher Linux Horizon yang tervalidasi beserta pintasan standar dan ikonnya. File sistem tanpa registrasi hanya ditampilkan. Perubahan PATH, layanan, dan file sembarang dari skrip mungkin tidak terdeteksi. |
-
-
-**Tidak ada jaminan semua sisa setiap installer bisa diketahui.** Skrip `curl | bash` dapat menulis ke sembarang tempat tanpa daftar kepemilikan. SweepDesk mendeteksi executable/lokasi yang dikenal; file sistem tanpa registrasi hanya dapat diinventarisasi. File proyek dan seluruh virtualenv di disk tidak dipindai otomatis.
-
-Profil data yang saat ini dikenali meliputi LibreOffice, OpenCode, Claude Code, Codex, curl, Horizon, game Steam, dan data aplikasi Flatpak. Folder Horizon dapat berisi file game unduhan, versi, dunia, data server, log, dan pengaturan. Jika pembersihan dipilih, akun Horizon dikeluarkan dari penyimpanan kredensial sistem lalu folder yang tercantum dipindahkan ke **Sampah**. Instalasi Minecraft asli dan folder Horizon khusus di luar lokasi terdeteksi tetap utuh. Pembersihan Steam memindahkan prefix Proton dan cache shader game; Steam Cloud dan game lain tetap utuh. Ruang baru kembali setelah Sampah dikosongkan. Bila Sampah tidak tersedia, penghapusan tidak dialihkan ke hapus permanen.
-
-Ikon aplikasi dibaca dari launcher lokal. Logo resmi OpenCode, Command Code, curl, dan npm disertakan agar CLI tertentu juga mudah dikenali tanpa internet. CLI lain memakai ikon terminal bila ikon resminya belum tersedia.
-
-## Jika terjadi masalah
-
-- **Sumber tidak terlihat:** pastikan pengelolanya terpasang dan aktif di **Pengaturan → Sumber**, lalu pindai ulang.
-- **Lingkungan Python/folder manual tidak terlihat:** tambahkan lokasinya melalui **Pengaturan → Pemindaian**.
-- **Tidak ada dialog kata sandi:** jalankan aplikasi sebagai pengguna biasa dalam sesi desktop yang memiliki agen polkit.
-- **Penghapusan belum selesai:** baca log di **Aktivitas**. Jangan langsung mengulang tanpa memeriksa status pengelola paket; sebagian langkah mungkin sudah berjalan.
-- **Berhasil dihapus tetapi data masih ada:** pembersihan data harus dipilih, hanya lokasi yang dikenali yang diproses, dan data di Sampah masih memakai ruang sampai dikosongkan sendiri.
-
-## Pengembangan dan pemeriksaan
-
-```bash
-python3 -m unittest discover -s tests -v
-python3 scripts/build.py
-```
-
-Hasil paket berada di `dist/`, termasuk `.deb`, arsip sumber, dan `SHA256SUMS`. Jalankan `sha256sum -c SHA256SUMS` pada folder unduhan untuk memeriksa berkas. CI menguji backend, UI, bahasa, pencarian, hasil penghapusan, pemeriksaan/checksum pembaruan, serta paket asli di container distro. Pengujian memasang dan menghapus paket contoh `tree` hanya dalam container yang dapat dibuang. Penghapusan pip memakai lingkungan virtual terisolasi. Pengujian tidak menghapus aplikasi di komputer pengguna.
-
-## Bantuan dan traktir kopi
-
-- [Dokumentasi lengkap berbahasa Inggris](README.md)
-- [Laporkan masalah](https://github.com/Zwart04/sweepdesk/issues)
-- **[Traktir kopi untuk Zwart04 melalui Tako](https://tako.id/Zwart04)** — tombol yang sama ada pada judul aplikasi.
-
-Jangan unggah inventaris pribadi, token, atau kata sandi ke laporan publik. Mulai versi 0.5.2, kode, ilustrasi aplikasi, dan dokumentasi asli berlisensi [GNU GPL versi 3 atau lebih baru](LICENSE) (`GPL-3.0-or-later`), hak cipta (C) 2026 Zwart04, tanpa jaminan. Jika membagikan atau menjual versi modifikasi, patuhi GPL dan sediakan kode sumber yang sesuai. Versi sampai 0.5.1 tetap memiliki izin MIT sebelumnya; lihat [riwayat lisensi](docs/LICENSE-HISTORY.md). Merek dan logo pihak ketiga tetap mengikuti ketentuan pembuatnya.
+Kode asli, karya ikon, dan dokumentasi: [GNU GPL v3.0 atau lebih baru](LICENSE) (`GPL-3.0-or-later`), hak cipta (C) 2026 Zwart04. Tanpa jaminan. Redistribusi versi modifikasi wajib mematuhi GPL, termasuk menyediakan kode sumber. Rilis sampai 0.5.1 tetap memakai izin MIT; lihat [riwayat lisensi](docs/LICENSE-HISTORY.md). Nama dan karya pihak ketiga tetap mengikuti ketentuan masing-masing. SweepDesk tidak berafiliasi dengan Debian, Ubuntu, ArtCraft, atau pengelola paket yang didukungnya.

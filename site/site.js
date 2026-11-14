@@ -39,10 +39,10 @@ document.querySelector('#copy-command').addEventListener('click', async event =>
   }
 });
 
-let latestVersion = '0.5.8';
+let latestVersion = '0.6.0';
 const downloadURLs = {};
 const systemPicker = document.querySelector('#download-system');
-const packageFile = system => ({deb:`sweepdesk_${latestVersion}_all.deb`,rpm:`sweepdesk-${latestVersion}-1.fedora.noarch.rpm`,suse:`sweepdesk-${latestVersion}-1.opensuse.noarch.rpm`,arch:`sweepdesk-${latestVersion}-1-any.pkg.tar.zst`,portable:`sweepdesk-${latestVersion}.tar.gz`})[system];
+const packageFile = system => ({deb:`sweepdesk_${latestVersion}_amd64.deb`,rpm:`sweepdesk-${latestVersion}-1.fedora.x86_64.rpm`,suse:`sweepdesk-${latestVersion}-1.opensuse.x86_64.rpm`,arch:`sweepdesk-${latestVersion}-1-x86_64.pkg.tar.zst`,portable:`sweepdesk-${latestVersion}-x86_64.tar.gz`})[system];
 function selectDownload() {
   const system=systemPicker.value;
   const file=packageFile(system);
@@ -65,7 +65,7 @@ async function loadRelease() {
     if (!/^\d+\.\d+\.\d+(?:[-+][a-zA-Z0-9.-]+)?$/.test(version)) return;
     document.querySelectorAll('[data-version]').forEach(node => { node.textContent = words.version + version; });
     latestVersion=version;
-    const files = {rpm:asset=>asset.name.endsWith('.fedora.noarch.rpm'),suse:asset=>asset.name.endsWith('.opensuse.noarch.rpm'),arch:asset=>asset.name.endsWith('-any.pkg.tar.zst'),recipe:asset=>asset.name==='PKGBUILD',deb: asset => asset.name.endsWith('_all.deb'), portable: asset => asset.name.endsWith('.tar.gz'), checksums: asset => asset.name === 'SHA256SUMS'};
+    const files = {rpm:asset=>asset.name.endsWith('.fedora.x86_64.rpm'),suse:asset=>asset.name.endsWith('.opensuse.x86_64.rpm'),arch:asset=>asset.name.endsWith('-x86_64.pkg.tar.zst'),recipe:asset=>asset.name==='PKGBUILD',deb: asset => asset.name.endsWith('_amd64.deb'), portable: asset => asset.name.endsWith('x86_64.tar.gz'), checksums: asset => asset.name === 'SHA256SUMS'};
     for (const [type, matches] of Object.entries(files)) {
       const asset = Array.isArray(release.assets) && release.assets.find(matches);
       if (asset && String(asset.browser_download_url).startsWith('https://github.com/Zwart04/sweepdesk/releases/download/')) {

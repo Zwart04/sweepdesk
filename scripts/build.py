@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2026 Zwart04
 # SPDX-License-Identifier: GPL-3.0-or-later
 # SweepDesk: see LICENSE for copying terms and warranty disclaimer.
-"""Build portable, Debian, Fedora/openSUSE RPM, and Arch packages with native tools."""
+"""Build the portable tarball plus Debian, RPM, and Arch packages from the Rust binary."""
 import argparse
 import hashlib
 from pathlib import Path
@@ -13,55 +13,66 @@ import tarfile
 import tempfile
 
 ROOT=Path(__file__).resolve().parents[1]
-VERSION=re.search(r"VERSION = '([^']+)'",(ROOT/'sweepdesk.py').read_text()).group(1)
+VERSION=re.search(r'^version = "([^"]+)"',(ROOT/'rust/Cargo.toml').read_text(),re.M).group(1)
 DIST=ROOT/'dist'
-PAYLOAD=['sweepdesk.py','backend.py','native_packages.py','updater.py','python_probe.py','preferences.py','styles.py','ui_icons.py','i18n.py','README.md','README.id.md','LICENSE','THIRD_PARTY_NOTICES.md','assets','docs']
+TARGET=ROOT/'rust/target/release'
+DESKTOP='io.github.Zwart04.SweepDesk.desktop'
+
+
+def build_binary():
+    subprocess.run(['cargo','build','--release','--locked'],cwd=ROOT/'rust',check=True)
+    binary=TARGET/'sweepdesk'
+    if not binary.is_file():
+        raise SystemExit('cargo did not produce '+str(binary))
+    return binary
 
 
 def stage_payload(stage):
-    app=stage/'usr/share/sweepdesk';app.mkdir(parents=True)
-    for name in PAYLOAD:
-        source=ROOT/name
-        if source.is_dir(): shutil.copytree(source,app/name,ignore=shutil.ignore_patterns('local-preview.png'))
-        else: shutil.copy2(source,app/name)
-    binary=stage/'usr/bin/sweepdesk';binary.parent.mkdir(parents=True)
-    binary.write_text('#!/bin/sh\nexec /usr/bin/python3 /usr/share/sweepdesk/sweepdesk.py "$@"\n');binary.chmod(0o755)
-    desktop=stage/'usr/share/applications';desktop.mkdir(parents=True)
-    shutil.copy2(ROOT/'sweepdesk.desktop',desktop/'io.github.Zwart04.SweepDesk.desktop')
+    for name in ('usr/bin','usr/share/applications','usr/share/licenses/sweepdesk'):
+        (stage/name).mkdir(parents=True,exist_ok=True)
+    binary=build_binary()
+    shutil.copy2(binary,stage/'usr/bin/sweepdesk')
+    (stage/'usr/bin/sweepdesk').chmod(0o755)
+    shutil.copy2(ROOT/'sweepdesk.desktop',stage/'usr/share/applications'/DESKTOP)
     shutil.copytree(ROOT/'assets/icons/hicolor',stage/'usr/share/icons/hicolor',dirs_exist_ok=True)
-    docs=stage/'usr/share/licenses/sweepdesk';docs.mkdir(parents=True)
-    shutil.copy2(ROOT/'LICENSE',docs/'LICENSE')
+    shutil.copy2(ROOT/'LICENSE',stage/'usr/share/licenses/sweepdesk/LICENSE')
 
 
 def portable():
-    output=DIST/f'sweepdesk-{VERSION}.tar.gz'
-    ignored={'.git','.work','dist','__pycache__','.venv'}
-    with tarfile.open(output,'w:gz') as archive:
-        for path in sorted(ROOT.rglob('*')):
-            relative=path.relative_to(ROOT)
-            if not path.is_file() or any(part in ignored for part in relative.parts): continue
-            if path.name.endswith(('.pyc','.log','.pid')) or path.name in ('local-preview.png','SweepDesk.desktop'): continue
-            archive.add(path,arcname=str(Path(f'sweepdesk-{VERSION}')/relative),recursive=False)
+    output=DIST/f'sweepdesk-{VERSION}-x86_64.tar.gz'
+    binary=build_binary()
+    top=f'sweepdesk-{VERSION}'
+    with tempfile.TemporaryDirectory(prefix='portable-',dir=DIST) as directory:
+        stage=Path(directory)/top
+        stage.mkdir(parents=True)
+        shutil.copy2(binary,stage/'sweepdesk')
+        (stage/'sweepdesk').chmod(0o755)
+        for name in ('sweepdesk.desktop','LICENSE','README.md','README.id.md','THIRD_PARTY_NOTICES.md'):
+            if (ROOT/name).is_file(): shutil.copy2(ROOT/name,stage/name)
+        for name in ('assets','docs'):
+            shutil.copytree(ROOT/name,stage/name,ignore=shutil.ignore_patterns('local-preview.png'))
+        with tarfile.open(output,'w:gz') as archive:
+            archive.add(stage,arcname=top)
     return output
 
 
 def deb():
     with tempfile.TemporaryDirectory(prefix='deb-',dir=DIST) as directory:
-        stage=Path(directory);stage_payload(stage)
+        stage=Path(directory);stage.chmod(0o755);stage_payload(stage)
         docs=stage/'usr/share/doc/sweepdesk';docs.mkdir(parents=True)
         shutil.copy2(ROOT/'LICENSE',docs/'copyright')
         control=stage/'DEBIAN';control.mkdir()
         size=sum(p.stat().st_size for p in stage.rglob('*') if p.is_file())//1024+1
         (control/'control').write_text(
-            f'Package: sweepdesk\nVersion: {VERSION}\nArchitecture: all\nSection: admin\nPriority: optional\n'
+            f'Package: sweepdesk\nVersion: {VERSION}\nArchitecture: amd64\nSection: admin\nPriority: optional\n'
             'Maintainer: Zwart04 <48742395+Zwart04@users.noreply.github.com>\n'
-            f'Installed-Size: {size}\nDepends: python3 (>= 3.9), python3-gi, gir1.2-gtk-3.0, librsvg2-common, pkexec | policykit-1\n'
+            f'Installed-Size: {size}\nDepends: libc6 (>= 2.28), pkexec | policykit-1\n'
             'Homepage: https://zwart04.github.io/sweepdesk/\n'
             'Description: Native Linux software inventory and reviewed uninstall\n'
             ' Browse system packages, desktop apps, and CLI tools. Review removal plans\n'
             ' and optionally move known user data to Trash. Includes GitHub update checks.\n')
         (control/'md5sums').write_text(''.join(hashlib.md5(p.read_bytes()).hexdigest()+'  '+str(p.relative_to(stage))+'\n' for p in sorted((stage/'usr').rglob('*')) if p.is_file()))
-        output=DIST/f'sweepdesk_{VERSION}_all.deb'
+        output=DIST/f'sweepdesk_{VERSION}_amd64.deb'
         subprocess.run(['dpkg-deb','--root-owner-group','--build',str(stage),str(output)],check=True)
         return output
 
@@ -71,7 +82,6 @@ def rpm(flavor):
         top=Path(directory).resolve()
         for name in ('BUILD','BUILDROOT','RPMS','SOURCES','SPECS','SRPMS'): (top/name).mkdir()
         payload=top/'payload';stage_payload(payload)
-        requirements='python3 >= 3.9, python3-gobject, gtk3, '+('librsvg2, polkit' if flavor=='fedora' else 'typelib-1_0-Gtk-3_0, librsvg-2-2, polkit')
         spec=top/'SPECS/sweepdesk.spec'
         spec.write_text(f'''Name: sweepdesk
 Version: {VERSION}
@@ -79,11 +89,10 @@ Release: 1.{flavor}
 Summary: Native Linux software inventory and reviewed uninstall
 License: GPL-3.0-or-later
 URL: https://zwart04.github.io/sweepdesk/
-BuildArch: noarch
-Requires: {requirements}
+BuildArch: x86_64
+Requires: glibc, polkit
 AutoReqProv: no
 %global debug_package %{{nil}}
-%global __brp_python_bytecompile %{{nil}}
 %description
 Browse system packages, desktop apps, and CLI tools. Review removal plans,
 optionally move known data to Trash, and check for new GitHub releases.
@@ -94,13 +103,12 @@ mkdir -p "%{{buildroot}}"
 cp -a "{payload}/usr" "%{{buildroot}}/"
 %files
 /usr/bin/sweepdesk
-/usr/share/sweepdesk
-/usr/share/applications/io.github.Zwart04.SweepDesk.desktop
-/usr/share/icons/hicolor/*/apps/io.github.Zwart04.SweepDesk.*
+/usr/share/applications/{DESKTOP}
+/usr/share/icons/hicolor/*/apps/io.github.Zwart04.SweepDesk.png
 %license /usr/share/licenses/sweepdesk/LICENSE
 ''')
         subprocess.run(['rpmbuild','--define','_topdir '+str(top),'-bb',str(spec)],check=True)
-        generated=next((top/'RPMS/noarch').glob('sweepdesk-*.rpm'))
+        generated=next((top/'RPMS/x86_64').glob('sweepdesk-*.rpm'))
         output=DIST/generated.name;shutil.copy2(generated,output)
         return output
 
@@ -112,11 +120,11 @@ def arch():
 pkgver={VERSION}
 pkgrel=1
 pkgdesc='Native Linux software inventory and reviewed uninstall'
-arch=('any')
+arch=('x86_64')
 url='https://zwart04.github.io/sweepdesk/'
 license=('GPL-3.0-or-later')
-depends=('python' 'python-gobject' 'gtk3' 'librsvg' 'polkit')
-options=('!strip' '!debug')
+depends=('glibc' 'polkit')
+options=('strip' '!debug')
 package() {{
   cp -a "$startdir/payload/usr" "$pkgdir/"
 }}

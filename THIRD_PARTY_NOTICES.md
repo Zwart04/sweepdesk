@@ -14,4 +14,8 @@ The GNU GPL v3.0 or later (`GPL-3.0-or-later`) for SweepDesk covers its original
 
 Exact download URLs and SHA-256 hashes are in `assets/brands/sources.json`. Assets are bundled for offline use; SweepDesk does not download icons or contact these services while scanning.
 
+## Rust crates
+
+The application links the `iced`, `serde`, `serde_json`, `regex`, and `trash` crates with their transitive dependencies. `rust/Cargo.lock` records the exact versions. All of them are distributed under permissive licences (MIT, Apache-2.0, BSD, Zlib, or Unlicense); their copyright notices and licence texts remain with the upstream packages. Run `cargo metadata` or read the crate sources in the local Cargo registry for full texts.
+
 Icons loaded from the user's desktop theme, installed launchers, Flatpak exports, or ArtCraft installations remain under their original licenses. They are not copied into this repository.

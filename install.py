@@ -2,23 +2,22 @@
 # SPDX-FileCopyrightText: 2026 Zwart04
 # SPDX-License-Identifier: GPL-3.0-or-later
 # SweepDesk: see LICENSE for copying terms and warranty disclaimer.
-"""Install SweepDesk for the current user; never writes into a system prefix."""
+"""Install the Rust SweepDesk binary for the current user; never writes into a system prefix."""
 import argparse
 import os
 from pathlib import Path
-import shlex
-import shutil
+import subprocess
 import sys
+import shutil
 
 ROOT = Path(__file__).resolve().parent
 MARKER = '.sweepdesk-install'
-
+BINARY = ROOT/'rust/target/release/sweepdesk'
 
 def paths(prefix=None):
     base = Path(prefix).expanduser().absolute() if prefix else Path.home()/'.local'
     data = base/'share' if prefix else Path(os.environ.get('XDG_DATA_HOME', str(base/'share')))
     return data/'sweepdesk', base/'bin/sweepdesk', data/'applications/io.github.Zwart04.SweepDesk.desktop'
-
 
 def main():
     parser = argparse.ArgumentParser(description='Install or remove the per-user SweepDesk launcher')
@@ -32,7 +31,7 @@ def main():
         raise SystemExit('An install destination is a symbolic link. Nothing was changed.')
     if target.exists() and not (target/MARKER).is_file():
         raise SystemExit('Destination exists and is not marked as a SweepDesk installation: '+str(target))
-    if wrapper.exists() and '# Managed by SweepDesk' not in wrapper.read_text():
+    if wrapper.exists() and str(target) not in wrapper.read_text() and '# Managed by SweepDesk' not in wrapper.read_text():
         raise SystemExit('A different command already exists at '+str(wrapper))
     if desktop.exists() and 'X-SweepDesk-Managed=true' not in desktop.read_text():
         raise SystemExit('A different launcher already exists at '+str(desktop))
@@ -45,29 +44,26 @@ def main():
         desktop.unlink(missing_ok=True)
         print('SweepDesk uninstalled. The source folder and other applications were kept.')
         return
-    try:
-        import gi
-        gi.require_version('Gtk', '3.0')
-    except (ImportError, ValueError):
-        raise SystemExit('Install Python 3, PyGObject, and GTK 3 using your distribution package manager.')
+    if shutil.which('cargo') is None:
+        raise SystemExit('Install Rust (cargo) to build SweepDesk, or use the packaged build from the releases page.')
+    subprocess.run(['cargo', 'build', '--release', '--locked'], cwd=ROOT/'rust', check=True)
     target.mkdir(parents=True, exist_ok=True)
-    for name in ('sweepdesk.py', 'backend.py', 'native_packages.py', 'updater.py', 'python_probe.py', 'preferences.py', 'styles.py', 'ui_icons.py','i18n.py', 'README.md', 'README.id.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'):
+    shutil.copy2(BINARY, target/'sweepdesk')
+    (target/'sweepdesk').chmod(0o755)
+    for name in ('README.md', 'README.id.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'):
         shutil.copy2(ROOT/name, target/name)
     shutil.copytree(ROOT/'assets', target/'assets', dirs_exist_ok=True)
-    shutil.copytree(ROOT/'docs', target/'docs', dirs_exist_ok=True, ignore=shutil.ignore_patterns('local-preview.png'))
     (target/MARKER).write_text('Managed per-user SweepDesk installation\n')
     wrapper.parent.mkdir(parents=True, exist_ok=True)
-    wrapper.write_text('#!/bin/sh\n# Managed by SweepDesk\nexec '+shlex.quote(sys.executable)+' '+shlex.quote(str(target/'sweepdesk.py'))+' "$@"\n')
+    wrapper.write_text('#!/bin/sh\n# Managed by SweepDesk\nexec '+str(target/'sweepdesk')+' "$@"\n')
     wrapper.chmod(0o755)
     desktop.parent.mkdir(parents=True, exist_ok=True)
-    command = '"'+str(wrapper).replace('\\','\\\\').replace('"','\\"').replace('$','\\$').replace('`','\\`')+'"'
     desktop.write_text('[Desktop Entry]\nType=Application\nName=SweepDesk\n'
                        'Comment=Software inventory and reviewed uninstall for Linux desktops\n'
-                       'Exec='+command+'\nIcon='+str(target/'assets/sweepdesk.png')+'\n'
+                       'Exec='+str(wrapper)+'\nIcon='+str(target/'assets/sweepdesk.png')+'\n'
                        'Terminal=false\nCategories=System;PackageManager;\nStartupNotify=true\nStartupWMClass=io.github.Zwart04.SweepDesk\nX-SweepDesk-Managed=true\n')
     print('SweepDesk installed. Open it from your application menu.\nCommand: '+str(wrapper))
     print('Support Zwart04: https://tako.id/Zwart04')
-
 
 if __name__ == '__main__':
     main()
