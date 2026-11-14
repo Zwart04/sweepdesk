@@ -688,7 +688,7 @@ pub fn rpm_inventory() -> Vec<App> {
     let Ok(output) = run(&["rpm", "-qa", &format!("--qf={format}")], 90, true) else {
         return Vec::new();
     };
-    let identity = regex::Regex::new(r"^[A-Za-z0-9][A-Za-z0-9+_.~^-]*$").unwrap();
+    let identity = regex::Regex::new(r"^[A-Za-z0-9][A-Za-z0-9+_.~^:-]*$").unwrap();
     output
         .lines()
         .filter_map(|line| {
