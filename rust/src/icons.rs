@@ -9,10 +9,13 @@ use iced::widget::svg;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 
 const APP_GLYPH: &[u8] = include_bytes!("../../assets/ui/app-symbolic.svg");
 const TERMINAL_GLYPH: &[u8] = include_bytes!("../../assets/ui/terminal-symbolic.svg");
+static ICON_VERSION: AtomicU64 = AtomicU64::new(0);
+
 const SIZES: [&str; 7] = [
     "64x64", "48x48", "128x128", "32x32", "256x256", "512x512", "scalable",
 ];
@@ -43,6 +46,11 @@ impl Glyph {
             Glyph::Terminal => TERMINAL_GLYPH,
         }
     }
+}
+
+/// Bumped whenever new icons land in the cache, so views can rebuild only then.
+pub fn version() -> u64 {
+    ICON_VERSION.load(Ordering::Relaxed)
 }
 
 fn cache() -> &'static Mutex<HashMap<String, Icon>> {
@@ -139,7 +147,17 @@ fn load(path: &Path) -> Option<Icon> {
 }
 
 fn glyph(kind: Glyph) -> Icon {
-    Icon::Svg(svg::Handle::from_memory(kind.data()))
+    // Built once: a fresh handle would miss the svg raster cache every frame.
+    static APPLICATION: OnceLock<Icon> = OnceLock::new();
+    static TERMINAL: OnceLock<Icon> = OnceLock::new();
+    match kind {
+        Glyph::Application => APPLICATION
+            .get_or_init(|| Icon::Svg(svg::Handle::from_memory(kind.data())))
+            .clone(),
+        Glyph::Terminal => TERMINAL
+            .get_or_init(|| Icon::Svg(svg::Handle::from_memory(kind.data())))
+            .clone(),
+    }
 }
 
 /// Look up a cached icon without touching the filesystem; the glyph is used until
@@ -176,4 +194,5 @@ pub fn preload(names: Vec<String>) {
                 .or_insert_with(|| glyph(kind));
         }
     }
+    ICON_VERSION.fetch_add(1, Ordering::Relaxed);
 }

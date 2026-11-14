@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.4
+
+- Draw the interface with the GPU (`wgpu`) instead of the software rasterizer, and keep the software renderer as an automatic fallback when no usable graphics driver is present. Scrolling the inventory list no longer burns a full CPU core: the same scroll burst costs roughly four times less CPU here even with a software Vulkan driver, and far less on real hardware. The binary grows from 9.8 MB to 12.1 MB.
+- Build the inventory rows once per filter change instead of on every frame (`iced`'s lazy widget), so scrolling no longer rebuilds thousands of text widgets.
+- Stop rebuilding the window logo image on every frame. The header decoded a 900 kB PNG and re-rasterized a 1013×1013 bitmap for each redraw; it is now decoded once.
+- Reuse one handle per fallback icon glyph instead of allocating a new SVG handle per row per frame.
+
 ## 0.6.3
 
 - Draw application icons in the right place at fractional display scales (125%, 150%, 175%, 200% on HiDPI screens). The bundled SVG renderer scaled every icon twice and offset it by the scaled position, so logos drifted right and down and overlapped the text. Icons are now rasterized at the physical pixel size and blitted unscaled, which is also cheaper to draw.

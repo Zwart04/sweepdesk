@@ -1,6 +1,6 @@
 [package]
 name = "sweepdesk"
-version = "0.6.3"
+version = "0.6.4"
 edition = "2021"
 license = "GPL-3.0-or-later"
 description = "Software inventory and reviewed uninstall for Linux desktops"
@@ -10,7 +10,7 @@ name = "sweepdesk"
 path = "src/main.rs"
 
 [dependencies]
-iced = { version = "0.13", default-features = false, features = ["tiny-skia", "fira-sans", "image", "svg"] }
+iced = { version = "0.13", default-features = false, features = ["wgpu", "tiny-skia", "fira-sans", "image", "svg", "lazy"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 regex = "1"

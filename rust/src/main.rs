@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Zwart04
 // SPDX-License-Identifier: GPL-3.0-or-later
 // SweepDesk: see LICENSE for copying terms and warranty disclaimer.
-//! SweepDesk 0.6.3 — native software inventory and reviewed uninstall.
+//! SweepDesk 0.6.4 — native software inventory and reviewed uninstall.
 
 mod catalogue;
 mod i18n;
@@ -19,6 +19,7 @@ mod tests;
 
 use i18n::tr;
 use iced::widget::{
+    lazy,
     button, checkbox, column, container, horizontal_space, image, row, scrollable, svg, text,
     text_input, vertical_space, Column,
 };
@@ -28,8 +29,9 @@ use iced::{
 use model::App;
 use model::Plan;
 use prefs::Preferences;
+use std::rc::Rc;
 
-const VERSION: &str = "0.6.3";
+const VERSION: &str = "0.6.4";
 const LOGO: &[u8] = include_bytes!("../../assets/sweepdesk.png");
 const SUPPORT_URL: &str = "https://tako.id/Zwart04";
 const RELEASE_URL: &str = "https://github.com/Zwart04/sweepdesk/releases/latest";
@@ -105,10 +107,22 @@ enum UpdatePhase {
     Failed(String),
 }
 
+/// One inventory row, materialized once per filter change so the list widget
+/// can be built lazily instead of rebuilding thousands of rows every frame.
+#[derive(Debug, Clone)]
+struct Row {
+    index: usize,
+    name: String,
+    subtitle: String,
+    size: String,
+    icon: String,
+    cli: bool,
+}
+
 struct SweepDesk {
     prefs: Preferences,
     apps: Vec<App>,
-    filtered: Vec<usize>,
+    rows: Rc<Vec<Row>>,
     search: String,
     category: Category,
     source: Option<String>,
@@ -178,7 +192,8 @@ fn size_label(size: u64) -> String {
 impl SweepDesk {
     fn refilter(&mut self) {
         let query = self.search.trim().to_lowercase();
-        self.filtered = self
+        self.rows = Rc::new(
+        self
             .apps
             .iter()
             .enumerate()
@@ -210,8 +225,16 @@ impl SweepDesk {
                 );
                 haystack.contains(&query)
             })
-            .map(|(index, _)| index)
-            .collect();
+            .map(|(index, app)| Row {
+                index,
+                name: app.name.clone(),
+                subtitle: format!("{} · {}", app.package, app.source),
+                size: size_label(app.size),
+                icon: app.icon.clone(),
+                cli: is_cli(app),
+            })
+            .collect(),
+        );
     }
 
     fn selected_app(&self) -> Option<&App> {
@@ -297,39 +320,21 @@ impl SweepDesk {
                 .padding(24)
                 .into();
         }
-        if self.filtered.is_empty() {
+        if self.rows.is_empty() {
             return container(text(tr("Try another search or choose a different source.")).size(13).style(muted))
                 .padding(24)
                 .into();
         }
-        let mut rows = Column::new().spacing(2).padding(Padding { right: 8.0, ..Padding::ZERO });
-        for index in &self.filtered {
-            let Some(app) = self.apps.get(*index) else {
-                continue;
-            };
-            let active = self.selected == Some(*index);
-            let subtitle = format!("{} · {}", app.package, app.source);
-            let body = row![
-                app_icon(app, 26.0),
-                column![
-                    text(&app.name).size(13),
-                    text(subtitle).size(11).style(muted),
-                ]
-                .spacing(2)
-                .width(Length::Fill),
-                text(size_label(app.size)).size(11).style(muted),
-            ]
-            .align_y(Alignment::Center)
-            .spacing(10);
-            rows = rows.push(
-                button(body)
-                    .on_press(Message::Select(*index))
-                    .width(Length::Fill)
-                    .padding([6, 10])
-                    .style(move |theme, status| row_style(theme, status, active)),
-            );
-        }
-        scrollable(rows).height(Length::Fill).style(scroll_style).into()
+        let rows = Rc::clone(&self.rows);
+        let selected = self.selected;
+        let list = lazy(
+            (rows.len(), selected, icons::version()),
+            move |_| rows_view(Rc::clone(&rows), selected),
+        );
+        scrollable(list)
+            .height(Length::Fill)
+            .style(scroll_style)
+            .into()
     }
 
     fn details(&self) -> Element<'_, Message> {
@@ -623,7 +628,7 @@ impl SweepDesk {
 
     fn view(&self) -> Element<'_, Message> {
         let brand = row![
-            image(image::Handle::from_bytes(LOGO.to_vec()))
+            image(logo())
                 .width(Length::Fixed(26.0))
                 .height(Length::Fixed(26.0))
                 .content_fit(ContentFit::Contain),
@@ -751,7 +756,7 @@ impl SweepDesk {
                         .on_press(Message::OpenSupport)
                         .padding([3, 8])
                         .style(ghost_button),
-                    text(items_label(self.filtered.len())).size(10).style(muted),
+                    text(items_label(self.rows.len())).size(10).style(muted),
                 ]
                 .spacing(10)
                 .align_y(Alignment::Center)
@@ -1183,13 +1188,51 @@ impl SweepDesk {
     }
 }
 
-fn app_icon(app: &App, size: f32) -> Element<'_, Message> {
-    let kind = if is_cli(app) {
+/// Builds the whole inventory list. Only runs when the filter, the selection,
+/// or the icon cache change; scrolling reuses the cached widget tree.
+fn rows_view(rows: Rc<Vec<Row>>, selected: Option<usize>) -> Element<'static, Message> {
+    let mut list = Column::new().spacing(2).padding(Padding { right: 8.0, ..Padding::ZERO });
+    for row in rows.iter() {
+        let active = selected == Some(row.index);
+        let body = row![
+            row_icon(row, 26.0),
+            column![
+                text(row.name.clone()).size(13),
+                text(row.subtitle.clone()).size(11).style(muted),
+            ]
+            .spacing(2)
+            .width(Length::Fill),
+            text(row.size.clone()).size(11).style(muted),
+        ]
+        .align_y(Alignment::Center)
+        .spacing(10);
+        let index = row.index;
+        list = list.push(
+            button(body)
+                .on_press(Message::Select(index))
+                .width(Length::Fill)
+                .padding([6, 10])
+                .style(move |theme, status| row_style(theme, status, active)),
+        );
+    }
+    list.into()
+}
+
+fn row_icon(row: &Row, size: f32) -> Element<'static, Message> {
+    icon_element(&row.icon, row.cli, size)
+}
+
+fn app_icon(app: &App, size: f32) -> Element<'static, Message> {
+    icon_element(&app.icon, is_cli(app), size)
+}
+
+fn icon_element(name: &str, cli: bool, size: f32) -> Element<'static, Message> {
+    let kind = if cli {
         icons::Glyph::Terminal
     } else {
         icons::Glyph::Application
     };
-    match icons::cached(&app.icon, kind) {
+    match icons::cached(name, kind) {
         icons::Icon::Svg(handle) => svg(handle)
             .width(Length::Fixed(size))
             .height(Length::Fixed(size))
@@ -1201,6 +1244,15 @@ fn app_icon(app: &App, size: f32) -> Element<'_, Message> {
             .content_fit(ContentFit::Contain)
             .into(),
     }
+}
+
+/// The window logo is decoded once; rebuilding the handle each frame re-read a
+/// 900 kB PNG and re-rasterized a 1013×1013 image on every redraw.
+fn logo() -> image::Handle {
+    static HANDLE: std::sync::OnceLock<image::Handle> = std::sync::OnceLock::new();
+    HANDLE
+        .get_or_init(|| image::Handle::from_bytes(LOGO.to_vec()))
+        .clone()
 }
 
 fn items_label(count: usize) -> String {
@@ -1271,7 +1323,7 @@ fn main() -> iced::Result {
     let mut state = SweepDesk {
         prefs,
         apps: Vec::new(),
-        filtered: Vec::new(),
+        rows: Rc::new(Vec::new()),
         search: String::new(),
         category: Category::All,
         source: None,
