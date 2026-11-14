@@ -9,11 +9,7 @@
 - Move libraries, release/update, and packaging commands to Cargo and `scripts/build.py`. Packages are now `amd64`, `x86_64`, and `x86_64` instead of `all/noarch/any`.
 - Replace the in-app update installer with a **Check for Updates** button that opens the releases page.
 - Refresh both preview screenshots from the Rust interface and remove the obsolete update-dialog screenshots.
-
-## 0.5.8
-
-- Replace the app icon with the new penguin-in-a-bin artwork across the window, desktop entry, hicolor PNG sizes, website, and README.
-- Update preview screenshots with the new icon.
+- Ship the new penguin-in-a-bin artwork across the window icon, desktop entry, hicolor PNG sizes, website, and README.
 
 ## 0.5.7
 

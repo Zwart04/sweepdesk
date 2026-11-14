@@ -30,11 +30,11 @@ jobs:
           docker run --rm -e SWEEPDESK_DISPOSABLE_CI=1 -e FAMILY -v "$PWD:/workspace" -w /workspace "$IMAGE" sh -ec '
             case "$FAMILY" in
               fedora)
-                dnf -y install python3 git rust cargo rpm-build desktop-file-utils shadow-utils
+                dnf -y install python3 git rust cargo gcc rpm-build desktop-file-utils shadow-utils
                 ;;
               suse)
                 zypper --non-interactive refresh
-                zypper --non-interactive install python3 git rust cargo rpm-build desktop-file-utils shadow
+                zypper --non-interactive install python3 git rust cargo gcc rpm-build desktop-file-utils shadow
                 ;;
               arch)
                 pacman -Syu --noconfirm python git rust cargo base-devel desktop-file-utils shadow
